@@ -1,0 +1,54 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Resume } from '@/types';
+import * as resumeService from '@/services/resume.service';
+
+export const resumeKeys = {
+  all: ['resumes'] as const,
+  lists: () => [...resumeKeys.all, 'list'] as const,
+  list: (userId: string) => [...resumeKeys.lists(), userId] as const,
+};
+
+export function useResumes(userId: string) {
+  return useQuery({
+    queryKey: resumeKeys.list(userId),
+    queryFn: () => resumeService.getResumes(userId),
+    enabled: !!userId
+  });
+}
+
+export function useUploadResume() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, file }: { userId: string; file: File }) =>
+      resumeService.uploadResume(userId, file),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
+    }
+  });
+}
+
+export function useSetDefaultResume() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, resumeId }: { userId: string; resumeId: string }) =>
+      resumeService.setDefaultResume(userId, resumeId),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
+    }
+  });
+}
+
+export function useDeleteResume() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, resumeId }: { userId: string; resumeId: string }) =>
+      resumeService.deleteResume(userId, resumeId),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
+    }
+  });
+}
+
