@@ -7,7 +7,7 @@ import { useJobs } from '@/modules/jobs/hooks';
 import { useCompanyApplications } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { Link } from 'react-router-dom';
-import { Briefcase, Users, FileText, TrendingUp, ArrowRight, Plus } from 'lucide-react';
+import { Briefcase, Users, FileText, ArrowRight, Plus } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export function RecruiterDashboardPage() {

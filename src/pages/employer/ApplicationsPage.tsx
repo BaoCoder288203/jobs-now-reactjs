@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';

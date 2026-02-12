@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +27,7 @@ const jobSchema = z.object({
   experience_level: z.enum(['entry', 'mid', 'senior', 'executive']).optional(),
   industry_id: z.string().optional(),
   category_id: z.string().optional(),
-  status: z.enum(['open', 'closed']).default('open')
+  status: z.enum(['open', 'closed'])
 });
 
 type JobFormData = z.infer<typeof jobSchema>;
