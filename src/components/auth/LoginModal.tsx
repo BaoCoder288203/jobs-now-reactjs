@@ -157,9 +157,8 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
         phone: registerData.phone
       })).unwrap();
       
-      const roleName = mode === 'job_seeker' ? 'job-seeker' : 'employer';
       onOpenChange(false);
-      navigate(`/${roleName}/dashboard`, { replace: true });
+      navigate(mode === 'job_seeker' ? '/user/dashboard' : '/employer/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
@@ -193,8 +192,7 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
       })).unwrap();
       
       onOpenChange(false);
-      const roleName = mode === 'job_seeker' ? 'job-seeker' : 'employer';
-      navigate(`/${roleName}/dashboard`, { replace: true });
+      navigate(mode === 'job_seeker' ? '/user/dashboard' : '/employer/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
@@ -557,21 +555,23 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
           </div>
 
           {/* Right: Promotional Banner */}
-          <div className="hidden md:block bg-gradient-to-br from-primary/20 to-accent/20 p-8 flex items-center justify-center">
-            <div className="text-center">
+          <div className="flex flex-col justify-content-center align-items-center hidden md:block bg-gradient-to-br from-primary/20 to-accent/20 p-8 flex items-center justify-center">
+            <div className="h-full flex flex-col justify-center align-center text-center">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  ỨNG TUYỂN 1 CHẠM
+                </h3>
+                <p className="text-gray-600 mb-4">MỌI LÚC MỌI NƠI</p>
+                {/* Hiển thị text theo mode */}
+                <p className="text-sm text-gray-500">
+                  Dành cho {modeText}
+                </p>
+              </div>
               <img 
                 src="/logo/logo_header.png" 
                 alt="JobsNow Logo" 
-                className="h-12 w-auto mx-auto mb-4"
+                className="w-full mx-auto mb-4"
               />
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                ỨNG TUYỂN 1 CHẠM
-              </h3>
-              <p className="text-gray-600 mb-4">MỌI LÚC MỌI NƠI</p>
-              {/* Hiển thị text theo mode */}
-              <p className="text-sm text-gray-500">
-                Dành cho {modeText}
-              </p>
             </div>
           </div>
         </div>

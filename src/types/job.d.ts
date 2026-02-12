@@ -22,15 +22,17 @@ export interface Job {
   salary_min?: number;
   salary_max?: number;
   location?: string;
-  job_type?: string; // full-time, part-time, remote
+  job_type?: string;
   experience_level?: string;
   industry_id?: string;
   category_id?: string;
-  status: string; // open, closed
+  status: string;
   expired_at?: string;
   created_at: string;
   updated_at: string;
-  
+  thumbnail_url?: string;
+  benefits?: string[];
+
   company?: Company;
   industry?: Industry;
   category?: JobCategory;

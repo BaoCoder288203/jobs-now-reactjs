@@ -3,7 +3,6 @@ import { delay } from './auth.mock';
 import { 
   mockResumes, 
   getResumesByProfileId,
-  getPrimaryResumeByProfileId 
 } from '../data/profiles.mock';
 import { getProfileByUserId } from '../data/profiles.mock';
 
@@ -53,6 +52,15 @@ export async function mockUploadResume(
     file_name: file.name,
     is_default: !hasDefault, // First resume is default
     created_at: new Date().toISOString(),
+    type: 'UPLOADED',
+    is_ai_generated: false,
+    extracted_text: JSON.stringify({
+      headline: '',
+      summary: `CV được trích xuất từ file ${file.name}`,
+      work_experiences: [],
+      educations: [],
+      skills: [],
+    }),
     profile
   };
   

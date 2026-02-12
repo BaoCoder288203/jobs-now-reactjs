@@ -41,6 +41,8 @@ export const mockResumes: Resume[] = [
     file_name: 'john-doe-resume.pdf',
     is_default: true,
     created_at: '2024-01-15T00:00:00Z',
+    type: 'UPLOADED',
+    is_ai_generated: false,
     profile: mockJobSeekerProfiles[0]
   },
   {
@@ -50,6 +52,37 @@ export const mockResumes: Resume[] = [
     file_name: 'jane-smith-resume.pdf',
     is_default: true,
     created_at: '2024-02-01T00:00:00Z',
+    type: 'CREATED',
+    is_ai_generated: true,
+    extracted_text: JSON.stringify({
+      headline: 'Frontend Developer',
+      summary: 'Frontend developer passionate about React and TypeScript. Love creating beautiful user interfaces.',
+      work_experiences: [
+        {
+          company: 'StartupXYZ',
+          position: 'Frontend Developer',
+          start_date: '2021',
+          end_date: '2024',
+          description: 'Developed responsive web applications using React and TypeScript.',
+        },
+      ],
+      educations: [
+        {
+          school: 'Đại học ABC',
+          major: 'Công nghệ thông tin',
+          degree: 'Cử nhân',
+          start_date: '2017',
+          end_date: '2021',
+        },
+      ],
+      skills: [
+        { name: 'React', level: 'intermediate' },
+        { name: 'JavaScript', level: 'advanced' },
+      ],
+      projects: [],
+      languages: [],
+      certificates: [],
+    }),
     profile: mockJobSeekerProfiles[1]
   }
 ];

@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Application } from '@/types';
 import * as applicationService from '@/services/application.service';
 import { jobKeys } from '../jobs/hooks';
 

@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { useCompanyApplications, useUpdateApplicationStatus } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { FileText, User, Calendar, MapPin, Download, Eye } from 'lucide-react';
+import { FileText, User, Calendar, Download, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function EmployerApplicationsPage() {
-  const { user } = useAppSelector((state) => state.auth);
+  // const { user } = useAppSelector((state) => state.auth);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Lấy company của recruiter hiện tại

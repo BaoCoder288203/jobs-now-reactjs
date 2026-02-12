@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/app/hooks';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { JobSeekerSidebar } from '@/components/layout/JobSeekerSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,7 +61,7 @@ export function JobSeekerSettingsPage() {
   };
 
   return (
-    <DashboardLayout sidebar={<JobSeekerSidebar />}>
+    <div className="p-6">
       <div className="space-y-6 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
@@ -217,7 +215,7 @@ export function JobSeekerSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 

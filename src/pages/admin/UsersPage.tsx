@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Users, Search, Edit2, Shield, Mail, Calendar } from 'lucide-react';
+import { Users, Search, Edit2, Mail } from 'lucide-react';
 import { mockUsers } from '@/mocks/data/users.mock';
 
 export function AdminUsersPage() {

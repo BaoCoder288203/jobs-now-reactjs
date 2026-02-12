@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Briefcase } from 'lucide-react';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 
 export function Footer() {
+  const { openLoginModal } = useAuthModal();
+  
   return (
     <footer className="border-t border-gray-800" style={{ backgroundColor: '#0d0d1f' }}>
       <div className="container mx-auto px-4 py-12">
@@ -39,9 +41,12 @@ export function Footer() {
             <h3 className="font-semibold text-white mb-4">Dành cho nhà tuyển dụng</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               <li>
-                <Link to="/auth/register" className="hover:text-white transition-colors">
+                <button 
+                  onClick={() => openLoginModal('employer')}
+                  className="hover:text-white transition-colors text-left"
+                >
                   Đăng tin tuyển dụng
-                </Link>
+                </button>
               </li>
               <li>
                 <Link to="/companies" className="hover:text-white transition-colors">

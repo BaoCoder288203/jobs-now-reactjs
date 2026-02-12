@@ -11,7 +11,11 @@ import {
   ChevronRight,
   User,
   Shield,
-  LockKeyhole
+  Settings,
+  LayoutDashboard,
+  FileText,
+  Bookmark,
+  UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -146,18 +150,50 @@ export function UserDropdown() {
               </div>
             </Link>
 
-            {/* Tạo CV - Only for Job Seeker */}
+            {/* Tổng quan - Only for Job Seeker */}
             {isJobSeeker && (
               <Link
-                to="/job-seeker/resumes"
+                to="/user/dashboard"
                 className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                  <Sparkles className="h-4 w-4 text-gray-600" />
+                  <LayoutDashboard className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-sm text-gray-900">Tạo CV</p>
+                  <p className="font-medium text-sm text-gray-900">Tổng quan</p>
+                </div>
+              </Link>
+            )}
+
+            {/* Hồ sơ - Only for Job Seeker */}
+            {isJobSeeker && (
+              <Link
+                to="/user/profile"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                  <UserCircle className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-gray-900">Hồ sơ</p>
+                </div>
+              </Link>
+            )}
+
+            {/* CV của tôi - Only for Job Seeker */}
+            {isJobSeeker && (
+              <Link
+                to="/user/resumes"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                  <FileText className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-gray-900">CV của tôi</p>
                 </div>
               </Link>
             )}
@@ -187,7 +223,7 @@ export function UserDropdown() {
                 {isJobMenuOpen && (
                   <div className="bg-gray-50">
                     <Link
-                      to="/job-seeker/applications"
+                      to="/user/applications"
                       className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         setIsOpen(false);
@@ -198,7 +234,7 @@ export function UserDropdown() {
                       <span className="text-sm text-gray-900">Việc làm đã ứng tuyển</span>
                     </Link>
                     <Link
-                      to="/job-seeker/saved-jobs"
+                      to="/user/saved-jobs"
                       className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         setIsOpen(false);
@@ -209,7 +245,7 @@ export function UserDropdown() {
                       <span className="text-sm text-gray-900">Việc làm đã lưu</span>
                     </Link>
                     <Link
-                      to="/job-seeker/saved-jobs"
+                      to="/user/saved-jobs"
                       className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         setIsOpen(false);
@@ -220,7 +256,7 @@ export function UserDropdown() {
                       <span className="text-sm text-gray-900">Việc làm chờ ứng tuyển</span>
                     </Link>
                     <Link
-                      to="/job-seeker/profile"
+                      to="/user/profile"
                       className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         setIsOpen(false);
@@ -296,18 +332,18 @@ export function UserDropdown() {
             {/* Divider */}
             <div className="border-t border-gray-200 my-1"></div>
 
-            {/* Bảo mật / Cài đặt tài khoản - Link đến /user/sessions cho tất cả users */}
+            {/* Cài đặt - Link đến /user/settings cho tất cả users */}
             <div className="px-2">
               <Link
-                to="/user/sessions"
+                to="/user/settings"
                 className="flex items-center gap-3 px-2 py-2 hover:bg-gray-50 rounded transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                  <LockKeyhole className="h-4 w-4 text-gray-600" />
+                  <Settings className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-medium text-sm text-gray-900">Bảo mật</p>
+                  <p className="font-medium text-sm text-gray-900">Cài đặt</p>
                 </div>
               </Link>
               <button

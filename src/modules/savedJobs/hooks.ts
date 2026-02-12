@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { SavedJob } from '@/types';
 import * as savedJobService from '@/services/savedJob.service';
 import { jobKeys } from '../jobs/hooks';
 
@@ -23,7 +22,7 @@ export function useSaveJob() {
   return useMutation({
     mutationFn: ({ userId, jobId }: { userId: string; jobId: string }) =>
       savedJobService.saveJob(userId, jobId),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: savedJobKeys.list(variables.userId) });
       queryClient.invalidateQueries({ queryKey: jobKeys.detail(variables.jobId) });
     }
@@ -36,7 +35,7 @@ export function useUnsaveJob() {
   return useMutation({
     mutationFn: ({ userId, jobId }: { userId: string; jobId: string }) =>
       savedJobService.unsaveJob(userId, jobId),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: savedJobKeys.list(variables.userId) });
       queryClient.invalidateQueries({ queryKey: jobKeys.detail(variables.jobId) });
     }

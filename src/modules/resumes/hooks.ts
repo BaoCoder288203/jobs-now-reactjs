@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Resume } from '@/types';
 import * as resumeService from '@/services/resume.service';
 
 export const resumeKeys = {
@@ -22,7 +21,7 @@ export function useUploadResume() {
   return useMutation({
     mutationFn: ({ userId, file }: { userId: string; file: File }) =>
       resumeService.uploadResume(userId, file),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
     }
   });
@@ -34,7 +33,7 @@ export function useSetDefaultResume() {
   return useMutation({
     mutationFn: ({ userId, resumeId }: { userId: string; resumeId: string }) =>
       resumeService.setDefaultResume(userId, resumeId),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
     }
   });
@@ -46,7 +45,7 @@ export function useDeleteResume() {
   return useMutation({
     mutationFn: ({ userId, resumeId }: { userId: string; resumeId: string }) =>
       resumeService.deleteResume(userId, resumeId),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
     }
   });

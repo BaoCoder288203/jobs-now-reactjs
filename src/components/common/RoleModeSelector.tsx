@@ -6,9 +6,11 @@ type RoleMode = 'job_seeker' | 'employer';
 
 interface RoleModeSelectorProps {
   onModeChange?: (mode: RoleMode) => void;
+  /** Thu gọn: chỉ hiện icon, ẩn text "Dành cho" / "Người tìm việc" */
+  compact?: boolean;
 }
 
-export function RoleModeSelector({ onModeChange }: RoleModeSelectorProps) {
+export function RoleModeSelector({ onModeChange, compact = false }: RoleModeSelectorProps) {
   const [mode, setMode] = useState<RoleMode>('job_seeker');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -35,22 +37,25 @@ export function RoleModeSelector({ onModeChange }: RoleModeSelectorProps) {
           <p className="text-sm font-medium text-gray-900">Đăng nhập / Đăng ký</p>
         </button>
 
-        {/* Right Side: Logo + "Dành cho..." - Click to change mode */}
+        {/* Right Side: Logo + "Dành cho..." - Click to change mode. compact = chỉ icon */}
         <button
           onClick={() => handleModeChange(mode === 'job_seeker' ? 'employer' : 'job_seeker')}
-          className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className={`flex items-center rounded-lg hover:bg-gray-100 transition-colors ${compact ? 'p-2' : 'gap-2 px-3 py-2'}`}
+          title={compact ? (mode === 'job_seeker' ? 'Người tìm việc' : 'Nhà tuyển dụng') : undefined}
         >
           {mode === 'employer' ? (
             <Briefcase className="h-6 w-6 text-gray-900" />
           ) : (
             <Users className="h-6 w-6 text-gray-900" />
           )}
-          <div className="text-left">
-            <p className="text-xs font-medium text-gray-500">Dành cho</p>
-            <p className="text-sm font-medium text-gray-900">
-              {mode === 'job_seeker' ? 'Người tìm việc' : 'Nhà tuyển dụng'}
-            </p>
-          </div>
+          {!compact && (
+            <div className="text-left">
+              <p className="text-xs font-medium text-gray-500">Dành cho</p>
+              <p className="text-sm font-medium text-gray-900">
+                {mode === 'job_seeker' ? 'Người tìm việc' : 'Nhà tuyển dụng'}
+              </p>
+            </div>
+          )}
         </button>
       </div>
 
