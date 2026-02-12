@@ -1,5 +1,4 @@
 import { useParams, Link } from 'react-router-dom';
-import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

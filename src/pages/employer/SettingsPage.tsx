@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { logoutAsync } from '@/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Lock, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 export function EmployerSettingsPage() {
   const { user } = useAppSelector((state) => state.auth);

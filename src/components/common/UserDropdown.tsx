@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { logoutAsync } from '@/auth/authSlice';
 import {
-  Sparkles,
   Briefcase,
   Bell,
   LogOut,
@@ -14,7 +13,6 @@ import {
   Settings,
   LayoutDashboard,
   FileText,
-  Bookmark,
   UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

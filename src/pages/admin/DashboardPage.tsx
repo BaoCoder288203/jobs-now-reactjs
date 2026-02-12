@@ -1,4 +1,3 @@
-import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

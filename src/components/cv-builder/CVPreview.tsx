@@ -5,7 +5,7 @@ interface CVPreviewProps {
   onDataChange?: (data: ExtractedCVData) => void;
 }
 
-export function CVPreview({ data, onDataChange }: CVPreviewProps) {
+export function CVPreview({ data }: CVPreviewProps) {
   return (
     <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-8 border">
       <h3 className="text-xl font-bold text-gray-900">{data.headline ?? 'CV'}</h3>

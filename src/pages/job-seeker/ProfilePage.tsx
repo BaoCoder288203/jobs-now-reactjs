@@ -204,38 +204,38 @@ export function JobSeekerProfilePage() {
               <>
                 <div>
                   <Label className="text-sm text-gray-500">Headline</Label>
-                  <p className="text-lg font-medium mt-1">{profile.headline || 'Not set'}</p>
+                  <p className="text-lg font-medium mt-1">{profile?.headline || 'Not set'}</p>
                 </div>
 
                 <div>
                   <Label className="text-sm text-gray-500">Summary</Label>
-                  <p className="mt-1 text-gray-700">{profile.summary || 'Not set'}</p>
+                  <p className="mt-1 text-gray-700">{profile?.summary || 'Not set'}</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm text-gray-500">Current Position</Label>
-                    <p className="mt-1">{profile.current_position || 'Not set'}</p>
+                    <p className="mt-1">{profile?.current_position || 'Not set'}</p>
                   </div>
 
                   <div>
                     <Label className="text-sm text-gray-500">Years of Experience</Label>
-                    <p className="mt-1">{profile.years_experience || 'Not set'}</p>
+                    <p className="mt-1">{profile?.years_experience || 'Not set'}</p>
                   </div>
 
                   <div>
                     <Label className="text-sm text-gray-500">Education Level</Label>
-                    <p className="mt-1 capitalize">{profile.education_level || 'Not set'}</p>
+                    <p className="mt-1 capitalize">{profile?.education_level || 'Not set'}</p>
                   </div>
 
                   <div>
                     <Label className="text-sm text-gray-500">Gender</Label>
-                    <p className="mt-1 capitalize">{profile.gender || 'Not set'}</p>
+                    <p className="mt-1 capitalize">{profile?.gender || 'Not set'}</p>
                   </div>
 
                   <div>
                     <Label className="text-sm text-gray-500">Date of Birth</Label>
-                    <p className="mt-1">{profile.date_of_birth || 'Not set'}</p>
+                    <p className="mt-1">{profile?.date_of_birth || 'Not set'}</p>
                   </div>
                 </div>
               </>
