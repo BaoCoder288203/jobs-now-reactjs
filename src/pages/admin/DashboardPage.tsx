@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { useJobs } from '@/modules/jobs/hooks';
 import { useCompanies } from '@/modules/companies/hooks';
 import { Link } from 'react-router-dom';
-import { Users, Building2, Briefcase, Sparkles, ArrowRight, TrendingUp } from 'lucide-react';
+import { Users, Building2, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
 
 export function AdminDashboardPage() {
-  const { user } = useAppSelector((state) => state.auth);
+  // const { user } = useAppSelector((state) => state.auth);
 
   const { data: jobsData } = useJobs({ limit: 10 });
   const { data: companiesData } = useCompanies({ limit: 10 });
@@ -105,7 +105,7 @@ export function AdminDashboardPage() {
                         {company.name}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {company.industry?.name} • {company.location}
+                        {company.industry?.name} • {company.address}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Tạo ngày {new Date(company.created_at).toLocaleDateString('vi-VN')}

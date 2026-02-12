@@ -1,6 +1,4 @@
 import { useAppSelector } from '@/app/hooks';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { JobSeekerSidebar } from '@/components/layout/JobSeekerSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useMyApplications } from '@/modules/applications/hooks';
@@ -33,21 +31,10 @@ export function JobSeekerApplicationsPage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <DashboardLayout sidebar={<JobSeekerSidebar />}>
-        <div className="flex justify-center py-12">
-          <LoadingSpinner size="lg" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   const applications = applicationsData || [];
 
-  return (
-    <DashboardLayout sidebar={<JobSeekerSidebar />}>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
           <p className="text-gray-600 mt-1">
@@ -124,8 +111,19 @@ export function JobSeekerApplicationsPage() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </DashboardLayout>
+    </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="p-6">{content}</div>;
 }
 

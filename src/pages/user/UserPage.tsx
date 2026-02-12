@@ -1,12 +1,20 @@
-import { User, LockKeyhole } from "lucide-react";
+import { User, LayoutDashboard, Briefcase, FileText, Bookmark, UserCircle, Settings } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { Navigate, NavLink, Outlet } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
-const navigationItems = [
+const commonItems = [
   { title: "Thông tin", icon: User, href: "info" },
-  { title: "Bảo mật", icon: LockKeyhole, href: "sessions" },
+];
+
+const jobSeekerItems = [
+  { title: "Tổng quan", icon: LayoutDashboard, href: "dashboard" },
+  { title: "Hồ sơ", icon: UserCircle, href: "profile" },
+  { title: "Ứng tuyển", icon: Briefcase, href: "applications" },
+  { title: "CV của tôi", icon: FileText, href: "resumes" },
+  { title: "Việc làm đã lưu", icon: Bookmark, href: "saved-jobs" },
+  { title: "Cài đặt", icon: Settings, href: "settings" },
 ];
 
 export default function UserPage() {
@@ -14,11 +22,17 @@ export default function UserPage() {
 
   if (!isAuthenticated || !user) return <Navigate to="/" replace />;
 
+  const roleName = user?.role?.name?.toLowerCase() || '';
+  const isJobSeeker = roleName === 'job_seeker';
+  const navigationItems = isJobSeeker 
+    ? [...commonItems, ...jobSeekerItems]
+    : commonItems;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex flex-1 bg-gray-100 p-4">
-      {/* Sidebar */}
+      {/* Sidebar - luôn hiển thị */}
       <div
         className="hidden w-64 transform rounded-lg bg-white shadow-lg lg:block"
         style={{ height: "fit-content", maxHeight: "80vh" }}

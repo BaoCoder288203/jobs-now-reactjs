@@ -1,6 +1,31 @@
 import type { User } from './user.d';
 import type { Skill } from './skill.d';
 
+// Cấu trúc JSON lưu trong extracted_text
+export interface ExtractedCVData {
+  headline?: string;
+  summary?: string;
+  work_experiences: {
+    company: string;
+    position: string;
+    start_date?: string;
+    end_date?: string;
+    is_current?: boolean;
+    description?: string;
+  }[];
+  educations: {
+    school: string;
+    major: string;
+    degree: string;
+    start_date?: string;
+    end_date?: string;
+  }[];
+  skills: { name: string; level?: string }[];
+  projects?: { name: string; description?: string; technologies?: string[] }[];
+  languages?: { name: string; proficiency: string }[];
+  certificates?: { name: string; issuer: string; issue_date?: string }[];
+}
+
 export interface JobSeekerProfile {
   id: string;
   user_id: string;
@@ -26,6 +51,9 @@ export interface Resume {
   file_name: string;
   is_default: boolean;
   created_at: string;
+  type?: 'UPLOADED' | 'CREATED';
+  is_ai_generated?: boolean;
+  extracted_text?: string;
   
   profile?: JobSeekerProfile;
 }

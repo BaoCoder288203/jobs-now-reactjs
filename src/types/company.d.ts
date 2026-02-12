@@ -5,7 +5,11 @@ export interface Company {
   id: string;
   name: string;
   logo_url?: string;
+  banner_url?: string;
   description?: string;
+  slogan?: string;
+  category?: string;
+  thumbnail_images?: string[];
   website?: string;
   company_size?: string;
   address?: string;

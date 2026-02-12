@@ -7,12 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { useApplicationDetail, useUpdateApplicationStatus } from '@/modules/applications/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, User, Calendar, Download, Mail, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin } from 'lucide-react';
 
 export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAppSelector((state) => state.auth);
+  // const { user } = useAppSelector((state) => state.auth);
   
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();

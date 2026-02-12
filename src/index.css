@@ -24,23 +24,12 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #ffffff;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   line-height: 1.2;
-  color: #111827;
-}
-
-a {
-  font-weight: 500;
-  color: #81d1f3;
-  text-decoration: inherit;
-  transition: color 0.2s;
-}
-
-a:hover {
-  color: #5bb8e8;
 }
 
 .prose {
@@ -103,4 +92,37 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Infinite scroll cho Featured Companies */
+@keyframes featured-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-featured-scroll {
+  animation: featured-scroll 45s linear infinite;
+}
+
+@theme {
+  --color-primary: #81d1f3;
+  --color-primary-dark: #5bb8e8;
+  --color-primary-light: #a8dcf6;
+
+  --animate-phone-ring: phone-ring 1.5s ease-in-out infinite;
+  --animate-phone-bg-pulse: phone-bg-pulse 2s ease-in-out infinite;
+  --animate-phone-ping: phone-ping 2s ease-out infinite;
+
+  @keyframes phone-ring {
+    0%, 100% { transform: rotate(0deg); }
+    10%, 30%, 50%, 70%, 90% { transform: rotate(-8deg); }
+    20%, 40%, 60%, 80% { transform: rotate(8deg); }
+  }
+  @keyframes phone-bg-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.85; }
+  }
+  @keyframes phone-ping {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
 }

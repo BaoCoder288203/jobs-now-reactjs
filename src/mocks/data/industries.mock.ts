@@ -73,9 +73,9 @@ export function getJobCategories(): JobCategory[] {
   return mockJobCategories;
 }
 
-export function getJobCategoriesByIndustryId(industryId: string): JobCategory[] {
-  return mockJobCategories;
-}
+// export function getJobCategoriesByIndustryId(industryId: string): JobCategory[] {
+//   return mockJobCategories;
+// }
 
 export function getJobCategoryById(id: string): JobCategory | null {
   return mockJobCategories.find(c => c.id === id) || null;

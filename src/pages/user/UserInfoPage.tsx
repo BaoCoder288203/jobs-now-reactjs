@@ -1,14 +1,43 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAppSelector } from "@/app/hooks";
+import { Input } from "@/components/ui/input";
+import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { setUser } from "@/auth/authSlice";
 import { Camera, Mail, Phone, User as UserIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function UserInfoPage() {
   const { user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
   const [isEditing, setIsEditing] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.full_name || "");
+      setPhone(user.phone || "");
+    }
+  }, [user]);
 
   if (!user) return null;
+
+  const handleCancel = () => {
+    setFullName(user.full_name || "");
+    setPhone(user.phone || "");
+    setIsEditing(false);
+  };
+
+  const handleSave = () => {
+    dispatch(
+      setUser({
+        ...user,
+        full_name: fullName.trim(),
+        phone: phone.trim() || undefined,
+      })
+    );
+    setIsEditing(false);
+  };
 
   const getUserInitials = (name: string) => {
     return name
@@ -21,7 +50,7 @@ export default function UserInfoPage() {
 
   return (
     <div className="min-h-screen p-6">
-      <div className="container mx-auto max-w-4xl">
+      <div className="">
         {/* Header */}
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold text-gray-900">
@@ -68,10 +97,22 @@ export default function UserInfoPage() {
                   <label className="text-sm font-medium text-gray-700">
                     Họ và tên
                   </label>
-                  <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3">
-                    <UserIcon className="h-5 w-5 text-gray-400" />
-                    <span className="text-gray-900">{user.full_name}</span>
-                  </div>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-5 w-5 shrink-0 text-gray-400" />
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Họ và tên"
+                        className="flex-1"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3">
+                      <UserIcon className="h-5 w-5 text-gray-400" />
+                      <span className="text-gray-900">{user.full_name}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -84,17 +125,27 @@ export default function UserInfoPage() {
                   </div>
                 </div>
 
-                {user.phone && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Số điện thoại
-                    </label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Số điện thoại
+                  </label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-5 w-5 shrink-0 text-gray-400" />
+                      <Input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Số điện thoại"
+                        className="flex-1"
+                      />
+                    </div>
+                  ) : (
                     <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3">
                       <Phone className="h-5 w-5 text-gray-400" />
-                      <span className="text-gray-900">{user.phone}</span>
+                      <span className="text-gray-900">{user.phone || "—"}</span>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">
@@ -108,10 +159,19 @@ export default function UserInfoPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={() => setIsEditing(!isEditing)}>
-                  {isEditing ? "Hủy" : "Chỉnh sửa"}
-                </Button>
+              <div className="flex justify-end gap-2">
+                {isEditing ? (
+                  <>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Hủy
+                    </Button>
+                    <Button onClick={handleSave}>Lưu</Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditing(true)}>
+                    Chỉnh sửa
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

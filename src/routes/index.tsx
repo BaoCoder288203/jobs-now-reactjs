@@ -7,9 +7,9 @@ import { JobListingPage } from '@/pages/public/JobListingPage';
 import { JobDetailPage } from '@/pages/public/JobDetailPage';
 import { CompanyListingPage } from '@/pages/public/CompanyListingPage';
 import { CompanyDetailPage } from '@/pages/public/CompanyDetailPage';
-
-import { LoginPage } from '@/pages/auth/LoginPage';
-import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { ToolsPlaceholderPage } from '@/pages/public/ToolsPlaceholderPage';
+import { CVToolsLandingPage } from '@/pages/public/CVToolsLandingPage';
+import { CVBuilderPage } from '@/pages/public/CVBuilderPage';
 
 // Job Seeker Pages
 import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
@@ -38,7 +38,6 @@ import { AdminSkillsPage } from '@/pages/admin/SkillsPage';
 // User Pages (Common for all roles)
 import UserPage from '@/pages/user/UserPage';
 import UserInfoPage from '@/pages/user/UserInfoPage';
-import UserSessionsPage from '@/pages/user/UserSessionsPage';
 
 export function AppRoutes() {
   return (
@@ -50,71 +49,13 @@ export function AppRoutes() {
       <Route path="/companies" element={<CompanyListingPage />} />
       <Route path="/companies/:id" element={<CompanyDetailPage />} />
 
-      {/* Auth Routes */}
-      <Route path="/auth/login" element={<LoginPage />} />
-      <Route path="/auth/register" element={<RegisterPage />} />
-
-      {/* Job Seeker Routes */}
-      <Route
-        path="/job-seeker/dashboard"
-        element={
-          <RequireAuth>
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerDashboardPage />
-            </RoleGuard>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/job-seeker/profile"
-        element={
-          <RequireAuth>
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerProfilePage />
-            </RoleGuard>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/job-seeker/resumes"
-        element={
-          <RequireAuth>
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerResumesPage />
-            </RoleGuard>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/job-seeker/applications"
-        element={
-          <RequireAuth>
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerApplicationsPage />
-            </RoleGuard>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/job-seeker/saved-jobs"
-        element={
-          <RequireAuth>
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerSavedJobsPage />
-            </RoleGuard>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/job-seeker/settings"
-        element={
-          <RequireAuth>
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerSettingsPage />
-            </RoleGuard>
-          </RequireAuth>
-        }
-      />
+      {/* Tools (CV landing + builder) */}
+      <Route path="/tools/tao-cv/builder" element={<CVBuilderPage />} />
+      <Route path="/tools/tao-cv" element={<CVToolsLandingPage />} />
+      <Route path="/tools/chuan-hoa-cv" element={<CVToolsLandingPage />} />
+      {/* Tools (placeholder) */}
+      <Route path="/tools/tinh-luong-gross-net" element={<ToolsPlaceholderPage />} />
+      <Route path="/tools/phong-van" element={<ToolsPlaceholderPage />} />
 
       {/* Recruiter/Employer Routes */}
       <Route
@@ -261,7 +202,56 @@ export function AppRoutes() {
       >
         <Route index element={<Navigate to="info" replace />} />
         <Route path="info" element={<UserInfoPage />} />
-        <Route path="sessions" element={<UserSessionsPage />} />
+
+        {/* Job Seeker specific routes - only accessible for JOB_SEEKER role */}
+        <Route
+          path="dashboard"
+          element={
+            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+              <JobSeekerDashboardPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+              <JobSeekerProfilePage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="applications"
+          element={
+            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+              <JobSeekerApplicationsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="resumes"
+          element={
+            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+              <JobSeekerResumesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="saved-jobs"
+          element={
+            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+              <JobSeekerSavedJobsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+              <JobSeekerSettingsPage />
+            </RoleGuard>
+          }
+        />
       </Route>
 
       {/* Redirect old routes to new structure */}

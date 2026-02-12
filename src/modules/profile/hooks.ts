@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { JobSeekerProfile, ProfileSkill } from '@/types';
+import type { JobSeekerProfile } from '@/types';
 import * as profileService from '@/services/profile.service';
 
 export const profileKeys = {
@@ -22,7 +22,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: ({ userId, data }: { userId: string; data: Partial<JobSeekerProfile> }) =>
       profileService.updateProfile(userId, data),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.detail(variables.userId) });
     }
   });
@@ -42,7 +42,7 @@ export function useAddProfileSkill() {
   return useMutation({
     mutationFn: ({ userId, skillId, level }: { userId: string; skillId: string; level: string }) =>
       profileService.addProfileSkill(userId, skillId, level),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.skills(variables.userId) });
     }
   });
@@ -54,7 +54,7 @@ export function useRemoveProfileSkill() {
   return useMutation({
     mutationFn: ({ userId, skillId }: { userId: string; skillId: string }) =>
       profileService.removeProfileSkill(userId, skillId),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.skills(variables.userId) });
     }
   });

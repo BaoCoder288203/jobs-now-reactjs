@@ -1,6 +1,4 @@
 import { useAppSelector } from '@/app/hooks';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { JobSeekerSidebar } from '@/components/layout/JobSeekerSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useJobs } from '@/modules/jobs/hooks';
@@ -9,8 +7,7 @@ import { useSavedJobs } from '@/modules/savedJobs/hooks';
 import { useProfile } from '@/modules/profile/hooks';
 import { JobCard } from '@/components/common/JobCard';
 import { Link } from 'react-router-dom';
-import { Briefcase, FileText, Bookmark, TrendingUp, ArrowRight, User } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Briefcase, FileText, Bookmark, TrendingUp, ArrowRight } from 'lucide-react';
 import type { Application } from '@/types';
 
 export function JobSeekerDashboardPage() {
@@ -27,28 +24,27 @@ export function JobSeekerDashboardPage() {
       title: 'Đơn ứng tuyển',
       value: applicationsData?.length || 0,
       icon: Briefcase,
-      link: '/job-seeker/applications',
+      link: '/user/applications',
       color: 'text-primary'
     },
     {
       title: 'Việc làm đã lưu',
       value: savedJobs?.length || 0,
       icon: Bookmark,
-      link: '/job-seeker/saved-jobs',
+      link: '/user/saved-jobs',
       color: 'text-accent'
     },
     {
       title: 'CV của tôi',
       value: profile ? '1' : '0',
       icon: FileText,
-      link: '/job-seeker/resumes',
+      link: '/user/resumes',
       color: 'text-primary'
     }
   ];
 
-  return (
-    <DashboardLayout sidebar={<JobSeekerSidebar />}>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -86,7 +82,7 @@ export function JobSeekerDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-xl font-bold">Đơn ứng tuyển gần đây</CardTitle>
-            <Link to="/job-seeker/applications">
+            <Link to="/user/applications">
               <Button variant="ghost" size="sm" className="gap-2">
                 Xem tất cả
                 <ArrowRight className="h-4 w-4" />
@@ -166,8 +162,9 @@ export function JobSeekerDashboardPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </DashboardLayout>
+    </div>
   );
+
+  return <div className="p-6">{content}</div>;
 }
 

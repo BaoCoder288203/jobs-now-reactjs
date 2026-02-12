@@ -1,6 +1,4 @@
 import { useAppSelector } from '@/app/hooks';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { JobSeekerSidebar } from '@/components/layout/JobSeekerSidebar';
 import { JobCard } from '@/components/common/JobCard';
 import { useSavedJobs, useUnsaveJob } from '@/modules/savedJobs/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -23,19 +21,8 @@ export function JobSeekerSavedJobsPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <DashboardLayout sidebar={<JobSeekerSidebar />}>
-        <div className="flex justify-center py-12">
-          <LoadingSpinner size="lg" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  return (
-    <DashboardLayout sidebar={<JobSeekerSidebar />}>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Saved Jobs</h1>
           <p className="text-gray-600 mt-1">
@@ -79,8 +66,19 @@ export function JobSeekerSavedJobsPage() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </DashboardLayout>
+    </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="p-6">{content}</div>;
 }
 

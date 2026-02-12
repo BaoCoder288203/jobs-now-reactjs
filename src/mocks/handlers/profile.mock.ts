@@ -1,7 +1,6 @@
 import type { JobSeekerProfile, ProfileSkill } from '@/types';
 import { delay } from './auth.mock';
 import { 
-  mockJobSeekerProfiles, 
   getProfileByUserId,
   getSkillsByProfileId 
 } from '../data/profiles.mock';

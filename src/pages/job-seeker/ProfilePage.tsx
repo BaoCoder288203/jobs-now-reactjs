@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { JobSeekerSidebar } from '@/components/layout/JobSeekerSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,29 +90,8 @@ export function JobSeekerProfilePage() {
     }
   };
 
-  if (profileLoading) {
-    return (
-      <DashboardLayout sidebar={<JobSeekerSidebar />}>
-        <div className="flex justify-center py-12">
-          <LoadingSpinner size="lg" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <DashboardLayout sidebar={<JobSeekerSidebar />}>
-        <div className="text-center py-12">
-          <p className="text-gray-600">Profile not found</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  return (
-    <DashboardLayout sidebar={<JobSeekerSidebar />}>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
           {!isEditing && (
@@ -340,8 +317,29 @@ export function JobSeekerProfilePage() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </DashboardLayout>
+    </div>
   );
+
+  if (profileLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-600">Profile not found</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="p-6">{content}</div>;
 }
 

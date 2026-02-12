@@ -14,11 +14,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send } from 'lucide-react';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const userId = user?.id || '';
+  const { openLoginModal } = useAuthModal();
 
   const { data: job, isLoading: jobLoading } = useJobDetail(id!);
   const { data: myApplications = [] } = useMyApplications(userId);
@@ -207,7 +209,7 @@ export function JobDetailPage() {
                                 <p className="text-gray-700 mb-4">
                                   Bạn đã ứng tuyển cho công việc này
                                 </p>
-                                <Link to="/job-seeker/applications">
+                                <Link to="/user/applications">
                                   <Button variant="outline" className="w-full">
                                     Xem đơn ứng tuyển của tôi
                                   </Button>
@@ -263,11 +265,13 @@ export function JobDetailPage() {
                         <p className="text-gray-700 mb-4">
                           Đăng nhập để ứng tuyển công việc này
                         </p>
-                        <Link to="/auth/login">
-                          <Button className="w-full" size="lg">
-                            Đăng nhập để ứng tuyển
-                          </Button>
-                        </Link>
+                        <Button 
+                          className="w-full" 
+                          size="lg"
+                          onClick={() => openLoginModal('job_seeker')}
+                        >
+                          Đăng nhập để ứng tuyển
+                        </Button>
                       </div>
                     )}
                   </CardContent>

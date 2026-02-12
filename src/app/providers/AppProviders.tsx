@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { store } from '../store';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { getCurrentUserAsync } from '@/auth/authSlice';
+import { AuthModalProvider } from '@/contexts/AuthModalContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,9 +40,11 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <AuthInitializer>
-          {children}
-        </AuthInitializer>
+        <AuthModalProvider>
+          <AuthInitializer>
+            {children}
+          </AuthInitializer>
+        </AuthModalProvider>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </Provider>

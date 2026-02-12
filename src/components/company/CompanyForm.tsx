@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { Company, CreateCompanyRequest } from '@/types';
-import { X } from 'lucide-react';
 
 interface CompanyFormProps {
   open: boolean;

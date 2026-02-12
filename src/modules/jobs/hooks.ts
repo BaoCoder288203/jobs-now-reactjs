@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Job, JobListParams, PaginatedResponse } from '@/types';
+import type { Job, JobListParams } from '@/types';
 import * as jobService from '@/services/job.service';
 
 export const jobKeys = {

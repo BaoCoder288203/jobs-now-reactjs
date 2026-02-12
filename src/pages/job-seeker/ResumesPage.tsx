@@ -1,12 +1,12 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { JobSeekerSidebar } from '@/components/layout/JobSeekerSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useResumes, useUploadResume, useSetDefaultResume, useDeleteResume } from '@/modules/resumes/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { FileText, Upload, Star, Trash2, Download } from 'lucide-react';
+import { FileText, Upload, Star, Trash2, Download, Edit } from 'lucide-react';
 
 export function JobSeekerResumesPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -60,22 +60,29 @@ export function JobSeekerResumesPage() {
     }
   };
 
-  return (
-    <DashboardLayout sidebar={<JobSeekerSidebar />}>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">My Resumes</h1>
-          <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Resume
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          <h1 className="text-3xl font-bold text-gray-900">Quản lý CV</h1>
+          <div className="flex gap-2">
+            <Link to="/tools/tao-cv/builder">
+              <Button variant="outline" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Tạo CV mới
+              </Button>
+            </Link>
+            <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Tải CV lên
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
         </div>
 
         {isLoading ? (
@@ -89,25 +96,36 @@ export function JobSeekerResumesPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-3">
                     <FileText className="h-8 w-8 text-primary" />
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="text-lg">{resume.file_name}</CardTitle>
-                      {resume.is_default && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm text-gray-600">Default Resume</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {resume.type === 'UPLOADED' && (
+                          <Badge variant="secondary">Đã tải lên</Badge>
+                        )}
+                        {resume.type === 'CREATED' && resume.is_ai_generated && (
+                          <Badge className="bg-primary/20 text-primary">Tạo bởi AI</Badge>
+                        )}
+                        {resume.type === 'CREATED' && !resume.is_ai_generated && (
+                          <Badge variant="outline">Tạo thủ công</Badge>
+                        )}
+                        {resume.is_default && (
+                          <span className="text-sm text-gray-600 flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            Mặc định
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 mb-4">
                     <p className="text-sm text-gray-600">
-                      Uploaded: {new Date(resume.created_at).toLocaleDateString()}
+                      {resume.type === 'UPLOADED' ? 'Đã tải lên' : 'Đã tạo'}: {new Date(resume.created_at).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
@@ -115,8 +133,17 @@ export function JobSeekerResumesPage() {
                       className="gap-2"
                     >
                       <Download className="h-4 w-4" />
-                      View
+                      Xem
                     </Button>
+
+                    {resume.extracted_text && (
+                      <Link to={`/tools/tao-cv/builder?edit=${resume.id}`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Edit className="h-4 w-4" />
+                          Chỉnh sửa
+                        </Button>
+                      </Link>
+                    )}
 
                     {!resume.is_default && (
                       <Button
@@ -127,7 +154,7 @@ export function JobSeekerResumesPage() {
                         className="gap-2"
                       >
                         <Star className="h-4 w-4" />
-                        Set Default
+                        Đặt mặc định
                       </Button>
                     )}
 
@@ -140,7 +167,7 @@ export function JobSeekerResumesPage() {
                         className="gap-2 text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Delete
+                        Xóa
                       </Button>
                     )}
                   </div>
@@ -152,28 +179,48 @@ export function JobSeekerResumesPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-16 w-16 text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-4">No resumes uploaded yet</p>
-              <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload Your First Resume
-              </Button>
+              <p className="text-gray-600 mb-4">Chưa có CV nào</p>
+              <div className="flex gap-2">
+                <Link to="/tools/tao-cv/builder">
+                  <Button className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Tạo CV mới
+                  </Button>
+                </Link>
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Tải CV lên
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
 
         <Card className="bg-gray-50">
           <CardHeader>
-            <CardTitle className="text-lg">Resume Guidelines</CardTitle>
+            <CardTitle className="text-lg">Hướng dẫn</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-gray-600">
-            <p>• Only PDF files are accepted</p>
-            <p>• Maximum file size: 5MB</p>
-            <p>• Make sure your resume is up-to-date and formatted professionally</p>
-            <p>• You can set one resume as default for quick job applications</p>
+            <p>• Chỉ chấp nhận file PDF</p>
+            <p>• Kích thước file tối đa: 5MB</p>
+            <p>• Đảm bảo CV của bạn được cập nhật và định dạng chuyên nghiệp</p>
+            <p>• Bạn có thể đặt một CV làm mặc định để ứng tuyển nhanh</p>
+            <p>• CV tạo bằng AI hoặc thủ công có thể chỉnh sửa sau</p>
           </CardContent>
         </Card>
-      </div>
-    </DashboardLayout>
+    </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="p-6">{content}</div>;
 }
 

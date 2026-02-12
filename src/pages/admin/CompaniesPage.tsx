@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ export function AdminCompaniesPage() {
   const handleDelete = async (companyId: string) => {
     if (!confirm('Are you sure you want to delete this company?')) return;
     // In real app, call API to delete
+    console.log('Company deleted', companyId);
     alert('Company deleted');
   };
 

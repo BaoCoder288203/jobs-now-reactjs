@@ -33,7 +33,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/auth/login';
+      window.location.href = '/';
     }
     
     const apiError: ApiError = {

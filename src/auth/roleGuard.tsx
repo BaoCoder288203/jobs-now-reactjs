@@ -10,7 +10,7 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const userRoleName = user.role?.name?.toUpperCase() || '';
@@ -19,7 +19,8 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   
   if (!allowedRoles.includes(normalizedRole)) {
     const roleName = user.role?.name?.toLowerCase().replace('_', '-') || 'user';
-    return <Navigate to={`/${roleName}/dashboard`} replace />;
+    const dashboardPath = roleName === 'job-seeker' ? '/user/dashboard' : `/${roleName}/dashboard`;
+    return <Navigate to={dashboardPath} replace />;
   }
 
   return <>{children}</>;
