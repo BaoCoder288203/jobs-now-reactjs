@@ -24,7 +24,7 @@ export function AdminSkillsPage() {
     setShowAddForm(false);
   };
 
-  const handleDelete = (skillId: string) => {
+  const handleDelete = (_skillId: string) => {
     if (!confirm('Are you sure you want to delete this skill?')) return;
     // In real app, call API to delete
     alert('Skill deleted');
