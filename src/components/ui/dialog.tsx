@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,11 @@ interface DialogProps {
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   const [mounted, setMounted] = React.useState(false);
+
+  useHotkey("Escape", () => onOpenChange(false), {
+    enabled: open,
+    requireReset: true,
+  });
 
   React.useEffect(() => {
     setMounted(true);

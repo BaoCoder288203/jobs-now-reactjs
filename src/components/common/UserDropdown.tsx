@@ -269,9 +269,9 @@ export function UserDropdown() {
               </>
             )}
 
-            {/* Hỗ trợ và thông báo */}
+            {/* Thông báo - link đến trang tổng hợp thông báo */}
             <Link
-              to="#"
+              to="/user/notifications"
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
               onClick={() => setIsOpen(false)}
             >
@@ -279,7 +279,7 @@ export function UserDropdown() {
                 <Bell className="h-4 w-4 text-gray-600" />
               </div>
               <div className="min-w-0">
-                <p className="font-medium text-sm text-gray-900">Hỗ trợ và thông báo</p>
+                <p className="font-medium text-sm text-gray-900">Thông báo</p>
               </div>
             </Link>
 

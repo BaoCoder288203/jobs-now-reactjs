@@ -1,12 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { UserDropdown } from '@/components/common/UserDropdown';
+import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { RoleModeSelector } from '@/components/common/RoleModeSelector';
 import { JobsDropdown } from '@/components/layout/JobsDropdown';
 import { ToolsDropdown } from '@/components/layout/ToolsDropdown';
 import { Bell, Search, Phone, Menu, X, ChevronDown, Wrench } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { TOOLS_MENU } from '@/constants/toolsMenu';
 
 const SCROLL_THRESHOLD = 60;
@@ -18,11 +20,19 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const jobsAnchorRef = useRef<HTMLButtonElement>(null);
   const toolsAnchorRef = useRef<HTMLButtonElement>(null);
   const jobsAnchorRefBottom = useRef<HTMLButtonElement>(null);
   const toolsAnchorRefBottom = useRef<HTMLButtonElement>(null);
+  const notificationAnchorRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  useHotkey('Mod+K', (e) => {
+    e.preventDefault();
+    searchInputRef.current?.focus();
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
@@ -136,6 +146,7 @@ export function Header() {
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 max-w-2xl items-center relative">
             <Input
+              ref={searchInputRef}
               type="text"
               placeholder="Vị trí tuyển dụng, công ty..."
               value={searchQuery}
@@ -174,9 +185,26 @@ export function Header() {
 
             {isAuthenticated && user ? (
               <>
-                <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                  <Bell className="h-5 w-5 text-gray-600" />
-                </button>
+                <div
+                  className="relative flex items-center"
+                  onMouseLeave={() => setNotificationOpen(false)}
+                >
+                  <button
+                    ref={notificationAnchorRef}
+                    type="button"
+                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label="Mở thông báo"
+                    onMouseEnter={() => setNotificationOpen(true)}
+                  >
+                    <Bell className="h-5 w-5 text-gray-600" />
+                  </button>
+                  <NotificationDropdown
+                    isOpen={notificationOpen}
+                    onClose={() => setNotificationOpen(false)}
+                    anchorRef={notificationAnchorRef}
+                    userId={user.id}
+                  />
+                </div>
                 <UserDropdown />
               </>
             ) : (
@@ -321,13 +349,14 @@ export function Header() {
               <div className="mt-auto">
                 {isAuthenticated && user ? (
                   <div className="space-y-2">
-                    <button
+                    <Link
+                      to="/user/notifications"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="w-full px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
                     >
                       <Bell className="h-5 w-5" />
                       <span>Thông báo</span>
-                    </button>
+                    </Link>
                     <UserDropdown />
                   </div>
                 ) : (

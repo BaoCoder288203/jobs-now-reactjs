@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { useAppSelector } from '@/app/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,11 @@ export function JobSeekerProfilePage() {
       console.error('Failed to update profile:', error);
     }
   };
+
+  useHotkey('Mod+S', (e) => {
+    e.preventDefault();
+    if (isEditing && !updateProfile.isPending) handleSave();
+  }, { enabled: isEditing && !updateProfile.isPending });
 
   const handleAddSkill = async () => {
     if (!newSkill.skillId) return;

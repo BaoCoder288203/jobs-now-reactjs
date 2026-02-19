@@ -28,16 +28,16 @@ import { CreateJobPage } from '@/pages/employer/CreateJobPage';
 import { EmployerCompanyPage } from '@/pages/employer/CompanyPage';
 import { EmployerSettingsPage } from '@/pages/employer/SettingsPage';
 
-// Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
 import { AdminCompaniesPage } from '@/pages/admin/CompaniesPage';
 import { AdminJobsPage } from '@/pages/admin/JobsPage';
 import { AdminSkillsPage } from '@/pages/admin/SkillsPage';
 
-// User Pages (Common for all roles)
 import UserPage from '@/pages/user/UserPage';
 import UserInfoPage from '@/pages/user/UserInfoPage';
+import { NotificationsPage } from '@/pages/user/NotificationsPage';
+import { AdminSupportPage } from '@/pages/admin/SupportPage';
 
 export function AppRoutes() {
   return (
@@ -244,15 +244,22 @@ export function AppRoutes() {
             </RoleGuard>
           }
         />
-        <Route
-          path="settings"
-          element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerSettingsPage />
-            </RoleGuard>
-          }
-        />
+        <Route path="notifications" element={<NotificationsPage />} />
+        {/* Settings - all authenticated roles (Job Seeker, Recruiter, Admin) */}
+        <Route path="settings" element={<JobSeekerSettingsPage />} />
       </Route>
+
+      {/* Admin Support */}
+      <Route
+        path="/admin/support"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ADMIN']}>
+              <AdminSupportPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
 
       {/* Redirect old routes to new structure */}
       <Route path="/recruiter/dashboard" element={<Navigate to="/employer/dashboard" replace />} />

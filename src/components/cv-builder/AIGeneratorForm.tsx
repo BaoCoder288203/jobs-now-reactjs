@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { useAppSelector } from '@/app/hooks';
 import { useGenerateCVWithAI, useCreateCV } from '@/modules/cv/hooks';
 import { mockIndustries } from '@/mocks/data/industries.mock';
@@ -49,6 +50,12 @@ export function AIGeneratorForm() {
     });
     navigate('/user/resumes');
   };
+
+  const canSavePreview = step === 'preview' && !!cvData && !createMutation.isPending;
+  useHotkey('Mod+S', (e) => {
+    e.preventDefault();
+    if (canSavePreview) handleSave();
+  }, { enabled: canSavePreview });
 
   if (step === 'loading') {
     return (

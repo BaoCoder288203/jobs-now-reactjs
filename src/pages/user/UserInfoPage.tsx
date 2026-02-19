@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
 import { setUser } from "@/auth/authSlice";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { Camera, Mail, Phone, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -38,6 +39,11 @@ export default function UserInfoPage() {
     );
     setIsEditing(false);
   };
+
+  useHotkey("Mod+S", (e) => {
+    e.preventDefault();
+    if (isEditing) handleSave();
+  }, { enabled: isEditing });
 
   const getUserInitials = (name: string) => {
     return name

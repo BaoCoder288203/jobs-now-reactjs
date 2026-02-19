@@ -32,6 +32,12 @@ export function CompanyForm({
   });
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string>('');
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
+  const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+
+  const MAX_THUMBNAILS = 5;
 
   useEffect(() => {
     if (initialData) {
@@ -44,6 +50,8 @@ export function CompanyForm({
         industry_id: initialData.industry_id || '',
       });
       setLogoPreview(initialData.logo_url || '');
+      setBannerPreview(initialData.banner_url || '');
+      setThumbnailPreviews([]); // new files only; existing shown from initialData.thumbnail_images
     } else {
       setFormData({
         name: '',
@@ -54,8 +62,12 @@ export function CompanyForm({
         industry_id: '',
       });
       setLogoPreview('');
+      setBannerPreview('');
+      setThumbnailPreviews([]);
     }
     setLogoFile(null);
+    setBannerFile(null);
+    setThumbnailFiles([]);
   }, [initialData, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +86,12 @@ export function CompanyForm({
     if (logoFile) {
       data.append('logoFile', logoFile);
     }
+    if (bannerFile) {
+      data.append('bannerFile', bannerFile);
+    }
+    thumbnailFiles.forEach((file) => {
+      data.append('thumbnailFiles', file);
+    });
 
     // Submit
     await onSubmit(data, initialData?.id);
@@ -102,6 +120,49 @@ export function CompanyForm({
     }
   };
 
+  const handleChangeBanner = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBannerFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setBannerPreview(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleChangeThumbnails = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    const existingCount = (initialData?.thumbnail_images?.length ?? 0) + thumbnailFiles.length;
+    const toAdd = files.slice(0, MAX_THUMBNAILS - existingCount);
+    if (toAdd.length === 0) return;
+    const newPreviews = await Promise.all(
+      toAdd.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === 'string' ? reader.result : '');
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+    setThumbnailFiles((prev) => [...prev, ...toAdd]);
+    setThumbnailPreviews((prev) => [...prev, ...newPreviews]);
+    e.target.value = '';
+  };
+
+  const removeThumbnail = (index: number) => {
+    const existingLen = initialData?.thumbnail_images?.length ?? 0;
+    if (index < existingLen) return; // cannot remove existing from server
+    const fileIndex = index - existingLen;
+    setThumbnailFiles((prev) => prev.filter((_, i) => i !== fileIndex));
+    setThumbnailPreviews((prev) => prev.filter((_, i) => i !== fileIndex));
+  };
+
   const handleReset = () => {
     setFormData({
       name: '',
@@ -113,6 +174,10 @@ export function CompanyForm({
     });
     setLogoPreview('');
     setLogoFile(null);
+    setBannerPreview('');
+    setBannerFile(null);
+    setThumbnailFiles([]);
+    setThumbnailPreviews([]);
   };
 
   const handleClose = () => {
@@ -227,6 +292,64 @@ export function CompanyForm({
                     alt="Xem trước logo"
                     className="h-24 w-24 rounded-lg border border-gray-200 object-cover"
                   />
+                </div>
+              )}
+            </div>
+
+            {/* Banner */}
+            <div className="space-y-2">
+              <Label htmlFor="banner">Banner công ty</Label>
+              <Input
+                id="banner"
+                type="file"
+                accept="image/*"
+                onChange={handleChangeBanner}
+              />
+              {bannerPreview && (
+                <div className="mt-2">
+                  <img
+                    src={bannerPreview}
+                    alt="Xem trước banner"
+                    className="w-full h-32 rounded-lg border border-gray-200 object-cover"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail images */}
+            <div className="space-y-2">
+              <Label htmlFor="thumbnails">Ảnh thumbnail (tối đa {MAX_THUMBNAILS} ảnh)</Label>
+              <Input
+                id="thumbnails"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleChangeThumbnails}
+                disabled={
+                  (initialData?.thumbnail_images?.length ?? 0) + thumbnailFiles.length >= MAX_THUMBNAILS
+                }
+              />
+              {(thumbnailPreviews.length > 0 || (initialData?.thumbnail_images?.length ?? 0) > 0) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[...(initialData?.thumbnail_images ?? []), ...thumbnailPreviews].map((src, i) => (
+                    <div key={i} className="relative group">
+                      <img
+                        src={src}
+                        alt={`Thumbnail ${i + 1}`}
+                        className="h-20 w-20 rounded-lg border border-gray-200 object-cover"
+                      />
+                      {i >= (initialData?.thumbnail_images?.length ?? 0) && (
+                        <button
+                          type="button"
+                          onClick={() => removeThumbnail(i)}
+                          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          aria-label="Xóa ảnh"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

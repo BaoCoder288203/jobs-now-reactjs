@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { useAppSelector } from '@/app/hooks';
 import { useProfile, useProfileSkills } from '@/modules/profile/hooks';
 import { useCreateCV, useUpdateCV } from '@/modules/cv/hooks';
@@ -65,6 +66,12 @@ export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFor
     }
     navigate('/user/resumes');
   };
+
+  const canSave = !isGuest && !createMutation.isPending && !updateMutation.isPending && showPreview;
+  useHotkey('Mod+S', (e) => {
+    e.preventDefault();
+    if (canSave) handleSave();
+  }, { enabled: canSave });
 
   return (
     <div className="space-y-8">
