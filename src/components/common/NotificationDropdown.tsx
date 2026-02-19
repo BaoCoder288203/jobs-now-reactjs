@@ -4,7 +4,6 @@ import {
   getNotificationsByUserId,
   getUnreadNotificationsByUserId,
 } from '@/mocks/data/notifications.mock';
-import { Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NotificationDropdownProps {
