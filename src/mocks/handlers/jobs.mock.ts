@@ -109,6 +109,7 @@ export async function mockCreateJob(jobData: Partial<Job>): Promise<Job> {
     category_id: jobData.category_id,
     status: jobData.status || 'open',
     expired_at: jobData.expired_at,
+    thumbnail_url: jobData.thumbnail_url,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };

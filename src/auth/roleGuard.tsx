@@ -14,7 +14,6 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   }
 
   const userRoleName = user.role?.name?.toUpperCase() || '';
-  // Normalize role name: 'job_seeker' -> 'JOB_SEEKER', 'recruiter' -> 'RECRUITER'
   const normalizedRole = userRoleName.replace(' ', '_');
   
   if (!allowedRoles.includes(normalizedRole)) {

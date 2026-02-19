@@ -108,26 +108,38 @@ export async function mockCreateMyCompany(formData: FormData): Promise<Company> 
       updated_at: new Date().toISOString(),
     };
     
+    const fileToDataUrl = async (file: File): Promise<string> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else resolve(URL.createObjectURL(file));
+        };
+        reader.onerror = () => resolve(URL.createObjectURL(file));
+        reader.readAsDataURL(file);
+      });
+    };
+
     // Handle logo upload (simulate)
     const logoFile = formData.get('logoFile');
     if (logoFile && logoFile instanceof File) {
-      // In real app, upload to server and get URL
-      // For mock, create a data URL
-      const logoDataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            resolve(URL.createObjectURL(logoFile));
-          }
-        };
-        reader.onerror = () => resolve(URL.createObjectURL(logoFile));
-        reader.readAsDataURL(logoFile);
-      });
-      newCompany.logo_url = logoDataUrl;
+      newCompany.logo_url = await fileToDataUrl(logoFile);
     }
-    
+
+    const bannerFile = formData.get('bannerFile');
+    if (bannerFile && bannerFile instanceof File) {
+      newCompany.banner_url = await fileToDataUrl(bannerFile as File);
+    }
+
+    const thumbnailFilesList = formData.getAll('thumbnailFiles');
+    if (thumbnailFilesList.length > 0) {
+      newCompany.thumbnail_images = await Promise.all(
+        thumbnailFilesList
+          .filter((f): f is File => f instanceof File)
+          .map((f) => fileToDataUrl(f))
+      );
+    }
+
     mockCompanies.push(newCompany);
     return newCompany;
   } catch (error: any) {
@@ -178,26 +190,41 @@ export async function mockUpdateMyCompany(formData: FormData): Promise<Company> 
       updated_at: new Date().toISOString(),
     };
     
-    // Handle logo upload (simulate)
-    const logoFile = formData.get('logoFile');
-    if (logoFile && logoFile instanceof File) {
-      // In real app, upload to server and get URL
-      // For mock, create a data URL
-      const logoDataUrl = await new Promise<string>((resolve) => {
+    const fileToDataUrl = async (file: File): Promise<string> => {
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            resolve(URL.createObjectURL(logoFile));
-          }
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else resolve(URL.createObjectURL(file));
         };
-        reader.onerror = () => resolve(URL.createObjectURL(logoFile));
-        reader.readAsDataURL(logoFile);
+        reader.onerror = () => resolve(URL.createObjectURL(file));
+        reader.readAsDataURL(file);
       });
-      updatedCompany.logo_url = logoDataUrl;
+    };
+
+    const logoFile = formData.get('logoFile');
+    if (logoFile && logoFile instanceof File) {
+      updatedCompany.logo_url = await fileToDataUrl(logoFile);
     }
-    
+
+    const bannerFile = formData.get('bannerFile');
+    if (bannerFile && bannerFile instanceof File) {
+      updatedCompany.banner_url = await fileToDataUrl(bannerFile as File);
+    }
+
+    const thumbnailFilesList = formData.getAll('thumbnailFiles');
+    if (thumbnailFilesList.length > 0) {
+      const newThumbnailUrls = await Promise.all(
+        thumbnailFilesList
+          .filter((f): f is File => f instanceof File)
+          .map((f) => fileToDataUrl(f))
+      );
+      updatedCompany.thumbnail_images = [
+        ...(existingCompany.thumbnail_images ?? []),
+        ...newThumbnailUrls,
+      ];
+    }
+
     mockCompanies[companyIndex] = updatedCompany;
     return updatedCompany;
   } catch (error: any) {

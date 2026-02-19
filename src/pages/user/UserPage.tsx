@@ -1,4 +1,4 @@
-import { User, LayoutDashboard, Briefcase, FileText, Bookmark, UserCircle, Settings } from "lucide-react";
+import { User, LayoutDashboard, Briefcase, FileText, Bookmark, UserCircle, Settings, Bell } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { Navigate, NavLink, Outlet } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -6,6 +6,8 @@ import { Footer } from "@/components/layout/Footer";
 
 const commonItems = [
   { title: "Thông tin", icon: User, href: "info" },
+  { title: "Thông báo", icon: Bell, href: "notifications" },
+  { title: "Cài đặt", icon: Settings, href: "settings" },
 ];
 
 const jobSeekerItems = [
@@ -14,7 +16,6 @@ const jobSeekerItems = [
   { title: "Ứng tuyển", icon: Briefcase, href: "applications" },
   { title: "CV của tôi", icon: FileText, href: "resumes" },
   { title: "Việc làm đã lưu", icon: Bookmark, href: "saved-jobs" },
-  { title: "Cài đặt", icon: Settings, href: "settings" },
 ];
 
 export default function UserPage() {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +27,8 @@ const jobSchema = z.object({
   experience_level: z.enum(['entry', 'mid', 'senior', 'executive']).optional(),
   industry_id: z.string().optional(),
   category_id: z.string().optional(),
-  status: z.enum(['open', 'closed'])
+  status: z.enum(['open', 'closed']),
+  thumbnail_url: z.string().optional()
 });
 
 type JobFormData = z.infer<typeof jobSchema>;
@@ -41,6 +42,7 @@ export function CreateJobPage() {
   const { data: job, isLoading: jobLoading } = useJobDetail(id || '', { enabled: isEditMode });
   const createJob = useCreateJob();
   const updateJob = useUpdateJob();
+  const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
 
   const {
     register,
@@ -70,10 +72,29 @@ export function CreateJobPage() {
         experience_level: job.experience_level as any,
         industry_id: job.industry_id || '',
         category_id: job.category_id || '',
-        status: job.status as any
+        status: job.status as any,
+        thumbnail_url: job.thumbnail_url || ''
       });
+      setThumbnailPreview(job.thumbnail_url || '');
+    } else {
+      setThumbnailPreview('');
     }
   }, [job, isEditMode, reset]);
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setValue('thumbnail_url', reader.result);
+          setThumbnailPreview(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
 
   const onSubmit = async (data: JobFormData) => {
     try {
@@ -255,6 +276,25 @@ export function CreateJobPage() {
                     <option value="closed">Closed</option>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail">Job Thumbnail</Label>
+                <Input
+                  id="thumbnail"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailChange}
+                />
+                {thumbnailPreview && (
+                  <div className="mt-2">
+                    <img
+                      src={thumbnailPreview}
+                      alt="Thumbnail preview"
+                      className="h-24 w-40 rounded-lg border border-gray-200 object-cover"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4">

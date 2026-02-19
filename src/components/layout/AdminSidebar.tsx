@@ -6,6 +6,7 @@ import {
   Building2,
   Briefcase,
   Sparkles,
+  MessageCircle,
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ const menuItems: SidebarItem[] = [
   { title: 'Công ty', href: '/admin/companies', icon: Building2 },
   { title: 'Việc làm', href: '/admin/jobs', icon: Briefcase },
   { title: 'Kỹ năng', href: '/admin/skills', icon: Sparkles },
+  { title: 'Hỗ trợ tin nhắn', href: '/admin/support', icon: MessageCircle },
 ];
 
 export function AdminSidebar() {

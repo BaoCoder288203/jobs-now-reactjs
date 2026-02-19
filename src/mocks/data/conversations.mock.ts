@@ -107,3 +107,22 @@ export function markMessagesAsRead(conversationId: string, userId: string): void
     }
   });
 }
+
+/** For admin: list all conversations with other participant and unread count */
+export function getConversationsForAdmin(adminId: string) {
+  return mockConversations.map((conv) => {
+    const msgs = getMessagesByConversationId(conv.id);
+    const lastMsg = msgs[msgs.length - 1];
+    const otherSenderIds = [...new Set(msgs.map((m) => m.sender_id).filter((id) => id !== adminId))];
+    const otherParticipant = otherSenderIds.length
+      ? mockUsers.find((u) => u.id === otherSenderIds[0])
+      : undefined;
+    const unreadCount = msgs.filter((m) => m.sender_id !== adminId && !m.is_read).length;
+    return {
+      ...conv,
+      lastMessage: lastMsg,
+      otherParticipant,
+      unreadCount,
+    };
+  }).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+}
