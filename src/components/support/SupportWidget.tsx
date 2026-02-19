@@ -6,10 +6,17 @@ import { Input } from '@/components/ui/input';
 import { SUPPORT_CONFIG } from './support.constants';
 import { cn } from '@/lib/utils';
 
-const INITIAL_MESSAGES = [
+type SupportMessage = {
+  id: string;
+  type: 'bot' | 'user';
+  text: string;
+  createdAt: string;
+};
+
+const INITIAL_MESSAGES: SupportMessage[] = [
   {
     id: 'welcome',
-    type: 'bot' as const,
+    type: 'bot',
     text: SUPPORT_CONFIG.welcomeMessage,
     createdAt: new Date().toISOString(),
   },
@@ -17,7 +24,7 @@ const INITIAL_MESSAGES = [
 
 export function SupportWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<SupportMessage[]>(INITIAL_MESSAGES);
   const [inputValue, setInputValue] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);

@@ -7,7 +7,6 @@ import {
   markNotificationAsRead,
 } from '@/mocks/data/notifications.mock';
 import { Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useCallback, useMemo } from 'react';
 
 function formatDate(iso: string) {
