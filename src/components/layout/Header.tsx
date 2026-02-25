@@ -61,14 +61,12 @@ export function Header() {
   return (
     <>
       <header
-        className={`sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 transition-[box-shadow] duration-300 ${
-          scrolled ? 'shadow-sm' : ''
-        }`}
+        className={`sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 transition-[box-shadow] duration-300 ${scrolled ? 'shadow-sm' : ''
+          }`}
       >
         <div
-          className={`container mx-auto flex items-center justify-between gap-2 md:gap-4 px-4 transition-[height] duration-300 ${
-            scrolled ? 'h-14' : 'h-16'
-          }`}
+          className={`container mx-auto flex items-center justify-between gap-2 md:gap-4 px-4 transition-[height] duration-300 ${scrolled ? 'h-14' : 'h-16'
+            }`}
         >
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -166,9 +164,8 @@ export function Header() {
           <div className="hidden md:flex items-center space-x-4 shrink-0">
             <a
               href="tel:0332916529"
-              className={`hidden lg:flex items-center rounded-full hover:bg-gray-100 transition-colors ${
-                scrolled ? 'gap-2' : 'p-2'
-              }`}
+              className={`hidden lg:flex items-center rounded-full hover:bg-gray-100 transition-colors ${scrolled ? 'gap-2' : 'p-2'
+                }`}
               title="(0332) 916 529"
             >
               <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-primary-light shrink-0">
@@ -202,7 +199,7 @@ export function Header() {
                     isOpen={notificationOpen}
                     onClose={() => setNotificationOpen(false)}
                     anchorRef={notificationAnchorRef}
-                    userId={user.id}
+                    userId={String(user.userId)}
                   />
                 </div>
                 <UserDropdown />
@@ -214,11 +211,10 @@ export function Header() {
         </div>
 
         <div
-          className={`hidden md:block border-t border-gray-200 bg-gray-100/90 transition-all duration-300 ease-out max-[1024px]:max-h-14 max-[1024px]:opacity-100 ${
-            scrolled
-              ? 'min-[1025px]:max-h-14 min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto'
-              : 'min-[1025px]:max-h-0 min-[1025px]:opacity-0 min-[1025px]:pointer-events-none'
-          }`}
+          className={`hidden md:block border-t border-gray-200 bg-gray-100/90 transition-all duration-300 ease-out max-[1024px]:max-h-14 max-[1024px]:opacity-100 ${scrolled
+            ? 'min-[1025px]:max-h-14 min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto'
+            : 'min-[1025px]:max-h-0 min-[1025px]:opacity-0 min-[1025px]:pointer-events-none'
+            }`}
         >
           <nav className="container mx-auto flex h-14 items-center justify-center gap-1 px-4">
             <div

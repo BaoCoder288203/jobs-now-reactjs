@@ -14,7 +14,7 @@ import type { ExtractedCVData } from '@/types';
 export function AIGeneratorForm() {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.id ?? '';
+  const userId = user?.userId ? String(user.userId) : '';
   const [step, setStep] = useState<'input' | 'loading' | 'preview'>('input');
   const [input, setInput] = useState({
     industry_id: '',

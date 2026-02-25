@@ -62,7 +62,7 @@ export function AppRoutes() {
         path="/employer/dashboard"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <RecruiterDashboardPage />
             </RoleGuard>
           </RequireAuth>
@@ -72,7 +72,7 @@ export function AppRoutes() {
         path="/employer/jobs"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerJobsPage />
             </RoleGuard>
           </RequireAuth>
@@ -82,7 +82,7 @@ export function AppRoutes() {
         path="/employer/jobs/create"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <CreateJobPage />
             </RoleGuard>
           </RequireAuth>
@@ -92,7 +92,7 @@ export function AppRoutes() {
         path="/employer/jobs/:id/edit"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <CreateJobPage />
             </RoleGuard>
           </RequireAuth>
@@ -102,7 +102,7 @@ export function AppRoutes() {
         path="/employer/company"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerCompanyPage />
             </RoleGuard>
           </RequireAuth>
@@ -112,7 +112,7 @@ export function AppRoutes() {
         path="/employer/settings"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerSettingsPage />
             </RoleGuard>
           </RequireAuth>
@@ -122,7 +122,7 @@ export function AppRoutes() {
         path="/employer/applications"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerApplicationsPage />
             </RoleGuard>
           </RequireAuth>
@@ -132,7 +132,7 @@ export function AppRoutes() {
         path="/employer/applications/:id"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerApplicationDetailPage />
             </RoleGuard>
           </RequireAuth>
@@ -144,7 +144,7 @@ export function AppRoutes() {
         path="/admin/dashboard"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminDashboardPage />
             </RoleGuard>
           </RequireAuth>
@@ -154,7 +154,7 @@ export function AppRoutes() {
         path="/admin/users"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminUsersPage />
             </RoleGuard>
           </RequireAuth>
@@ -164,7 +164,7 @@ export function AppRoutes() {
         path="/admin/companies"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminCompaniesPage />
             </RoleGuard>
           </RequireAuth>
@@ -174,7 +174,7 @@ export function AppRoutes() {
         path="/admin/jobs"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminJobsPage />
             </RoleGuard>
           </RequireAuth>
@@ -184,7 +184,7 @@ export function AppRoutes() {
         path="/admin/skills"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminSkillsPage />
             </RoleGuard>
           </RequireAuth>
@@ -207,7 +207,7 @@ export function AppRoutes() {
         <Route
           path="dashboard"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerDashboardPage />
             </RoleGuard>
           }
@@ -215,7 +215,7 @@ export function AppRoutes() {
         <Route
           path="profile"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerProfilePage />
             </RoleGuard>
           }
@@ -223,7 +223,7 @@ export function AppRoutes() {
         <Route
           path="applications"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerApplicationsPage />
             </RoleGuard>
           }
@@ -231,7 +231,7 @@ export function AppRoutes() {
         <Route
           path="resumes"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerResumesPage />
             </RoleGuard>
           }
@@ -239,7 +239,7 @@ export function AppRoutes() {
         <Route
           path="saved-jobs"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerSavedJobsPage />
             </RoleGuard>
           }
@@ -254,7 +254,7 @@ export function AppRoutes() {
         path="/admin/support"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminSupportPage />
             </RoleGuard>
           </RequireAuth>

@@ -8,7 +8,7 @@ export function RecruiterHero() {
   const { user } = useAppSelector((state) => state.auth);
 
   const handlePostJob = () => {
-    if (user?.role?.name === 'recruiter' || user?.role?.name === 'employer') {
+    if (user?.role === 'ROLE_COMPANY' || user?.role === 'ROLE_ADMIN') {
       navigate('/employer/jobs/create');
     }
   };

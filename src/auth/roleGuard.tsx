@@ -13,13 +13,17 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     return <Navigate to="/" replace />;
   }
 
-  const userRoleName = user.role?.name?.toUpperCase() || '';
-  const normalizedRole = userRoleName.replace(' ', '_');
-  
-  if (!allowedRoles.includes(normalizedRole)) {
-    const roleName = user.role?.name?.toLowerCase().replace('_', '-') || 'user';
-    const dashboardPath = roleName === 'job-seeker' ? '/user/dashboard' : `/${roleName}/dashboard`;
-    return <Navigate to={dashboardPath} replace />;
+  const userRole = user.role || '';
+
+  if (!allowedRoles.includes(userRole)) {
+    if (userRole === 'ROLE_JOBSEEKER') {
+      return <Navigate to="/user/dashboard" replace />;
+    } else if (userRole === 'ROLE_COMPANY') {
+      return <Navigate to="/employer/dashboard" replace />;
+    } else if (userRole === 'ROLE_ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

@@ -45,9 +45,9 @@ export function RecruiterSidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-gray-200 px-6">
           <Link to="/" className="flex items-center space-x-2">
-            <img 
-              src="/logo/logo_header.png" 
-              alt="JobsNow Logo" 
+            <img
+              src="/logo/logo_header.png"
+              alt="JobsNow Logo"
               className="h-8 w-auto"
             />
           </Link>
@@ -57,22 +57,22 @@ export function RecruiterSidebar() {
         {user && (
           <div className="border-b border-gray-200 px-6 py-4">
             <div className="flex items-center space-x-3">
-              {user.avatar_url ? (
+              {user.avatar ? (
                 <img
-                  src={user.avatar_url}
-                  alt={user.full_name}
+                  src={user.avatar}
+                  alt={user.fullName}
                   className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
                   <span className="text-sm font-medium text-gray-900">
-                    {user.full_name.charAt(0).toUpperCase()}
+                    {user.fullName.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {user.full_name}
+                  {user.fullName}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
                   Nhà tuyển dụng
@@ -87,7 +87,7 @@ export function RecruiterSidebar() {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
-            
+
             return (
               <Link
                 key={item.href}

@@ -19,7 +19,7 @@ import { useAuthModal } from '@/contexts/AuthModalContext';
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const userId = user?.id || '';
+  const userId = user?.userId ? String(user.userId) : '';
   const { openLoginModal } = useAuthModal();
 
   const { data: job, isLoading: jobLoading } = useJobDetail(id!);
@@ -202,7 +202,7 @@ export function JobDetailPage() {
                   <CardContent className="p-6 space-y-4">
                     {isAuthenticated && user ? (
                       <>
-                        {user.role?.name === 'job_seeker' ? (
+                        {user.role === 'ROLE_JOBSEEKER' ? (
                           <>
                             {hasApplied ? (
                               <div className="text-center">
@@ -265,8 +265,8 @@ export function JobDetailPage() {
                         <p className="text-gray-700 mb-4">
                           Đăng nhập để ứng tuyển công việc này
                         </p>
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           size="lg"
                           onClick={() => openLoginModal('job_seeker')}
                         >
@@ -282,7 +282,7 @@ export function JobDetailPage() {
                   <Card className="border-2">
                     <CardContent className="p-6">
                       <h3 className="text-lg font-semibold mb-4">Ứng tuyển công việc này</h3>
-                      
+
                       <div className="space-y-4">
                         {resumes.length > 0 && (
                           <div className="space-y-2">

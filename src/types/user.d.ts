@@ -6,19 +6,15 @@ export interface Role {
 }
 
 export interface User {
-  id: string;
+  userId: number;
   email: string;
-  password_hash?: string;
-  full_name: string;
-  phone?: string;
-  avatar_url?: string;
-  role_id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  last_login_at?: string;
-  
-  role?: Role;
+  fullName: string;
+  phone: string | null;
+  role: string;
+  avatar: string | null;
+  profileId: number | null;
+  companyId: number | null;
+  companyName: string | null;
 }
 
 export interface Session {
@@ -32,4 +28,17 @@ export interface Session {
   lastActivityAt: string;
   expiresAt: string;
   createdAt: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  userId: number;
+  email: string;
+  fullName: string;
+  phone: string | null;
+  role: string;
+  avatar: string | null;
+  profileId: number | null;
+  companyId: number | null;
+  companyName: string | null;
 }

@@ -12,23 +12,23 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export function RecruiterDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
-  
+
   // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const companyId = company?.id;
-  
+
   // Lấy jobs của company này
-  const { data: companyJobsData, isLoading: jobsLoading } = useJobs({ 
-    company_id: companyId, 
-    limit: 100 
+  const { data: companyJobsData, isLoading: jobsLoading } = useJobs({
+    company_id: companyId,
+    limit: 100
   });
-  
+
   // Lấy applications của company này
   const { data: companyApplications = [], isLoading: applicationsLoading } = useCompanyApplications(companyId);
-  
+
   // Filter jobs chỉ của company này (đảm bảo chắc chắn)
   const companyJobs = companyJobsData?.items?.filter(job => job.company_id === companyId) || [];
-  
+
   const isLoading = companyLoading || jobsLoading || applicationsLoading;
 
   const stats = [
@@ -56,7 +56,7 @@ export function RecruiterDashboardPage() {
       color: 'text-primary'
     }
   ];
-  
+
   if (isLoading) {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
@@ -66,7 +66,7 @@ export function RecruiterDashboardPage() {
       </DashboardLayout>
     );
   }
-  
+
   // Nếu recruiter chưa có company, hiển thị thông báo
   if (!company) {
     return (
@@ -92,7 +92,7 @@ export function RecruiterDashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Chào mừng trở lại, {user?.full_name}!
+              Chào mừng trở lại, {user?.fullName}!
             </h1>
             <p className="text-gray-600 mt-1">
               Quản lý tin tuyển dụng và đơn ứng tuyển của bạn
@@ -153,7 +153,7 @@ export function RecruiterDashboardPage() {
                         {application.job?.title}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {application.user?.full_name} • {application.user?.email}
+                        {application.user?.fullName} • {application.user?.email}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Ứng tuyển ngày {new Date(application.created_at).toLocaleDateString('vi-VN')}
@@ -161,13 +161,12 @@ export function RecruiterDashboardPage() {
                     </div>
                     <div className="ml-4 flex items-center gap-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          application.status === 'approved'
-                            ? 'bg-accent-light text-gray-900'
-                            : application.status === 'rejected'
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${application.status === 'approved'
+                          ? 'bg-accent-light text-gray-900'
+                          : application.status === 'rejected'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-700'
-                        }`}
+                          }`}
                       >
                         {application.status === 'approved' ? 'Đã duyệt' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status}
                       </span>

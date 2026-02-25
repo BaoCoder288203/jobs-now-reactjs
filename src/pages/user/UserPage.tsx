@@ -23,9 +23,9 @@ export default function UserPage() {
 
   if (!isAuthenticated || !user) return <Navigate to="/" replace />;
 
-  const roleName = user?.role?.name?.toLowerCase() || '';
-  const isJobSeeker = roleName === 'job_seeker';
-  const navigationItems = isJobSeeker 
+  const userRole = user?.role || '';
+  const isJobSeeker = userRole === 'ROLE_JOBSEEKER';
+  const navigationItems = isJobSeeker
     ? [...commonItems, ...jobSeekerItems]
     : commonItems;
 
@@ -33,46 +33,45 @@ export default function UserPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex flex-1 bg-gray-100 p-4">
-      {/* Sidebar - luôn hiển thị */}
-      <div
-        className="hidden w-64 transform rounded-lg bg-white shadow-lg lg:block"
-        style={{ height: "fit-content", maxHeight: "80vh" }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 p-6">
-          <h1 className="text-xl font-semibold text-gray-800">
-            Xin chào <span className="text-primary">{user.full_name.split(' ')[0]}</span>!
-          </h1>
-        </div>
+        {/* Sidebar - luôn hiển thị */}
+        <div
+          className="hidden w-64 transform rounded-lg bg-white shadow-lg lg:block"
+          style={{ height: "fit-content", maxHeight: "80vh" }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-200 p-6">
+            <h1 className="text-xl font-semibold text-gray-800">
+              Xin chào <span className="text-primary">{user.fullName.split(' ')[0]}</span>!
+            </h1>
+          </div>
 
-        {/* Navigation */}
-        <nav className="p-4">
-          <ul className="space-y-2">
-            {navigationItems.map((item) => (
-              <li key={item.title}>
-                <NavLink
-                  to={item.href}
-                  className={({ isActive }) =>
-                    `flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                      isActive
+          {/* Navigation */}
+          <nav className="p-4">
+            <ul className="space-y-2">
+              {navigationItems.map((item) => (
+                <li key={item.title}>
+                  <NavLink
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 ${isActive
                         ? "bg-primary/10 text-primary"
                         : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.title}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
+                      }`
+                    }
+                  >
+                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.title}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1 lg:ml-6">
-        <Outlet />
-      </div>
+        {/* Main Content */}
+        <div className="flex-1 lg:ml-6">
+          <Outlet />
+        </div>
       </div>
       <Footer />
     </div>

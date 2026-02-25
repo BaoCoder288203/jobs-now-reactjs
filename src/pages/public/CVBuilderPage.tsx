@@ -9,7 +9,7 @@ export function CVBuilderPage() {
   const [searchParams] = useSearchParams();
   const editResumeId = searchParams.get('edit') ?? null;
   const { user } = useAppSelector((state) => state.auth);
-  const { data: resumes } = useResumes(user?.id ?? '');
+  const { data: resumes } = useResumes(user?.userId ? String(user.userId) : '');
   const resumeToEdit = editResumeId ? resumes?.find((r) => r.id === editResumeId) : null;
   const initialCVData = resumeToEdit?.extracted_text
     ? (JSON.parse(resumeToEdit.extracted_text) as ExtractedCVData)

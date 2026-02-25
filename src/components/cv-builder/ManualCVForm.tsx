@@ -28,7 +28,7 @@ interface ManualCVFormProps {
 export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFormProps) {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.id ?? '';
+  const userId = user?.userId ? String(user.userId) : '';
   const [cvData, setCvData] = useState<ExtractedCVData>(initialData ?? emptyCVData);
   const [showPreview, setShowPreview] = useState(false);
 

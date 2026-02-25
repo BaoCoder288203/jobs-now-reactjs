@@ -17,13 +17,11 @@ const queryClient = new QueryClient({
   }
 });
 
-// Component để auto-load user khi mount
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const { token, user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    // Nếu có token nhưng chưa có user, tự động load user
     if (token && !user) {
       dispatch(getCurrentUserAsync());
     }

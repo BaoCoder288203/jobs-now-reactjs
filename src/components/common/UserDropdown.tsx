@@ -47,10 +47,10 @@ export function UserDropdown() {
     setIsOpen(false);
   };
 
-  const roleName = user?.role?.name?.toLowerCase() || '';
-  const isJobSeeker = roleName === 'job_seeker';
-  const isRecruiter = roleName === 'recruiter' || roleName === 'employer';
-  const isAdmin = roleName === 'admin';
+  const userRole = user?.role || '';
+  const isJobSeeker = userRole === 'ROLE_JOBSEEKER';
+  const isRecruiter = userRole === 'ROLE_COMPANY';
+  const isAdmin = userRole === 'ROLE_ADMIN';
 
   const canAccessRecruiter = isRecruiter || isAdmin;
   const canAccessAdmin = isAdmin;
@@ -64,21 +64,21 @@ export function UserDropdown() {
         onMouseEnter={() => setIsOpen(true)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        {user.avatar_url ? (
+        {user.avatar ? (
           <img
-            src={user.avatar_url}
-            alt={user.full_name}
+            src={user.avatar}
+            alt={user.fullName}
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-sm font-medium text-gray-900">
-              {user.full_name.charAt(0).toUpperCase()}
+              {user.fullName.charAt(0).toUpperCase()}
             </span>
           </div>
         )}
         <span className="hidden sm:inline font-medium text-gray-900">
-          {user.full_name.split(' ')[0]}
+          {user.fullName.split(' ')[0]}
         </span>
         <ChevronDown className={cn(
           "h-4 w-4 text-gray-600 transition-transform",
@@ -100,27 +100,27 @@ export function UserDropdown() {
             {/* User Info Header - Tham khảo từ TalentBridge */}
             <div className="mb-2 flex items-center gap-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-3 mx-2">
               <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {user.avatar_url ? (
+                {user.avatar ? (
                   <img
-                    src={user.avatar_url}
-                    alt={user.full_name}
+                    src={user.avatar}
+                    alt={user.fullName}
                     className="h-12 w-12 rounded-full object-cover"
                   />
                 ) : (
                   <span className="text-lg font-semibold text-white">
-                    {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    {user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-gray-900 text-sm">
-                  {user.full_name}
+                  {user.fullName}
                 </p>
                 <p className="truncate text-xs text-gray-600">
                   {user.email || ''}
                 </p>
                 <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary rounded">
-                  {user.role?.name?.replace('_', ' ') || 'User'}
+                  {user.role?.replace('ROLE_', '').replace('_', ' ') || 'User'}
                 </span>
               </div>
             </div>

@@ -22,7 +22,7 @@ function formatDate(iso: string) {
 export function NotificationsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const notifications = useMemo(
-    () => (user ? getNotificationsByUserId(user.id) : []),
+    () => (user ? getNotificationsByUserId(String(user.userId)) : []),
     [user]
   );
 
@@ -34,7 +34,7 @@ export function NotificationsPage() {
   );
 
   const handleMarkAllRead = useCallback(() => {
-    if (user) markAllNotificationsAsRead(user.id);
+    if (user) markAllNotificationsAsRead(String(user.userId));
   }, [user]);
 
   if (!user) return null;
@@ -72,16 +72,14 @@ export function NotificationsPage() {
               {notifications.map((n) => (
                 <li
                   key={n.id}
-                  className={`py-4 px-3 rounded-lg transition-colors ${
-                    !n.is_read ? 'bg-primary/5' : ''
-                  }`}
+                  className={`py-4 px-3 rounded-lg transition-colors ${!n.is_read ? 'bg-primary/5' : ''
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p
-                        className={`font-medium ${
-                          !n.is_read ? 'text-gray-900' : 'text-gray-700'
-                        }`}
+                        className={`font-medium ${!n.is_read ? 'text-gray-900' : 'text-gray-700'
+                          }`}
                       >
                         {n.title}
                       </p>

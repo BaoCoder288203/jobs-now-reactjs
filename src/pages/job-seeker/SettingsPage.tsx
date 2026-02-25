@@ -21,7 +21,7 @@ export function JobSeekerSettingsPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (newPassword !== confirmPassword) {
       alert('New passwords do not match');
       return;
@@ -83,7 +83,7 @@ export function JobSeekerSettingsPage() {
               </div>
               <div>
                 <Label className="text-sm text-gray-500">Full Name</Label>
-                <p className="font-medium text-gray-900 mt-1">{user?.full_name}</p>
+                <p className="font-medium text-gray-900 mt-1">{user?.fullName}</p>
               </div>
               {user?.phone && (
                 <div>
@@ -94,7 +94,7 @@ export function JobSeekerSettingsPage() {
               <div>
                 <Label className="text-sm text-gray-500">Role</Label>
                 <p className="font-medium text-gray-900 mt-1 capitalize">
-                  {user?.role?.name?.replace('_', ' ')}
+                  {user?.role?.replace('ROLE_', '').replace('_', ' ')}
                 </p>
               </div>
             </div>

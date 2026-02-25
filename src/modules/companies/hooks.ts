@@ -40,39 +40,34 @@ export function useCompanyDetail(companyId: string) {
   });
 }
 
-// Hook mới: Lấy company của user hiện tại (recruiter chỉ có 1 company)
 export function useMyCompany() {
   const { user } = useAppSelector((state) => state.auth);
-  
+
   return useQuery({
     queryKey: companyKeys.myCompany(),
     queryFn: () => companyService.getMyCompany(),
-    enabled: !!user && (user.role?.name === 'recruiter' || user.role?.name === 'employer')
+    enabled: !!user && (user.role === 'ROLE_COMPANY' || user.role === 'ROLE_ADMIN')
   });
 }
 
-// Hook: Tạo company mới
 export function useCreateMyCompany() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (formData: FormData) => companyService.createMyCompany(formData),
     onSuccess: () => {
-      // Invalidate và refetch myCompany
       queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
       queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
     },
   });
 }
 
-// Hook: Cập nhật company
 export function useUpdateMyCompany() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (formData: FormData) => companyService.updateMyCompany(formData),
     onSuccess: () => {
-      // Invalidate và refetch myCompany
       queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
       queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
     },

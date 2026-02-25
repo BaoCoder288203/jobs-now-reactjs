@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { User, Session } from '@/types';
+import type { User, AuthResponse } from '@/types';
 import * as authService from '@/services/auth.service';
+import type { RegisterData } from '@/services/auth.service';
 
 interface AuthState {
   user: User | null;
-  session: Session | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -13,12 +13,25 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  session: null,
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: false,
-  error: null
+  error: null,
 };
+
+function toUser(res: AuthResponse): User {
+  return {
+    userId: res.userId,
+    email: res.email,
+    fullName: res.fullName,
+    phone: res.phone,
+    role: res.role,
+    avatar: res.avatar,
+    profileId: res.profileId,
+    companyId: res.companyId,
+    companyName: res.companyName,
+  };
+}
 
 export const loginAsync = createAsyncThunk(
   'auth/login',
@@ -30,22 +43,7 @@ export const loginAsync = createAsyncThunk(
       const result = await authService.login(email, password);
       return result;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed');
-    }
-  }
-);
-
-export const registerAsync = createAsyncThunk(
-  'auth/register',
-  async (
-    data: { email: string; password: string; fullName: string; role: string; phone?: string },
-    { rejectWithValue }
-  ) => {
-    try {
-      const result = await authService.register(data);
-      return result;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Registration failed');
+      return rejectWithValue(error.message || 'Đăng nhập thất bại');
     }
   }
 );
@@ -54,10 +52,37 @@ export const getCurrentUserAsync = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      const user = await authService.getCurrentUser();
-      return user;
+      const result = await authService.getCurrentUser();
+      return result;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to get user');
+      return rejectWithValue(error.message || 'Không thể tải thông tin user');
+    }
+  }
+);
+
+export const registerAsync = createAsyncThunk(
+  'auth/register',
+  async (data: RegisterData, { rejectWithValue }) => {
+    try {
+      const message = await authService.register(data);
+      return message;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Đăng ký thất bại');
+    }
+  }
+);
+
+export const verifyOtpAsync = createAsyncThunk(
+  'auth/verifyOtp',
+  async (
+    { email, otp }: { email: string; otp: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const message = await authService.verifyOtp(email, otp);
+      return message;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Xác thực OTP thất bại');
     }
   }
 );
@@ -68,7 +93,7 @@ export const logoutAsync = createAsyncThunk(
     try {
       await authService.logout();
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Logout failed');
+      return rejectWithValue(error.message || 'Đăng xuất thất bại');
     }
   }
 );
@@ -85,11 +110,10 @@ const authSlice = createSlice({
     },
     clearAuth: (state) => {
       state.user = null;
-      state.session = null;
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -97,10 +121,9 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(loginAsync.fulfilled, (state, action) => {
+      .addCase(loginAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.session = action.payload.session;
+        state.user = toUser(action.payload);
         state.token = action.payload.token;
         state.isAuthenticated = true;
         state.error = null;
@@ -112,30 +135,12 @@ const authSlice = createSlice({
       });
 
     builder
-      .addCase(registerAsync.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(registerAsync.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(registerAsync.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-        state.isAuthenticated = false;
-      });
-
-    builder
       .addCase(getCurrentUserAsync.pending, (state) => {
         state.isLoading = true;
       })
-      .addCase(getCurrentUserAsync.fulfilled, (state, action) => {
+      .addCase(getCurrentUserAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload;
+        state.user = toUser(action.payload);
         state.isAuthenticated = true;
       })
       .addCase(getCurrentUserAsync.rejected, (state) => {
@@ -144,20 +149,43 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+      });
+
+    builder
+      .addCase(registerAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerAsync.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(registerAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(verifyOtpAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifyOtpAsync.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(verifyOtpAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
 
     builder
       .addCase(logoutAsync.fulfilled, (state) => {
         state.user = null;
-        state.session = null;
         state.token = null;
         state.isAuthenticated = false;
         state.error = null;
       });
-  }
+  },
 });
 
 export const { clearError, setUser, clearAuth } = authSlice.actions;
 export default authSlice.reducer;
-

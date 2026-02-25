@@ -1,4 +1,18 @@
-import type { User, Role } from '@/types';
+import type { Role } from '@/types';
+
+export interface MockUser {
+  id: string;
+  email: string;
+  full_name: string;
+  phone?: string;
+  avatar_url?: string;
+  role_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  last_login_at?: string;
+  role?: Role;
+}
 
 export const mockRoles: Role[] = [
   {
@@ -21,7 +35,7 @@ export const mockRoles: Role[] = [
   }
 ];
 
-export const mockUsers: User[] = [
+export const mockUsers: MockUser[] = [
   {
     id: 'user-1',
     email: 'admin@jobsnow.com',
@@ -84,10 +98,10 @@ export const mockUsers: User[] = [
   }
 ];
 
-export function findUserByCredentials(email: string, password: string): User | null {
+export function findUserByCredentials(email: string, password: string): MockUser | null {
   const user = mockUsers.find(u => u.email === email);
   if (!user) return null;
-  
+
   if (password === 'password123') {
     return user;
   }

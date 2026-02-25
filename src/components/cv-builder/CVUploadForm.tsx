@@ -6,7 +6,7 @@ import { Upload } from 'lucide-react';
 
 export function CVUploadForm() {
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.id ?? '';
+  const userId = user?.userId ? String(user.userId) : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadResume();
 
