@@ -44,3 +44,8 @@ export interface JobListParams extends PaginationParams {
   status?: string;
 }
 
+export interface BaseResponse<T = any> {
+  code: number;
+  message: string;
+  data: T;
+}

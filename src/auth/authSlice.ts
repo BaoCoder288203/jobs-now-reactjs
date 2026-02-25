@@ -1,10 +1,19 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import type { User, Session } from '@/types';
+import type { AuthResponse } from '@/types';
 import * as authService from '@/services/auth.service';
+import type { RegisterData } from '@/services/auth.service';
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  userId: number | null;
+  email: string | null;
+  fullName: string | null;
+  phone: string | null;
+  role: string | null;
+  avatar: string | null;
+  profileId: number | null;
+  companyId: number | null;
+  companyName: string | null;
+
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -12,13 +21,22 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: null,
-  session: null,
+  userId: null,
+  email: null,
+  fullName: null,
+  phone: null,
+  role: null,
+  avatar: null,
+  profileId: null,
+  companyId: null,
+  companyName: null,
+
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: false,
-  error: null
+  error: null,
 };
+
 
 export const loginAsync = createAsyncThunk(
   'auth/login',
@@ -30,22 +48,7 @@ export const loginAsync = createAsyncThunk(
       const result = await authService.login(email, password);
       return result;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed');
-    }
-  }
-);
-
-export const registerAsync = createAsyncThunk(
-  'auth/register',
-  async (
-    data: { email: string; password: string; fullName: string; role: string; phone?: string },
-    { rejectWithValue }
-  ) => {
-    try {
-      const result = await authService.register(data);
-      return result;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Registration failed');
+      return rejectWithValue(error.message || 'Đăng nhập thất bại');
     }
   }
 );
@@ -54,10 +57,37 @@ export const getCurrentUserAsync = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
     try {
-      const user = await authService.getCurrentUser();
-      return user;
+      const result = await authService.getCurrentUser();
+      return result;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to get user');
+      return rejectWithValue(error.message || 'Không thể tải thông tin user');
+    }
+  }
+);
+
+export const registerAsync = createAsyncThunk(
+  'auth/register',
+  async (data: RegisterData, { rejectWithValue }) => {
+    try {
+      const message = await authService.register(data);
+      return message;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Đăng ký thất bại');
+    }
+  }
+);
+
+export const verifyOtpAsync = createAsyncThunk(
+  'auth/verifyOtp',
+  async (
+    { email, otp }: { email: string; otp: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const message = await authService.verifyOtp(email, otp);
+      return message;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Xác thực OTP thất bại');
     }
   }
 );
@@ -68,10 +98,11 @@ export const logoutAsync = createAsyncThunk(
     try {
       await authService.logout();
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Logout failed');
+      return rejectWithValue(error.message || 'Đăng xuất thất bại');
     }
   }
 );
+
 
 const authSlice = createSlice({
   name: 'auth',
@@ -80,16 +111,20 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    setUser: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
-    },
     clearAuth: (state) => {
-      state.user = null;
-      state.session = null;
+      state.userId = null;
+      state.email = null;
+      state.fullName = null;
+      state.phone = null;
+      state.role = null;
+      state.avatar = null;
+      state.profileId = null;
+      state.companyId = null;
+      state.companyName = null;
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -97,11 +132,18 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(loginAsync.fulfilled, (state, action) => {
+      .addCase(loginAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.session = action.payload.session;
         state.token = action.payload.token;
+        state.userId = action.payload.userId;
+        state.email = action.payload.email;
+        state.fullName = action.payload.fullName;
+        state.phone = action.payload.phone;
+        state.role = action.payload.role;
+        state.avatar = action.payload.avatar;
+        state.profileId = action.payload.profileId;
+        state.companyId = action.payload.companyId;
+        state.companyName = action.payload.companyName;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -110,54 +152,74 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.isAuthenticated = false;
       });
+    
+    builder
+      .addCase(getCurrentUserAsync.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getCurrentUserAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+        state.isLoading = false;
+        state.userId = action.payload.userId;
+        state.email = action.payload.email;
+        state.fullName = action.payload.fullName;
+        state.phone = action.payload.phone;
+        state.role = action.payload.role;
+        state.avatar = action.payload.avatar;
+        state.profileId = action.payload.profileId;
+        state.companyId = action.payload.companyId;
+        state.companyName = action.payload.companyName;
+        state.isAuthenticated = true;
+      })
+      .addCase(getCurrentUserAsync.rejected, (state) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
+        state.token = null;
+        localStorage.removeItem('token');
+      });
 
     builder
       .addCase(registerAsync.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(registerAsync.fulfilled, (state, action) => {
+      .addCase(registerAsync.fulfilled, (state) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.isAuthenticated = true;
-        state.error = null;
       })
       .addCase(registerAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-        state.isAuthenticated = false;
       });
 
     builder
-      .addCase(getCurrentUserAsync.pending, (state) => {
+      .addCase(verifyOtpAsync.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
-      .addCase(getCurrentUserAsync.fulfilled, (state, action) => {
+      .addCase(verifyOtpAsync.fulfilled, (state) => {
         state.isLoading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
       })
-      .addCase(getCurrentUserAsync.rejected, (state) => {
+      .addCase(verifyOtpAsync.rejected, (state, action) => {
         state.isLoading = false;
-        state.isAuthenticated = false;
-        state.user = null;
-        state.token = null;
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        state.error = action.payload as string;
       });
 
     builder
       .addCase(logoutAsync.fulfilled, (state) => {
-        state.user = null;
-        state.session = null;
+        state.userId = null;
+        state.email = null;
+        state.fullName = null;
+        state.phone = null;
+        state.role = null;
+        state.avatar = null;
+        state.profileId = null;
+        state.companyId = null;
+        state.companyName = null;
         state.token = null;
         state.isAuthenticated = false;
         state.error = null;
       });
-  }
+  },
 });
 
-export const { clearError, setUser, clearAuth } = authSlice.actions;
+export const { clearError, clearAuth } = authSlice.actions;
 export default authSlice.reducer;
-

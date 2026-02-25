@@ -1,75 +1,90 @@
-import type { User, Session } from '@/types';
-import { USE_MOCK } from './api';
-import * as mockAuth from '@/mocks/handlers/auth.mock';
+import type { AuthResponse, BaseResponse } from '@/types';
 import { apiClient } from './api';
 
-export async function login(email: string, password: string): Promise<{
-  user: User;
-  token: string;
-  refreshToken: string;
-  session: Session;
-}> {
-  if (USE_MOCK) {
-    return mockAuth.mockLogin(email, password);
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  localStorage.removeItem('token');
+
+  const response: BaseResponse<AuthResponse> = await apiClient.post('/auth/login', {
+    email,
+    password
+  });
+
+  if (response.code !== 200 || !response.data) {
+    throw new Error(response.message || 'Email hoặc mật khẩu không đúng');
   }
-  
-  const response = await apiClient.post('/auth/login', { email, password });
+
+  localStorage.setItem('token', response.data.token);
   return response.data;
 }
 
-export async function register(data: {
+export interface RegisterData {
   email: string;
   password: string;
-  fullName: string;
-  role: string;
   phone?: string;
-}): Promise<{
-  user: User;
-  token: string;
-}> {
-  if (USE_MOCK) {
-    return mockAuth.mockRegister(data);
-  }
-  
-  const response = await apiClient.post('/auth/register', data);
+  roleName: string;
+  fullName?: string;
+  address?: string;
+  dob?: string;
+  bio?: string;
+  companyName?: string;
+  website?: string;
+  description?: string;
+  companyAddress?: string;
+  logo?: File;
+}
+
+export async function register(data: RegisterData): Promise<string> {
+
+  const formData = new FormData();
+  formData.append('email', data.email);
+  formData.append('password', data.password);
+  formData.append('roleName', data.roleName);
+
+  if (data.phone) formData.append('phone', data.phone);
+  if (data.fullName) formData.append('fullName', data.fullName);
+  if (data.address) formData.append('address', data.address);
+  if (data.dob) formData.append('dob', data.dob);
+  if (data.bio) formData.append('bio', data.bio);
+  if (data.companyName) formData.append('companyName', data.companyName);
+  if (data.website) formData.append('website', data.website);
+  if (data.description) formData.append('description', data.description);
+  if (data.companyAddress) formData.append('companyAddress', data.companyAddress);
+  if (data.logo) formData.append('logo', data.logo);
+
+  const response: BaseResponse = await apiClient.post('/auth/register', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+
+  return response.message;
+}
+
+export async function checkEmail(email: string): Promise<boolean> {
+  const response: BaseResponse<boolean> = await apiClient.post(
+    `/auth/check-email?email=${encodeURIComponent(email)}`
+  );
   return response.data;
 }
 
-export async function getCurrentUser(): Promise<User> {
-  if (USE_MOCK) {
-    return mockAuth.mockGetCurrentUser();
-  }
-  
-  const response = await apiClient.get('/auth/me');
-  return response.data;
+export async function verifyOtp(email: string, otp: string): Promise<string> {
+  const response: BaseResponse = await apiClient.post('/auth/verify-otp', {
+    email,
+    otp
+  });
+  return response.message;
+}
+
+export async function resendOtp(email: string): Promise<string> {
+  const response: BaseResponse = await apiClient.post('/auth/resend-otp', {
+    email
+  });
+  return response.message;
 }
 
 export async function logout(): Promise<void> {
-  if (USE_MOCK) {
-    return mockAuth.mockLogout();
-  }
-  
-  await apiClient.post('/auth/logout');
   localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
 }
 
-export async function getUserSessions(userId: string): Promise<Session[]> {
-  if (USE_MOCK) {
-    return mockAuth.mockGetUserSessions(userId);
-  }
-  
-  const response = await apiClient.get(`/auth/sessions/${userId}`);
+export async function getCurrentUser(): Promise<AuthResponse> {
+  const response: BaseResponse<AuthResponse> = await apiClient.get('/auth/me');
   return response.data;
 }
-
-export async function logoutOtherSessions(userId: string, currentSessionId: string): Promise<void> {
-  if (USE_MOCK) {
-    return mockAuth.mockLogoutOtherSessions(userId, currentSessionId);
-  }
-  
-  await apiClient.delete(`/auth/sessions/${userId}`, {
-    params: { exclude: currentSessionId }
-  });
-}
-
