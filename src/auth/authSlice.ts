@@ -48,6 +48,21 @@ export const loginAsync = createAsyncThunk(
   }
 );
 
+export const loginByOtpAsync = createAsyncThunk(
+  'auth/loginByOtp',
+  async (
+    { email, otp }: { email: string; otp: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const result = await authService.loginByOtp(email, otp);
+      return result;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Xác thực OTP thất bại');
+    }
+  }
+);
+
 export const getCurrentUserAsync = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
@@ -129,6 +144,22 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+        state.isAuthenticated = false;
+      })
+      .addCase(loginByOtpAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loginByOtpAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+        state.isLoading = false;
+        state.user = toUser(action.payload);
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(loginByOtpAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
         state.isAuthenticated = false;
