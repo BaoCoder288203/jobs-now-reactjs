@@ -65,6 +65,29 @@ export async function checkEmail(email: string): Promise<boolean> {
   return response.data;
 }
 
+export async function sendLoginOtp(email: string): Promise<void> {
+  const response: BaseResponse = await apiClient.post('/auth/send-otp', { email });
+  if (response.code !== 200) {
+    throw new Error(response.message || 'Gửi OTP thất bại');
+  }
+}
+
+export async function loginByOtp(email: string, otp: string): Promise<AuthResponse> {
+  localStorage.removeItem('token');
+
+  const response: BaseResponse<AuthResponse> = await apiClient.post('/auth/verify-login-otp', {
+    email,
+    otp
+  });
+
+  if (response.code !== 200 || !response.data) {
+    throw new Error(response.message || 'Mã OTP không đúng hoặc đã hết hạn');
+  }
+
+  localStorage.setItem('token', response.data.token);
+  return response.data;
+}
+
 export async function verifyOtp(email: string, otp: string): Promise<string> {
   const response: BaseResponse = await apiClient.post('/auth/verify-otp', {
     email,

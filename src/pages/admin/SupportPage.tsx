@@ -33,7 +33,7 @@ export function AdminSupportPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const conversations = useMemo(
-    () => (admin ? getConversationsForAdmin(admin.id) : []),
+    () => (admin ? getConversationsForAdmin(`user-${admin.userId}`) : []),
     [admin, refreshKey]
   );
 
@@ -44,7 +44,7 @@ export function AdminSupportPage() {
       const q = searchTerm.toLowerCase();
       list = list.filter(
         (c) =>
-          c.otherParticipant?.full_name?.toLowerCase().includes(q) ||
+          c.otherParticipant?.fullName?.toLowerCase().includes(q) ||
           c.otherParticipant?.email?.toLowerCase().includes(q)
       );
     }
@@ -63,7 +63,7 @@ export function AdminSupportPage() {
 
   useEffect(() => {
     if (selectedId && admin) {
-      markMessagesAsRead(selectedId, admin.id);
+      markMessagesAsRead(selectedId, `user-${admin.userId}`);
     }
   }, [selectedId, admin]);
 
@@ -74,7 +74,7 @@ export function AdminSupportPage() {
   const handleSend = useCallback(() => {
     const text = replyText.trim();
     if (!selectedId || !admin || !text) return;
-    addMessage(selectedId, admin.id, text);
+    addMessage(selectedId, `user-${admin.userId}`, text);
     setReplyText('');
     setRefreshKey((k) => k + 1);
   }, [selectedId, admin, replyText]);
@@ -145,12 +145,12 @@ export function AdminSupportPage() {
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                             <span className="text-sm font-medium text-primary">
-                              {conv.otherParticipant?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                              {conv.otherParticipant?.fullName?.charAt(0)?.toUpperCase() || '?'}
                             </span>
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-gray-900 truncate">
-                              {conv.otherParticipant?.full_name || 'Người dùng'}
+                              {conv.otherParticipant?.fullName || 'Người dùng'}
                             </p>
                             <p className="text-xs text-gray-500 truncate">
                               {conv.lastMessage?.content || '—'}
@@ -185,11 +185,11 @@ export function AdminSupportPage() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="text-sm font-medium text-primary">
-                        {selectedConversation?.otherParticipant?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                        {selectedConversation?.otherParticipant?.fullName?.charAt(0)?.toUpperCase() || '?'}
                       </span>
                     </div>
                     <div>
-                      <p>{selectedConversation?.otherParticipant?.full_name || 'Người dùng'}</p>
+                      <p>{selectedConversation?.otherParticipant?.fullName || 'Người dùng'}</p>
                       <p className="text-xs font-normal text-gray-500">
                         {selectedConversation?.otherParticipant?.email}
                       </p>
@@ -198,7 +198,7 @@ export function AdminSupportPage() {
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
                   {messages.map((msg) => {
-                    const isAdmin = msg.sender_id === admin.id;
+                    const isAdmin = msg.sender_id === `user-${admin.userId}`;
                     return (
                       <div
                         key={msg.id}
@@ -210,7 +210,7 @@ export function AdminSupportPage() {
                         {!isAdmin && (
                           <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                             <span className="text-xs font-medium text-gray-600">
-                              {msg.sender?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                              {msg.sender?.fullName?.charAt(0)?.toUpperCase() || '?'}
                             </span>
                           </div>
                         )}

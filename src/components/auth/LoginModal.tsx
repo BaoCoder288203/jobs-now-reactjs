@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAppDispatch } from '@/app/hooks';
-import { loginAsync, registerAsync, verifyOtpAsync } from '@/auth/authSlice';
+import { loginAsync, loginByOtpAsync, registerAsync, verifyOtpAsync } from '@/auth/authSlice';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Mail, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as authService from '@/services/auth.service';
 
@@ -74,12 +73,13 @@ type OtpFormData = z.infer<typeof otpSchema>;
 export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [step, setStep] = useState<'check' | 'register' | 'login' | 'verify-otp'>('check');
+  const [step, setStep] = useState<'check' | 'register' | 'login' | 'login-otp' | 'verify-otp'>('check');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
 
   const modeText = mode === 'job_seeker' ? 'Người tìm việc' : 'Nhà tuyển dụng';
 
@@ -104,6 +104,11 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     resolver: zodResolver(otpSchema),
   });
 
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) return;
+    const timer = setInterval(() => setResendCooldownSeconds((s) => s - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldownSeconds]);
 
   const handleCheckAccount = async (data: CheckAccountFormData) => {
     try {
@@ -115,7 +120,13 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
 
       if (exists) {
         loginForm.setValue('email', data.email);
-        setStep('login');
+        setStep('login-otp');
+        try {
+          await authService.sendLoginOtp(data.email);
+          setResendCooldownSeconds(60);
+        } catch (sendErr: any) {
+          setError(sendErr.message || 'Gửi mã OTP thất bại');
+        }
       } else {
         if (mode === 'job_seeker') {
           registerJobSeekerForm.setValue('email', data.email);
@@ -239,12 +250,53 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     }
   };
 
+  const handleVerifyLoginOtp = async (data: OtpFormData) => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      const result = await dispatch(loginByOtpAsync({
+        email,
+        otp: data.otp,
+      })).unwrap();
+
+      onOpenChange(false);
+
+      if (result.role === 'ROLE_JOBSEEKER') {
+        navigate('/user/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_COMPANY') {
+        navigate('/employer/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      }
+    } catch (err: any) {
+      setError(err || 'Mã OTP không đúng hoặc đã hết hạn');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendLoginOtp = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      await authService.sendLoginOtp(email);
+      setResendCooldownSeconds(60);
+      setSuccessMessage('Đã gửi lại mã OTP!');
+    } catch (err: any) {
+      setError(err.message || 'Gửi lại OTP thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleClose = () => {
     setStep('check');
     setEmail('');
     setError(null);
     setSuccessMessage(null);
     setLogoFile(null);
+    setResendCooldownSeconds(0);
     checkForm.reset();
     registerJobSeekerForm.reset();
     registerCompanyForm.reset();
@@ -274,6 +326,7 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                 {step === 'check' && 'Đăng nhập hoặc Đăng ký'}
                 {step === 'register' && 'Tạo tài khoản mới'}
                 {step === 'login' && 'Đăng nhập'}
+                {step === 'login-otp' && 'Nhập mã OTP đăng nhập'}
                 {step === 'verify-otp' && 'Xác thực OTP'}
               </p>
             </div>
@@ -327,17 +380,8 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                       className="w-full"
                       size="lg"
                     >
-                      <Globe className="h-5 w-5 mr-2" />
+                      <img src="/logo/google-icon-logo-svgrepo-com.svg" alt="Google" className="h-5 w-5 mr-2" />
                       Đăng nhập bằng Google
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Mail className="h-5 w-5 mr-2" />
-                      Đăng nhập bằng Email
                     </Button>
                   </div>
                 </div>
@@ -373,8 +417,55 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                       <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang đăng nhập...</span>
                     ) : 'Đăng nhập'}
                   </Button>
+                  <Button type="button" variant="ghost" className="w-full mt-2" onClick={() => { setStep('login-otp'); setError(null); setSuccessMessage(null); }}>
+                    Quay lại
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {step === 'login-otp' && (
+              <form onSubmit={otpForm.handleSubmit(handleVerifyLoginOtp)} className="flex-1 flex flex-col">
+                <div className="flex-1 space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Mã OTP đã được gửi tới <strong>{email}</strong>
+                  </p>
+                  <p className="text-xs text-gray-500">Mã có hiệu lực trong 5 phút.</p>
+                  <div className="space-y-2">
+                    <Label>Nhập mã OTP (6 số)</Label>
+                    <Input type="text" maxLength={6} placeholder="000000"
+                      {...otpForm.register('otp')}
+                      className={otpForm.formState.errors.otp ? 'border-red-500' : ''} />
+                    {otpForm.formState.errors.otp && (
+                      <p className="text-sm text-red-600">{otpForm.formState.errors.otp.message}</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={handleResendLoginOtp}
+                    disabled={isLoading || resendCooldownSeconds > 0}
+                    className="p-0 h-auto"
+                  >
+                    {resendCooldownSeconds > 0 ? `Gửi lại mã sau ${resendCooldownSeconds}s` : 'Gửi lại mã OTP'}
+                  </Button>
+                </div>
+                <div className="mt-6">
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang xác thực...</span>
+                    ) : 'Xác thực'}
+                  </Button>
                   <Button type="button" variant="ghost" className="w-full mt-2" onClick={handleBack}>
                     Quay lại
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full mt-2 text-sm text-gray-600"
+                    onClick={() => { setStep('login'); loginForm.setValue('email', email); setError(null); setSuccessMessage(null); }}
+                  >
+                    Đăng nhập bằng mật khẩu
                   </Button>
                 </div>
               </form>

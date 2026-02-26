@@ -102,7 +102,7 @@ export function EmployerApplicationDetailPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">
-                    {application.user?.full_name}
+                    {application.user?.fullName}
                   </h3>
                   {application.user?.email && (
                     <div className="flex items-center gap-2 text-gray-600 mb-1">
