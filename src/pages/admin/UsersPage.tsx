@@ -16,7 +16,7 @@ export function AdminUsersPage() {
   const filteredUsers = mockUsers.filter(user => {
     const matchesSearch = 
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.full_name.toLowerCase().includes(searchTerm.toLowerCase());
+      user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     
@@ -108,21 +108,21 @@ export function AdminUsersPage() {
                       <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            {user.avatar_url ? (
+                            {user.avatar ? (
                               <img
-                                src={user.avatar_url}
-                                alt={user.full_name}
+                                src={user.avatar}
+                                alt={user.fullName}
                                 className="h-10 w-10 rounded-full object-cover"
                               />
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
                                 <span className="text-sm font-medium text-gray-900">
-                                  {user.full_name.charAt(0).toUpperCase()}
+                                  {user.fullName.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                             )}
                             <div>
-                              <p className="font-medium text-gray-900">{user.full_name}</p>
+                              <p className="font-medium text-gray-900">{user.fullName}</p>
                               <div className="flex items-center gap-1 text-sm text-gray-600">
                                 <Mail className="h-3 w-3" />
                                 {user.email}
@@ -131,7 +131,7 @@ export function AdminUsersPage() {
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          {getRoleBadge(user.role?.name)}
+                          {getRoleBadge(user.roleDetail?.name ?? (user.role === 'ROLE_JOBSEEKER' ? 'job_seeker' : user.role === 'ROLE_COMPANY' ? 'recruiter' : 'admin'))}
                         </td>
                         <td className="py-4 px-4">
                           {getStatusBadge(user.status)}
