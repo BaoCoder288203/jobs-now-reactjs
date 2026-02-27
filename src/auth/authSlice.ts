@@ -48,6 +48,18 @@ export const loginAsync = createAsyncThunk(
   }
 );
 
+export const googleLoginAsync = createAsyncThunk(
+  'auth/googleLogin',
+  async (idToken: string, { rejectWithValue }) => {
+    try {
+      const result = await authService.googleLogin(idToken);
+      return result;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Đăng nhập Google thất bại');
+    }
+  }
+);
+
 export const loginByOtpAsync = createAsyncThunk(
   'auth/loginByOtp',
   async (
@@ -144,6 +156,22 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+        state.isAuthenticated = false;
+      })
+      .addCase(googleLoginAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(googleLoginAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+        state.isLoading = false;
+        state.user = toUser(action.payload);
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(googleLoginAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
         state.isAuthenticated = false;

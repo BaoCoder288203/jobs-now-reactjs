@@ -72,6 +72,21 @@ export async function sendLoginOtp(email: string): Promise<void> {
   }
 }
 
+export async function googleLogin(idToken: string): Promise<AuthResponse> {
+  localStorage.removeItem('token');
+
+  const response: BaseResponse<AuthResponse> = await apiClient.post('/auth/google-login', {
+    idToken
+  });
+
+  if (response.code !== 200 || !response.data) {
+    throw new Error(response.message || 'Đăng nhập Google thất bại');
+  }
+
+  localStorage.setItem('token', response.data.token);
+  return response.data;
+}
+
 export async function loginByOtp(email: string, otp: string): Promise<AuthResponse> {
   localStorage.removeItem('token');
 

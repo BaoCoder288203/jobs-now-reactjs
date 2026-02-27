@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAppDispatch } from '@/app/hooks';
-import { loginAsync, loginByOtpAsync, registerAsync, verifyOtpAsync } from '@/auth/authSlice';
+import { loginAsync, loginByOtpAsync, googleLoginAsync, registerAsync, verifyOtpAsync } from '@/auth/authSlice';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -276,6 +277,28 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    const idToken = credentialResponse.credential;
+    if (!idToken) return;
+    try {
+      setError(null);
+      setIsLoading(true);
+      const result = await dispatch(googleLoginAsync(idToken)).unwrap();
+      onOpenChange(false);
+      if (result.role === 'ROLE_JOBSEEKER') {
+        navigate('/user/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_COMPANY') {
+        navigate('/employer/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      }
+    } catch (err: any) {
+      setError(err || 'Đăng nhập Google thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleResendLoginOtp = async () => {
     try {
       setError(null);
@@ -374,15 +397,17 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                     <div className="flex-1 h-px bg-gray-300"></div>
                   </div>
                   <div className="mt-6 space-y-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      <img src="/logo/google-icon-logo-svgrepo-com.svg" alt="Google" className="h-5 w-5 mr-2" />
-                      Đăng nhập bằng Google
-                    </Button>
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => setError('Đăng nhập Google thất bại')}
+                        theme="outline"
+                        size="large"
+                        text="continue_with"
+                        shape="rectangular"
+                        width={320}
+                      />
+                    </div>
                   </div>
                 </div>
               </form>
