@@ -161,14 +161,14 @@ export function RecruiterDashboardPage() {
                     </div>
                     <div className="ml-4 flex items-center gap-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${application.status === 'approved'
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${['approved', 'hired'].includes(application.status)
                           ? 'bg-accent-light text-gray-900'
                           : application.status === 'rejected'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-700'
                           }`}
                       >
-                        {application.status === 'approved' ? 'Đã duyệt' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status}
+                        {['approved', 'hired'].includes(application.status) ? 'Đã duyệt' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status}
                       </span>
                       <Link to={`/employer/applications/${application.id}`}>
                         <Button variant="outline" size="sm">

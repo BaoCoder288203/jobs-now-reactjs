@@ -11,8 +11,9 @@ import type { Application } from '@/types';
 export function JobSeekerApplicationsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
+  const profileId = user?.profileId ?? undefined;
 
-  const { data: applicationsData, isLoading } = useMyApplications(userId);
+  const { data: applicationsData, isLoading } = useMyApplications(profileId, userId);
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {

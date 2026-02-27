@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { useJobDetail, useCreateJob, useUpdateJob } from '@/modules/jobs/hooks';
+import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -36,7 +37,7 @@ type JobFormData = z.infer<typeof jobSchema>;
 export function CreateJobPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  // const { user } = useAppSelector((state) => state.auth);
+  const { data: company } = useMyCompany();
   const isEditMode = !!id;
 
   const { data: job, isLoading: jobLoading } = useJobDetail(id || '', { enabled: isEditMode });
@@ -98,8 +99,11 @@ export function CreateJobPage() {
 
   const onSubmit = async (data: JobFormData) => {
     try {
-      // In real app, get company_id from user's profile/company relationship
-      const companyId = 'company-1'; // Mock company ID
+      const companyId = company?.id;
+      if (!companyId) {
+        console.error('No company found. Please create company first.');
+        return;
+      }
 
       if (isEditMode && id) {
         await updateJob.mutateAsync({
@@ -127,6 +131,19 @@ export function CreateJobPage() {
       <DashboardLayout sidebar={<RecruiterSidebar />}>
         <div className="flex justify-center py-12">
           <LoadingSpinner size="lg" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!isEditMode && !company) {
+    return (
+      <DashboardLayout sidebar={<RecruiterSidebar />}>
+        <div className="text-center py-12">
+          <p className="text-gray-600 mb-4">Vui lòng tạo thông tin công ty trước khi đăng tin tuyển dụng</p>
+          <Link to="/employer/company">
+            <Button>Tạo thông tin công ty</Button>
+          </Link>
         </div>
       </DashboardLayout>
     );

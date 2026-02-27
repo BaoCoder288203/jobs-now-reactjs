@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import * as industryService from '@/services/industry.service';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useDeleteLogo, useDeleteBanner, useDeleteCompanyImage } from '@/modules/companies/hooks';
 import type { Company, CreateCompanyRequest } from '@/types';
 
 interface CompanyFormProps {
@@ -25,6 +27,7 @@ export function CompanyForm({
   const [formData, setFormData] = useState<CreateCompanyRequest>({
     name: '',
     description: '',
+    slogan: '',
     website: '',
     company_size: '',
     address: '',
@@ -36,14 +39,25 @@ export function CompanyForm({
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+  const [industries, setIndustries] = useState<{ id: string; name: string }[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
+
+  const deleteLogoMutation = useDeleteLogo();
+  const deleteBannerMutation = useDeleteBanner();
+  const deleteImageMutation = useDeleteCompanyImage();
 
   const MAX_THUMBNAILS = 5;
+
+  useEffect(() => {
+    industryService.getIndustriesList().then((list) => setIndustries(list));
+  }, []);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
         name: initialData.name || '',
         description: initialData.description || '',
+        slogan: initialData.slogan || '',
         website: initialData.website || '',
         company_size: initialData.company_size || '',
         address: initialData.address || '',
@@ -51,11 +65,13 @@ export function CompanyForm({
       });
       setLogoPreview(initialData.logo_url || '');
       setBannerPreview(initialData.banner_url || '');
-      setThumbnailPreviews([]); // new files only; existing shown from initialData.thumbnail_images
+      setThumbnailPreviews([]);
+      setDeletedImageIds([]);
     } else {
       setFormData({
         name: '',
         description: '',
+        slogan: '',
         website: '',
         company_size: '',
         address: '',
@@ -64,6 +80,7 @@ export function CompanyForm({
       setLogoPreview('');
       setBannerPreview('');
       setThumbnailPreviews([]);
+      setDeletedImageIds([]);
     }
     setLogoFile(null);
     setBannerFile(null);
@@ -76,12 +93,15 @@ export function CompanyForm({
     // Prepare FormData
     const data = new FormData();
     
-    // Append company data as JSON string in Blob
     data.append(
       'company',
       new Blob([JSON.stringify(formData)], { type: 'application/json' }),
     );
-    
+
+    if (initialData?.id) {
+      data.append('companyId', initialData.id);
+    }
+
     // Append logo file if exists
     if (logoFile) {
       data.append('logoFile', logoFile);
@@ -120,6 +140,17 @@ export function CompanyForm({
     }
   };
 
+  const handleDeleteLogo = async () => {
+    if (!initialData?.id) return;
+    try {
+      await deleteLogoMutation.mutateAsync(initialData.id);
+      setLogoFile(null);
+      setLogoPreview('');
+    } catch (err: unknown) {
+      alert((err as { message?: string })?.message || 'Không thể xóa logo');
+    }
+  };
+
   const handleChangeBanner = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -134,9 +165,21 @@ export function CompanyForm({
     }
   };
 
+  const handleDeleteBanner = async () => {
+    if (!initialData?.id) return;
+    try {
+      await deleteBannerMutation.mutateAsync(initialData.id);
+      setBannerFile(null);
+      setBannerPreview('');
+    } catch (err: unknown) {
+      alert((err as { message?: string })?.message || 'Không thể xóa banner');
+    }
+  };
+
   const handleChangeThumbnails = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    const existingCount = (initialData?.thumbnail_images?.length ?? 0) + thumbnailFiles.length;
+    const existingCount =
+      (initialData?.images?.length ?? 0) - deletedImageIds.length + thumbnailFiles.length;
     const toAdd = files.slice(0, MAX_THUMBNAILS - existingCount);
     if (toAdd.length === 0) return;
     const newPreviews = await Promise.all(
@@ -155,9 +198,23 @@ export function CompanyForm({
     e.target.value = '';
   };
 
-  const removeThumbnail = (index: number) => {
-    const existingLen = initialData?.thumbnail_images?.length ?? 0;
-    if (index < existingLen) return; // cannot remove existing from server
+  const removeThumbnail = async (index: number) => {
+    const existingImages = (initialData?.images ?? []).filter(
+      (img) => !deletedImageIds.includes(img.imageId)
+    );
+    const existingLen = existingImages.length;
+    if (index < existingLen) {
+      const img = existingImages[index];
+      if (img?.imageId) {
+        try {
+          await deleteImageMutation.mutateAsync(img.imageId);
+          setDeletedImageIds((prev) => [...prev, img.imageId]);
+        } catch (err: unknown) {
+          alert((err as { message?: string })?.message || 'Không thể xóa ảnh');
+        }
+      }
+      return;
+    }
     const fileIndex = index - existingLen;
     setThumbnailFiles((prev) => prev.filter((_, i) => i !== fileIndex));
     setThumbnailPreviews((prev) => prev.filter((_, i) => i !== fileIndex));
@@ -167,6 +224,7 @@ export function CompanyForm({
     setFormData({
       name: '',
       description: '',
+      slogan: '',
       website: '',
       company_size: '',
       address: '',
@@ -233,6 +291,17 @@ export function CompanyForm({
               />
             </div>
 
+            {/* Slogan */}
+            <div className="space-y-2">
+              <Label htmlFor="slogan">Slogan / Khẩu hiệu</Label>
+              <Input
+                id="slogan"
+                value={formData.slogan ?? ''}
+                onChange={(e) => handleChange('slogan', e.target.value)}
+                placeholder="VD: Nơi làm việc tốt nhất"
+              />
+            </div>
+
             {/* Website and Company Size */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -276,6 +345,23 @@ export function CompanyForm({
               />
             </div>
 
+            {/* Industry */}
+            <div className="space-y-2">
+              <Label htmlFor="industry_id">Ngành nghề</Label>
+              <Select
+                id="industry_id"
+                value={formData.industry_id ?? ''}
+                onChange={(e) => handleChange('industry_id', e.target.value)}
+              >
+                <option value="">Chọn ngành nghề</option>
+                {industries.map((ind) => (
+                  <option key={ind.id} value={ind.id}>
+                    {ind.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
             {/* Logo */}
             <div className="space-y-2">
               <Label htmlFor="logo">Logo công ty</Label>
@@ -286,12 +372,22 @@ export function CompanyForm({
                 onChange={handleChangeLogo}
               />
               {logoPreview && (
-                <div className="mt-2">
+                <div className="mt-2 relative inline-block group">
                   <img
                     src={logoPreview}
                     alt="Xem trước logo"
                     className="h-24 w-24 rounded-lg border border-gray-200 object-cover"
                   />
+                  {initialData && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteLogo}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                      aria-label="Xóa logo"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -306,12 +402,22 @@ export function CompanyForm({
                 onChange={handleChangeBanner}
               />
               {bannerPreview && (
-                <div className="mt-2">
+                <div className="mt-2 relative inline-block group">
                   <img
                     src={bannerPreview}
                     alt="Xem trước banner"
                     className="w-full h-32 rounded-lg border border-gray-200 object-cover"
                   />
+                  {initialData && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteBanner}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                      aria-label="Xóa banner"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -326,19 +432,27 @@ export function CompanyForm({
                 multiple
                 onChange={handleChangeThumbnails}
                 disabled={
-                  (initialData?.thumbnail_images?.length ?? 0) + thumbnailFiles.length >= MAX_THUMBNAILS
+                  (initialData?.images?.length ?? 0) - deletedImageIds.length + thumbnailFiles.length >= MAX_THUMBNAILS
                 }
               />
-              {(thumbnailPreviews.length > 0 || (initialData?.thumbnail_images?.length ?? 0) > 0) && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {[...(initialData?.thumbnail_images ?? []), ...thumbnailPreviews].map((src, i) => (
-                    <div key={i} className="relative group">
-                      <img
-                        src={src}
-                        alt={`Thumbnail ${i + 1}`}
-                        className="h-20 w-20 rounded-lg border border-gray-200 object-cover"
-                      />
-                      {i >= (initialData?.thumbnail_images?.length ?? 0) && (
+              {(() => {
+                const existingImages = (initialData?.images ?? []).filter(
+                  (img) => !deletedImageIds.includes(img.imageId)
+                );
+                const allThumbnails = [
+                  ...existingImages.map((img) => ({ src: img.imageUrl, type: 'existing' as const })),
+                  ...thumbnailPreviews.map((src) => ({ src, type: 'new' as const })),
+                ];
+                if (allThumbnails.length === 0) return null;
+                return (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {allThumbnails.map((item, i) => (
+                      <div key={i} className="relative group">
+                        <img
+                          src={item.src}
+                          alt={`Thumbnail ${i + 1}`}
+                          className="h-20 w-20 rounded-lg border border-gray-200 object-cover"
+                        />
                         <button
                           type="button"
                           onClick={() => removeThumbnail(i)}
@@ -347,11 +461,11 @@ export function CompanyForm({
                         >
                           ×
                         </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Actions */}
