@@ -1,6 +1,7 @@
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useEffect } from 'react';
 import { store } from '../store';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -34,9 +35,12 @@ interface AppProvidersProps {
   children: React.ReactNode;
 }
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <Provider store={store}>
+      <GoogleOAuthProvider clientId={googleClientId}>
       <QueryClientProvider client={queryClient}>
         <AuthModalProvider>
           <AuthInitializer>
@@ -45,6 +49,7 @@ export function AppProviders({ children }: AppProvidersProps) {
         </AuthModalProvider>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
+      </GoogleOAuthProvider>
     </Provider>
   );
 }
