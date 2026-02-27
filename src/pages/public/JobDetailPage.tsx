@@ -20,10 +20,11 @@ export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
+  const profileId = user?.profileId ?? undefined;
   const { openLoginModal } = useAuthModal();
 
   const { data: job, isLoading: jobLoading } = useJobDetail(id!);
-  const { data: myApplications = [] } = useMyApplications(userId);
+  const { data: myApplications = [] } = useMyApplications(profileId, userId);
   const { data: savedJobs = [] } = useSavedJobs(userId);
   const { data: resumes = [] } = useResumes(userId);
 
@@ -51,7 +52,8 @@ export function JobDetailPage() {
         userId,
         jobId: id,
         resumeId: selectedResumeId || defaultResume?.id,
-        coverLetter: coverLetter || undefined
+        coverLetter: coverLetter || undefined,
+        profileId: user?.profileId ?? undefined
       });
       setShowApplyModal(false);
       setCoverLetter('');

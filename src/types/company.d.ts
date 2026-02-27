@@ -1,6 +1,12 @@
 import type { User } from './user.d';
 import type { Industry } from './job.d';
 
+export interface CompanyImage {
+  imageId: number;
+  imageUrl: string;
+  type?: string;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -10,6 +16,7 @@ export interface Company {
   slogan?: string;
   category?: string;
   thumbnail_images?: string[];
+  images?: CompanyImage[];
   website?: string;
   company_size?: string;
   address?: string;
@@ -28,6 +35,7 @@ export interface Company {
 export interface CreateCompanyRequest {
   name: string;
   description: string;
+  slogan?: string;
   website?: string;
   company_size?: string;
   address?: string;

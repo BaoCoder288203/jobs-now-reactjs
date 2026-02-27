@@ -13,9 +13,10 @@ import type { Application } from '@/types';
 export function JobSeekerDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
+  const profileId = user?.profileId ?? undefined;
 
   const { data: recentJobs } = useJobs({ limit: 3 });
-  const { data: applicationsData } = useMyApplications(userId);
+  const { data: applicationsData } = useMyApplications(profileId, userId);
   const { data: savedJobs } = useSavedJobs(userId);
   const { data: profile } = useProfile(userId);
 
