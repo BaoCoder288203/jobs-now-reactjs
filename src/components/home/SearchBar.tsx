@@ -54,8 +54,8 @@ export function SearchBar() {
               className="pl-12 h-14 text-base appearance-none bg-white border border-gray-200 rounded-lg text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="">Tất cả địa điểm</option>
-              {HCM_WARDS.map((ward) => (
-                <option key={ward} value={ward}>
+              {HCM_WARDS.map((ward, index) => (
+                <option key={`ward-${index}`} value={ward}>
                   {ward}
                 </option>
               ))}
