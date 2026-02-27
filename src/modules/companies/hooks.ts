@@ -74,3 +74,39 @@ export function useUpdateMyCompany() {
   });
 }
 
+export function useDeleteLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (companyId: string) => companyService.deleteLogo(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteBanner() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (companyId: string) => companyService.deleteBanner(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteCompanyImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (imageId: number) => companyService.deleteCompanyImage(imageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
