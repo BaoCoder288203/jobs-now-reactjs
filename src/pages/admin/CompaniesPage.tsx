@@ -84,7 +84,7 @@ export function AdminCompaniesPage() {
                     </h3>
                     {company.industry && (
                       <Badge variant="outline" className="text-xs">
-                        {company.industry.name}
+                        {company.industries?.map((i) => i.name).join(', ') || company.industry?.name || '—'}
                       </Badge>
                     )}
                   </div>

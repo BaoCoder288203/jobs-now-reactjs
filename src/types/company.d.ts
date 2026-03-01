@@ -21,12 +21,14 @@ export interface Company {
   company_size?: string;
   address?: string;
   industry_id?: string;
+  industry_ids?: string[];
+  industries?: Industry[];
   owner_user_id: string;
   create_job_count?: number;
   is_verified?: boolean;
   created_at: string;
   updated_at: string;
-  
+
   // Populated fields
   owner?: User;
   industry?: Industry;
@@ -39,5 +41,5 @@ export interface CreateCompanyRequest {
   website?: string;
   company_size?: string;
   address?: string;
-  industry_id?: string;
+  industry_ids?: string[];
 }

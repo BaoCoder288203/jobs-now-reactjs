@@ -100,7 +100,9 @@ export async function mockCreateMyCompany(formData: FormData): Promise<Company> 
       website: companyData.website || undefined,
       company_size: companyData.company_size || undefined,
       address: companyData.address || undefined,
-      industry_id: companyData.industry_id || undefined,
+      industry_id: Array.isArray(companyData.industry_ids) ? companyData.industry_ids[0] : companyData.industry_id,
+      industry_ids: companyData.industry_ids ?? [],
+      industries: undefined,
       owner_user_id: session.userId,
       create_job_count: 0,
       is_verified: false,
@@ -186,7 +188,8 @@ export async function mockUpdateMyCompany(formData: FormData): Promise<Company> 
       website: companyData.website !== undefined ? companyData.website : existingCompany.website,
       company_size: companyData.company_size !== undefined ? companyData.company_size : existingCompany.company_size,
       address: companyData.address !== undefined ? companyData.address : existingCompany.address,
-      industry_id: companyData.industry_id !== undefined ? companyData.industry_id : existingCompany.industry_id,
+      industry_id: Array.isArray(companyData.industry_ids) && companyData.industry_ids[0] ? companyData.industry_ids[0] : (companyData.industry_id ?? existingCompany.industry_id),
+      industry_ids: companyData.industry_ids !== undefined ? companyData.industry_ids : existingCompany.industry_ids ?? [],
       updated_at: new Date().toISOString(),
     };
     

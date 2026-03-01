@@ -5,6 +5,7 @@ import {
   Users,
   Building2,
   Briefcase,
+  Layers,
   Sparkles,
   MessageCircle,
   LogOut
@@ -26,6 +27,7 @@ const menuItems: SidebarItem[] = [
   { title: 'Người dùng', href: '/admin/users', icon: Users },
   { title: 'Công ty', href: '/admin/companies', icon: Building2 },
   { title: 'Việc làm', href: '/admin/jobs', icon: Briefcase },
+  { title: 'Ngành nghề', href: '/admin/industries', icon: Layers },
   { title: 'Kỹ năng', href: '/admin/skills', icon: Sparkles },
   { title: 'Hỗ trợ tin nhắn', href: '/admin/support', icon: MessageCircle },
 ];
