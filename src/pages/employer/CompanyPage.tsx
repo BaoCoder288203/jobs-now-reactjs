@@ -113,7 +113,7 @@ export function EmployerCompanyPage() {
                         {company.name}
                       </h2>
                       {company.industry && (
-                        <p className="text-gray-600">{company.industry.name}</p>
+                        <p className="text-gray-600">{company.industries?.map((i) => i.name).join(', ') || company.industry?.name || '—'}</p>
                       )}
                       {company.is_verified && (
                         <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-accent/20 text-accent-dark rounded">

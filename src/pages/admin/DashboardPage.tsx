@@ -104,7 +104,7 @@ export function AdminDashboardPage() {
                         {company.name}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {company.industry?.name} • {company.address}
+                        {company.industries?.map((i) => i.name).join(', ') || company.industry?.name || '—'} • {company.address}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Tạo ngày {new Date(company.created_at).toLocaleDateString('vi-VN')}

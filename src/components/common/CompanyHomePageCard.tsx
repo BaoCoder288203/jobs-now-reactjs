@@ -9,7 +9,7 @@ interface CompanyTopCardProps {
 }
 
 export function CompanyTopCard({ company, className }: CompanyTopCardProps) {
-  const category = company.category ?? company.industry?.name ?? 'Công ty';
+  const category = company.category ?? (company.industries?.map((i) => i.name).join(', ') || company.industry?.name) ?? 'Công ty';
   const jobCount = company.create_job_count ?? 0;
 
   return (
