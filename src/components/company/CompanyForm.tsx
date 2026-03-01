@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { useDeleteLogo, useDeleteBanner, useDeleteCompanyImage } from '@/modules/companies/hooks';
 import type { Company, CreateCompanyRequest } from '@/types';
 
@@ -31,7 +32,7 @@ export function CompanyForm({
     website: '',
     company_size: '',
     address: '',
-    industry_id: '',
+    industry_ids: [],
   });
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -41,6 +42,8 @@ export function CompanyForm({
   const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
   const [industries, setIndustries] = useState<{ id: string; name: string }[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
+  const [industrySearch, setIndustrySearch] = useState('');
+  const [industryDropdownOpen, setIndustryDropdownOpen] = useState(false);
 
   const deleteLogoMutation = useDeleteLogo();
   const deleteBannerMutation = useDeleteBanner();
@@ -61,7 +64,7 @@ export function CompanyForm({
         website: initialData.website || '',
         company_size: initialData.company_size || '',
         address: initialData.address || '',
-        industry_id: initialData.industry_id || '',
+        industry_ids: initialData.industry_ids ?? (initialData.industry_id ? [initialData.industry_id] : []),
       });
       setLogoPreview(initialData.logo_url || '');
       setBannerPreview(initialData.banner_url || '');
@@ -75,7 +78,7 @@ export function CompanyForm({
         website: '',
         company_size: '',
         address: '',
-        industry_id: '',
+        industry_ids: [],
       });
       setLogoPreview('');
       setBannerPreview('');
@@ -85,6 +88,8 @@ export function CompanyForm({
     setLogoFile(null);
     setBannerFile(null);
     setThumbnailFiles([]);
+    setIndustrySearch('');
+    setIndustryDropdownOpen(false);
   }, [initialData, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,6 +129,37 @@ export function CompanyForm({
 
   const handleChange = (field: keyof CreateCompanyRequest, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const selectedIds = formData.industry_ids ?? [];
+  const industrySuggestions = industries.filter(
+    (ind) =>
+      !selectedIds.includes(ind.id) &&
+      ind.name.toLowerCase().includes(industrySearch.trim().toLowerCase())
+  );
+
+  const handleIndustryToggle = (industryId: string) => {
+    setFormData((prev) => {
+      const ids = prev.industry_ids ?? [];
+      const next = ids.includes(industryId)
+        ? ids.filter((id) => id !== industryId)
+        : [...ids, industryId];
+      return { ...prev, industry_ids: next };
+    });
+  };
+
+  const handleAddIndustry = (industryId: string) => {
+    if (selectedIds.includes(industryId)) return;
+    setFormData((prev) => ({
+      ...prev,
+      industry_ids: [...(prev.industry_ids ?? []), industryId],
+    }));
+    setIndustrySearch('');
+    setIndustryDropdownOpen(false);
+  };
+
+  const handleIndustryInputBlur = () => {
+    setTimeout(() => setIndustryDropdownOpen(false), 200);
   };
 
   const handleChangeLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,7 +264,7 @@ export function CompanyForm({
       website: '',
       company_size: '',
       address: '',
-      industry_id: '',
+      industry_ids: [],
     });
     setLogoPreview('');
     setLogoFile(null);
@@ -345,21 +381,72 @@ export function CompanyForm({
               />
             </div>
 
-            {/* Industry */}
+            {/* Industries: search input + dropdown + tags */}
             <div className="space-y-2">
-              <Label htmlFor="industry_id">Ngành nghề</Label>
-              <Select
-                id="industry_id"
-                value={formData.industry_id ?? ''}
-                onChange={(e) => handleChange('industry_id', e.target.value)}
-              >
-                <option value="">Chọn ngành nghề</option>
-                {industries.map((ind) => (
-                  <option key={ind.id} value={ind.id}>
-                    {ind.name}
-                  </option>
-                ))}
-              </Select>
+              <Label>Ngành nghề</Label>
+              {selectedIds.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedIds.map((id) => {
+                    const ind = industries.find((i) => i.id === id);
+                    return (
+                      <Badge
+                        key={id}
+                        variant="secondary"
+                        className="pl-2 pr-1 py-1 text-sm font-normal gap-1"
+                      >
+                        {ind?.name ?? id}
+                        <button
+                          type="button"
+                          onClick={() => handleIndustryToggle(id)}
+                          className="rounded-full hover:bg-gray-300/80 p-0.5 leading-none"
+                          aria-label={`Bỏ chọn ${ind?.name ?? id}`}
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={industrySearch}
+                  onChange={(e) => {
+                    setIndustrySearch(e.target.value);
+                    setIndustryDropdownOpen(true);
+                  }}
+                  onFocus={() => setIndustryDropdownOpen(true)}
+                  onBlur={handleIndustryInputBlur}
+                  placeholder="Tìm và chọn ngành nghề..."
+                  className="w-full"
+                />
+                {industryDropdownOpen && (
+                  <div
+                    className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg max-h-48 overflow-y-auto"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    {industrySuggestions.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        {industrySearch.trim()
+                          ? 'Không tìm thấy ngành phù hợp'
+                          : 'Nhập để tìm ngành nghề'}
+                      </div>
+                    ) : (
+                      industrySuggestions.map((ind) => (
+                        <button
+                          key={ind.id}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                          onMouseDown={() => handleAddIndustry(ind.id)}
+                        >
+                          {ind.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Logo */}

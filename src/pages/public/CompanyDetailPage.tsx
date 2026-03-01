@@ -79,10 +79,10 @@ export function CompanyDetailPage() {
                       {company.address}
                     </span>
                   )}
-                  {company.industry?.name && (
+                  {(company.industries?.length ? company.industries.map((i) => i.name).join(', ') : company.industry?.name) && (
                     <span className="flex items-center gap-1">
                       <Building2 className="h-4 w-4 shrink-0" />
-                      {company.industry.name}
+                      {company.industries?.map((i) => i.name).join(', ') || company.industry?.name}
                     </span>
                   )}
                   {company.company_size && (

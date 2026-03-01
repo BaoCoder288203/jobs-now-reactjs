@@ -3,6 +3,11 @@ import { USE_MOCK } from './api';
 import * as mockCompanies from '@/mocks/handlers/companies.mock';
 import { apiClient } from './api';
 
+interface IndustryDTO {
+  industryId?: number;
+  name?: string;
+}
+
 interface CompanyDTO {
   companyId?: number;
   companyName?: string;
@@ -13,7 +18,8 @@ interface CompanyDTO {
   description?: string;
   address?: string;
   companySize?: string;
-  industryId?: number;
+  industryIds?: number[];
+  industries?: IndustryDTO[];
   isVerified?: boolean;
   jobPostCount?: number;
   email?: string;
@@ -23,6 +29,11 @@ interface CompanyDTO {
 
 function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
   if (!dto || dto.companyId == null) return null;
+  const industry_ids = dto.industryIds?.map((id) => String(id));
+  const industries = dto.industries?.map((i) => ({
+    id: String(i.industryId ?? ''),
+    name: i.name ?? '',
+  }));
   return {
     id: String(dto.companyId),
     name: dto.companyName ?? '',
@@ -33,7 +44,9 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
     description: dto.description,
     address: dto.address,
     company_size: dto.companySize,
-    industry_id: dto.industryId != null ? String(dto.industryId) : undefined,
+    industry_id: industry_ids?.[0],
+    industry_ids,
+    industries,
     is_verified: dto.isVerified ?? false,
     create_job_count: dto.jobPostCount,
     owner_user_id: '',
@@ -126,6 +139,14 @@ export async function updateMyCompany(formData: FormData): Promise<Company> {
 
   const companyId = formData.get('companyId');
   if (!companyId) throw new Error('Company ID is required for update');
+
+  const companyBlob = formData.get('company');
+  if (companyBlob instanceof Blob) {
+    const text = await companyBlob.text();
+    console.log('[updateMyCompany] company JSON:', text);
+  }
+  console.log('[updateMyCompany] companyId:', companyId, 'URL:', `/company/update/${companyId}`);
+
 
   await apiClient.put(`/company/update/${companyId}`, formData);
 
