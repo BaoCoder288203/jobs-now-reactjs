@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send } from 'lucide-react';
 import { useAuthModal } from '@/contexts/AuthModalContext';
+import { getJobTypeLabel } from '@/constants/jobEnums';
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -142,7 +143,7 @@ export function JobDetailPage() {
 
                   <div className="flex flex-wrap gap-2 mb-6">
                     {job.job_type && (
-                      <Badge variant="outline">{job.job_type.replace('_', '-').replace(/\b\w/g, (l) => l.toUpperCase())}</Badge>
+                      <Badge variant="outline">{getJobTypeLabel(job.job_type)}</Badge>
                     )}
                     {job.location && (
                       <Badge variant="outline">{job.location}</Badge>

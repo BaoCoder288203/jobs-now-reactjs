@@ -132,9 +132,12 @@ export function JobCard({ job, className }: JobCardProps) {
         )}
 
         {/* Benefits - dưới địa chỉ */}
-        {job.benefits && job.benefits.length > 0 && (
+        {job.benefits && (
           <div className="relative z-10 mt-2 flex flex-wrap gap-1.5 justify-center">
-            {job.benefits.slice(0, 4).map((b, i) => (
+            {(typeof job.benefits === 'string'
+              ? job.benefits.split(/[,;]/).map((b) => b.trim()).filter(Boolean).slice(0, 4)
+              : []
+            ).map((b: string, i: number) => (
               <span
                 key={i}
                 className={cn(
@@ -147,16 +150,19 @@ export function JobCard({ job, className }: JobCardProps) {
                 {b}
               </span>
             ))}
-            {job.benefits.length > 4 && (
-              <span
-                className={cn(
-                  'text-xs px-2 py-0.5',
-                  hasThumb ? 'text-white/70' : 'text-gray-500'
-                )}
-              >
-                +{job.benefits.length - 4}
-              </span>
-            )}
+            {typeof job.benefits === 'string' && (() => {
+              const parts = job.benefits.split(/[,;]/).map((b) => b.trim()).filter(Boolean);
+              return parts.length > 4 ? (
+                <span
+                  className={cn(
+                    'text-xs px-2 py-0.5',
+                    hasThumb ? 'text-white/70' : 'text-gray-500'
+                  )}
+                >
+                  +{parts.length - 4}
+                </span>
+              ) : null;
+            })()}
           </div>
         )}
       </article>
