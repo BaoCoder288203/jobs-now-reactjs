@@ -9,6 +9,7 @@ import { useMyCompany } from '@/modules/companies/hooks';
 import { Link } from 'react-router-dom';
 import { Briefcase, Users, FileText, ArrowRight, Plus } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { getJobTypeLabel } from '@/constants/jobEnums';
 
 export function RecruiterDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -213,7 +214,7 @@ export function RecruiterDashboardPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{job.title}</h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {job.location} • {job.job_type}
+                        {job.location} • {getJobTypeLabel(job.job_type)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Đăng ngày {new Date(job.created_at).toLocaleDateString('vi-VN')}

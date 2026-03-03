@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { JobListParams } from '@/types';
 import { Search } from 'lucide-react';
+import { JOB_TYPE_OPTIONS } from '@/constants/jobEnums';
 
 export function JobListingPage() {
   const [filters, setFilters] = useState<JobListParams>({
@@ -67,10 +68,9 @@ export function JobListingPage() {
                   onChange={(e) => handleFilterChange('job_type', e.target.value || undefined)}
                 >
                   <option value="">Tất cả</option>
-                  <option value="full-time">Toàn thời gian</option>
-                  <option value="part-time">Bán thời gian</option>
-                  <option value="contract">Hợp đồng</option>
-                  <option value="remote">Làm việc từ xa</option>
+                  {JOB_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </Select>
               </div>
 

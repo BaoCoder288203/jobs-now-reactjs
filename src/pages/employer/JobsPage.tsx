@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
 import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getJobTypeLabel } from '@/constants/jobEnums';
 
 export function EmployerJobsPage() {
   // Lấy company của recruiter hiện tại
@@ -111,7 +112,7 @@ export function EmployerJobsPage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          {job.job_type === 'full-time' ? 'Toàn thời gian' : job.job_type === 'part-time' ? 'Bán thời gian' : job.job_type === 'contract' ? 'Hợp đồng' : job.job_type === 'remote' ? 'Làm việc từ xa' : job.job_type}
+                          {getJobTypeLabel(job.job_type)}
                         </div>
                       </div>
 
