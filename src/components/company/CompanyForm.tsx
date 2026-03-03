@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useDeleteLogo, useDeleteBanner, useDeleteCompanyImage } from '@/modules/companies/hooks';
+import { ImageUploadMultiple } from '@/components/ui/image-upload';
 import type { Company, CreateCompanyRequest } from '@/types';
 
 interface CompanyFormProps {
@@ -212,8 +213,7 @@ export function CompanyForm({
     }
   };
 
-  const handleChangeThumbnails = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
+  const handleAddThumbnails = async (files: File[]) => {
     const existingCount =
       (initialData?.images?.length ?? 0) - deletedImageIds.length + thumbnailFiles.length;
     const toAdd = files.slice(0, MAX_THUMBNAILS - existingCount);
@@ -231,29 +231,20 @@ export function CompanyForm({
     );
     setThumbnailFiles((prev) => [...prev, ...toAdd]);
     setThumbnailPreviews((prev) => [...prev, ...newPreviews]);
-    e.target.value = '';
   };
 
-  const removeThumbnail = async (index: number) => {
-    const existingImages = (initialData?.images ?? []).filter(
-      (img) => !deletedImageIds.includes(img.imageId)
-    );
-    const existingLen = existingImages.length;
-    if (index < existingLen) {
-      const img = existingImages[index];
-      if (img?.imageId) {
-        try {
-          await deleteImageMutation.mutateAsync(img.imageId);
-          setDeletedImageIds((prev) => [...prev, img.imageId]);
-        } catch (err: unknown) {
-          alert((err as { message?: string })?.message || 'Không thể xóa ảnh');
-        }
-      }
-      return;
+  const handleRemoveExistingThumbnail = async (imageId: number) => {
+    try {
+      await deleteImageMutation.mutateAsync(imageId);
+      setDeletedImageIds((prev) => [...prev, imageId]);
+    } catch (err: unknown) {
+      alert((err as { message?: string })?.message || 'Không thể xóa ảnh');
     }
-    const fileIndex = index - existingLen;
-    setThumbnailFiles((prev) => prev.filter((_, i) => i !== fileIndex));
-    setThumbnailPreviews((prev) => prev.filter((_, i) => i !== fileIndex));
+  };
+
+  const handleRemoveNewThumbnail = (index: number) => {
+    setThumbnailFiles((prev) => prev.filter((_, i) => i !== index));
+    setThumbnailPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleReset = () => {
@@ -272,6 +263,7 @@ export function CompanyForm({
     setBannerFile(null);
     setThumbnailFiles([]);
     setThumbnailPreviews([]);
+    setDeletedImageIds([]);
   };
 
   const handleClose = () => {
@@ -510,50 +502,18 @@ export function CompanyForm({
             </div>
 
             {/* Thumbnail images */}
-            <div className="space-y-2">
-              <Label htmlFor="thumbnails">Ảnh thumbnail (tối đa {MAX_THUMBNAILS} ảnh)</Label>
-              <Input
-                id="thumbnails"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleChangeThumbnails}
-                disabled={
-                  (initialData?.images?.length ?? 0) - deletedImageIds.length + thumbnailFiles.length >= MAX_THUMBNAILS
-                }
-              />
-              {(() => {
-                const existingImages = (initialData?.images ?? []).filter(
-                  (img) => !deletedImageIds.includes(img.imageId)
-                );
-                const allThumbnails = [
-                  ...existingImages.map((img) => ({ src: img.imageUrl, type: 'existing' as const })),
-                  ...thumbnailPreviews.map((src) => ({ src, type: 'new' as const })),
-                ];
-                if (allThumbnails.length === 0) return null;
-                return (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {allThumbnails.map((item, i) => (
-                      <div key={i} className="relative group">
-                        <img
-                          src={item.src}
-                          alt={`Thumbnail ${i + 1}`}
-                          className="h-20 w-20 rounded-lg border border-gray-200 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeThumbnail(i)}
-                          className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                          aria-label="Xóa ảnh"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
+            <ImageUploadMultiple
+              id="thumbnails"
+              label="Ảnh thumbnail"
+              existingImages={(initialData?.images ?? [])
+                .filter((img) => !deletedImageIds.includes(img.imageId))
+                .map((img) => ({ id: img.imageId, url: img.imageUrl }))}
+              newPreviews={thumbnailPreviews}
+              onAdd={handleAddThumbnails}
+              onRemoveExisting={handleRemoveExistingThumbnail}
+              onRemoveNew={handleRemoveNewThumbnail}
+              maxCount={MAX_THUMBNAILS}
+            />
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

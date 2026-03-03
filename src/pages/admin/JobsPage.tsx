@@ -9,6 +9,7 @@ import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Briefcase, Search, Edit2, Trash2, Building2, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getJobTypeLabel } from '@/constants/jobEnums';
 
 export function AdminJobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,7 +116,7 @@ export function AdminJobsPage() {
                         </div>
                       )}
                       {job.job_type && (
-                        <Badge variant="outline">{job.job_type}</Badge>
+                        <Badge variant="outline">{getJobTypeLabel(job.job_type)}</Badge>
                       )}
                     </div>
 

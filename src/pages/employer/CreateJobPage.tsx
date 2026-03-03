@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,23 +16,46 @@ import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getJobCategories } from '@/services/category.service';
+import type { JobCategoryDTO } from '@/services/category.service';
+import type { Job } from '@/types';
+import { ImageUploadSingle } from '@/components/ui/image-upload';
+import { getEducationLevelLabel } from '@/constants/jobEnums';
+
+const EDUCATION_LEVELS = ['ANY', 'HIGH_SCHOOL', 'VOCATIONAL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'OTHER'] as const;
+const JOB_TYPES = ['full_time', 'part_time', 'contract', 'internship', 'freelance'] as const;
+const YEARS_OPTIONS = ['0', '1', '2', '3', '1-3', '3-5', '5+'] as const;
 
 const jobSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().min(50, 'Description must be at least 50 characters'),
-  requirements: z.string().optional(),
+  requirements: z.string().min(1, 'Requirements are required'),
+  benefits: z.string().min(1, 'Benefits are required'),
   salary_min: z.number().min(0).optional(),
   salary_max: z.number().min(0).optional(),
   location: z.string().min(1, 'Location is required'),
-  job_type: z.enum(['full_time', 'part_time', 'contract', 'internship']),
-  experience_level: z.enum(['entry', 'mid', 'senior', 'executive']).optional(),
-  industry_id: z.string().optional(),
-  category_id: z.string().optional(),
+  job_type: z.enum(JOB_TYPES),
+  yearsOfExperience: z.string().min(1, 'Years of experience is required'),
+  educationLevel: z.enum(EDUCATION_LEVELS),
+  deadline: z.string().min(1, 'Deadline is required'),
+  category_id: z.number().optional().nullable(),
+  jobSkills: z.array(z.object({
+    skillId: z.number(),
+    isRequired: z.boolean().optional(),
+    level: z.string().optional(),
+  })).optional(),
+  majorIds: z.array(z.number()).optional(),
   status: z.enum(['open', 'closed']),
-  thumbnail_url: z.string().optional()
+  thumbnail_url: z.string().optional(),
 });
 
 type JobFormData = z.infer<typeof jobSchema>;
+
+function defaultDeadline() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
 
 export function CreateJobPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,7 +66,7 @@ export function CreateJobPage() {
   const { data: job, isLoading: jobLoading } = useJobDetail(id || '', { enabled: isEditMode });
   const createJob = useCreateJob();
   const updateJob = useUpdateJob();
-  const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
+  const [categories, setCategories] = useState<JobCategoryDTO[]>([]);
 
   const {
     register,
@@ -51,14 +74,25 @@ export function CreateJobPage() {
     formState: { errors, isSubmitting },
     setValue,
     watch,
-    reset
+    reset,
+    getValues,
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
       job_type: 'full_time',
-      status: 'open'
-    }
+      status: 'open',
+      educationLevel: 'BACHELOR',
+      yearsOfExperience: '0',
+      deadline: defaultDeadline(),
+      jobSkills: [],
+      majorIds: [],
+      thumbnail_url: '',
+    },
   });
+
+  useEffect(() => {
+    getJobCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     if (isEditMode && job) {
@@ -66,36 +100,26 @@ export function CreateJobPage() {
         title: job.title,
         description: job.description || '',
         requirements: job.requirements || '',
+        benefits: job.benefits || '',
         salary_min: job.salary_min,
         salary_max: job.salary_max,
         location: job.location || '',
-        job_type: job.job_type as any,
-        experience_level: job.experience_level as any,
-        industry_id: job.industry_id || '',
-        category_id: job.category_id || '',
-        status: job.status as any,
-        thumbnail_url: job.thumbnail_url || ''
+        job_type: (job.job_type?.toLowerCase() ?? 'full_time') as JobFormData['job_type'],
+        yearsOfExperience: job.yearsOfExperience ?? '0',
+        educationLevel: (job.educationLevel ?? 'BACHELOR') as JobFormData['educationLevel'],
+        deadline: job.deadline ?? job.expired_at ?? defaultDeadline(),
+        category_id: job.category_id != null ? Number(job.category_id) : undefined,
+        jobSkills: job.jobSkills?.map((js) => ({
+          skillId: Number(js.skill_id),
+          isRequired: js.isRequired,
+          level: js.level,
+        })) ?? [],
+        majorIds: job.majors?.map((m) => m.majorId) ?? [],
+        status: job.status as 'open' | 'closed',
+        thumbnail_url: job.thumbnail_url || '',
       });
-      setThumbnailPreview(job.thumbnail_url || '');
-    } else {
-      setThumbnailPreview('');
     }
   }, [job, isEditMode, reset]);
-
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setValue('thumbnail_url', reader.result);
-          setThumbnailPreview(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-    e.target.value = '';
-  };
 
   const onSubmit = async (data: JobFormData) => {
     try {
@@ -105,28 +129,31 @@ export function CreateJobPage() {
         return;
       }
 
+      const thumbnail_url = getValues('thumbnail_url');
+
+      const payload = {
+        ...data,
+        company_id: companyId,
+        category_id: data.category_id ?? undefined,
+        jobSkills: data.jobSkills ?? [],
+        majorIds: data.majorIds ?? [],
+        expired_at: data.deadline,
+        deadline: data.deadline,
+        thumbnail_url: thumbnail_url || undefined,
+      };
+
       if (isEditMode && id) {
-        await updateJob.mutateAsync({
-          jobId: id,
-          data: {
-            ...data,
-            company_id: companyId
-          }
-        });
+        await updateJob.mutateAsync({ jobId: id, data: payload as unknown as Partial<Job> });
       } else {
-        await createJob.mutateAsync({
-          ...data,
-          company_id: companyId
-        });
+        await createJob.mutateAsync(payload as unknown as Partial<Job>);
       }
-      
       navigate('/employer/jobs');
     } catch (error) {
       console.error('Failed to save job:', error);
     }
   };
 
-  if (jobLoading) {
+  if (jobLoading && isEditMode) {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
         <div className="flex justify-center py-12">
@@ -178,9 +205,7 @@ export function CreateJobPage() {
                   placeholder="e.g., Senior Software Engineer"
                   className={errors.title ? 'border-red-500' : ''}
                 />
-                {errors.title && (
-                  <p className="text-sm text-red-600">{errors.title.message}</p>
-                )}
+                {errors.title && <p className="text-sm text-red-600">{errors.title.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -189,16 +214,14 @@ export function CreateJobPage() {
                   id="description"
                   {...register('description')}
                   rows={6}
-                  placeholder="Describe the job role, responsibilities, and what you're looking for..."
+                  placeholder="Describe the job role, responsibilities..."
                   className={errors.description ? 'border-red-500' : ''}
                 />
-                {errors.description && (
-                  <p className="text-sm text-red-600">{errors.description.message}</p>
-                )}
+                {errors.description && <p className="text-sm text-red-600">{errors.description.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="requirements">Requirements</Label>
+                <Label htmlFor="requirements">Requirements *</Label>
                 <Textarea
                   id="requirements"
                   {...register('requirements')}
@@ -206,6 +229,19 @@ export function CreateJobPage() {
                   placeholder="Required skills, qualifications, education..."
                   className={errors.requirements ? 'border-red-500' : ''}
                 />
+                {errors.requirements && <p className="text-sm text-red-600">{errors.requirements.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="benefits">Benefits *</Label>
+                <Textarea
+                  id="benefits"
+                  {...register('benefits')}
+                  rows={3}
+                  placeholder="Benefits, perks..."
+                  className={errors.benefits ? 'border-red-500' : ''}
+                />
+                {errors.benefits && <p className="text-sm text-red-600">{errors.benefits.message}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -218,7 +254,6 @@ export function CreateJobPage() {
                     placeholder="0"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="salary_max">Maximum Salary</Label>
                   <Input
@@ -236,58 +271,93 @@ export function CreateJobPage() {
                   <Input
                     id="location"
                     {...register('location')}
-                    placeholder="e.g., Remote, New York, NY"
+                    placeholder="e.g., Remote, Ho Chi Minh"
                     className={errors.location ? 'border-red-500' : ''}
                   />
-                  {errors.location && (
-                    <p className="text-sm text-red-600">{errors.location.message}</p>
-                  )}
+                  {errors.location && <p className="text-sm text-red-600">{errors.location.message}</p>}
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="job_type">Job Type *</Label>
                   <Select
                     id="job_type"
-                    {...register('job_type')}
                     value={watch('job_type')}
-                    onChange={(e) => setValue('job_type', e.target.value as any)}
-                    className={errors.job_type ? 'border-red-500' : ''}
+                    onChange={(e) => setValue('job_type', e.target.value as JobFormData['job_type'])}
                   >
                     <option value="full_time">Full Time</option>
                     <option value="part_time">Part Time</option>
                     <option value="contract">Contract</option>
                     <option value="internship">Internship</option>
+                    <option value="freelance">Freelance</option>
                   </Select>
-                  {errors.job_type && (
-                    <p className="text-sm text-red-600">{errors.job_type.message}</p>
-                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="experience_level">Experience Level</Label>
+                  <Label htmlFor="yearsOfExperience">Years of Experience *</Label>
                   <Select
-                    id="experience_level"
-                    {...register('experience_level')}
-                    value={watch('experience_level') || ''}
-                    onChange={(e) => setValue('experience_level', e.target.value as any)}
+                    id="yearsOfExperience"
+                    value={watch('yearsOfExperience')}
+                    onChange={(e) => setValue('yearsOfExperience', e.target.value)}
                   >
-                    <option value="">Select level</option>
-                    <option value="entry">Entry Level</option>
-                    <option value="mid">Mid Level</option>
-                    <option value="senior">Senior Level</option>
-                    <option value="executive">Executive</option>
+                    {YEARS_OPTIONS.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
+                  {errors.yearsOfExperience && (
+                    <p className="text-sm text-red-600">{errors.yearsOfExperience.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="educationLevel">Education Level *</Label>
+                  <Select
+                    id="educationLevel"
+                    value={watch('educationLevel')}
+                    onChange={(e) => setValue('educationLevel', e.target.value as JobFormData['educationLevel'])}
+                  >
+                    {EDUCATION_LEVELS.map((v) => (
+                      <option key={v} value={v}>{getEducationLevelLabel(v)}</option>
+                    ))}
                   </Select>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deadline">Deadline *</Label>
+                  <Input
+                    id="deadline"
+                    type="date"
+                    {...register('deadline')}
+                    className={errors.deadline ? 'border-red-500' : ''}
+                  />
+                  {errors.deadline && <p className="text-sm text-red-600">{errors.deadline.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category_id">Category</Label>
+                  <Select
+                    id="category_id"
+                    value={watch('category_id') ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setValue('category_id', v === '' ? undefined : Number(v));
+                    }}
+                  >
+                    <option value="">-- Select category --</option>
+                    {categories.map((c) => (
+                      <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select
                     id="status"
-                    {...register('status')}
                     value={watch('status')}
-                    onChange={(e) => setValue('status', e.target.value as any)}
+                    onChange={(e) => setValue('status', e.target.value as 'open' | 'closed')}
                   >
                     <option value="open">Open</option>
                     <option value="closed">Closed</option>
@@ -295,24 +365,13 @@ export function CreateJobPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="thumbnail">Job Thumbnail</Label>
-                <Input
-                  id="thumbnail"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleThumbnailChange}
-                />
-                {thumbnailPreview && (
-                  <div className="mt-2">
-                    <img
-                      src={thumbnailPreview}
-                      alt="Thumbnail preview"
-                      className="h-24 w-40 rounded-lg border border-gray-200 object-cover"
-                    />
-                  </div>
-                )}
-              </div>
+              <ImageUploadSingle
+                id="thumbnail"
+                label="Job Thumbnail"
+                value={watch('thumbnail_url')}
+                onChange={(v) => setValue('thumbnail_url', v)}
+                onClear={() => setValue('thumbnail_url', '')}
+              />
 
               <div className="flex gap-4 pt-4">
                 <Button
@@ -342,4 +401,3 @@ export function CreateJobPage() {
     </DashboardLayout>
   );
 }
-
