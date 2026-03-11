@@ -9,6 +9,7 @@ import { useCompanies } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Building2, Search, Edit2, Trash2, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export function AdminCompaniesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,10 +23,10 @@ export function AdminCompaniesPage() {
   );
 
   const handleDelete = async (companyId: string) => {
-    if (!confirm('Are you sure you want to delete this company?')) return;
-    // In real app, call API to delete
+    if (!window.confirm('Bạn có chắc muốn xóa công ty này?')) return;
+    // TODO: call API to delete company when BE supports
     console.log('Company deleted', companyId);
-    alert('Company deleted');
+    toast.success('Đã xóa công ty');
   };
 
   if (isLoading) {

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
+import { toast } from 'sonner';
 
 export function EmployerJobsPage() {
   // Lấy company của recruiter hiện tại
@@ -28,11 +29,12 @@ export function EmployerJobsPage() {
   const isLoading = companyLoading || jobsLoading;
 
   const handleDelete = async (jobId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa việc làm này?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa việc làm này?')) return;
     try {
       await deleteJob.mutateAsync(jobId);
+      toast.success('Đã xóa việc làm');
     } catch (error) {
-      console.error('Failed to delete job:', error);
+      toast.error('Xóa việc làm thất bại');
     }
   };
 

@@ -9,7 +9,7 @@ import { useMyCompany, useCreateMyCompany, useUpdateMyCompany } from '@/modules/
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CompanyForm } from '@/components/company/CompanyForm';
 import { Building2, MapPin, Users, Globe } from 'lucide-react';
-// TODO: Install sonner package for toast notifications
+import { toast } from 'sonner';
 
 export function EmployerCompanyPage() {
   const { data: company, isLoading } = useMyCompany();
@@ -21,17 +21,15 @@ export function EmployerCompanyPage() {
   const handleSubmit = async (formData: FormData, id?: string) => {
     try {
       if (id) {
-        // Update existing company
         await updateCompany.mutateAsync(formData);
-        alert('Cập nhật thông tin công ty thành công');
+        toast.success('Cập nhật thông tin công ty thành công');
       } else {
-        // Create new company
         await createCompany.mutateAsync(formData);
-        alert('Tạo công ty thành công');
+        toast.success('Tạo công ty thành công');
       }
       setIsFormOpen(false);
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
       throw error;
     }
   };

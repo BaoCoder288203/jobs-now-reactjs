@@ -2,6 +2,7 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { Toaster } from 'sonner';
 import { useEffect } from 'react';
 import { store } from '../store';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -47,6 +48,7 @@ export function AppProviders({ children }: AppProvidersProps) {
             {children}
           </AuthInitializer>
         </AuthModalProvider>
+        <Toaster richColors position="top-center" />
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
       </GoogleOAuthProvider>

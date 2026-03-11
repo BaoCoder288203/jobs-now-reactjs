@@ -39,6 +39,25 @@ export function useSetDefaultResume() {
   });
 }
 
+export function useUpdateResumeName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ resumeId, resumeName }: { resumeId: string; resumeName: string }) =>
+      resumeService.updateResume(resumeId, { resumeName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: resumeKeys.all });
+    }
+  });
+}
+
+export function useUpdateResume() {
+  return useMutation({
+    mutationFn: ({ resumeId, data }: { resumeId: string; data: { resumeName?: string; summary?: string | null } }) =>
+      resumeService.updateResume(resumeId, data),
+  });
+}
+
 export function useDeleteResume() {
   const queryClient = useQueryClient();
 

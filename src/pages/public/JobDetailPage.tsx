@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send } from 'lucide-react';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { getJobTypeLabel } from '@/constants/jobEnums';
+import { toast } from 'sonner';
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +45,7 @@ export function JobDetailPage() {
   const handleApply = async () => {
     if (!id || !userId) return;
     if (!selectedResumeId && !defaultResume) {
-      alert('Vui lòng tải CV lên trước hoặc chọn một CV');
+      toast.warning('Vui lòng tải CV lên trước hoặc chọn một CV');
       return;
     }
 
@@ -58,9 +59,9 @@ export function JobDetailPage() {
       });
       setShowApplyModal(false);
       setCoverLetter('');
-      alert('Ứng tuyển thành công!');
+      toast.success('Ứng tuyển thành công!');
     } catch (error: any) {
-      alert(error.message || 'Ứng tuyển thất bại');
+      toast.error(error.message || 'Ứng tuyển thất bại');
     }
   };
 
@@ -73,7 +74,7 @@ export function JobDetailPage() {
         await saveJob.mutateAsync({ userId, jobId: id });
       }
     } catch (error: any) {
-      alert(error.message || 'Lưu việc làm thất bại');
+      toast.error(error.message || 'Lưu việc làm thất bại');
     }
   };
 

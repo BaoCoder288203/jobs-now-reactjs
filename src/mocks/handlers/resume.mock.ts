@@ -100,6 +100,18 @@ export async function mockSetDefaultResume(
   return resume;
 }
 
+export async function mockUpdateResume(
+  resumeId: string,
+  data: { resumeName: string }
+): Promise<void> {
+  await delay(300);
+  const r = mockResumes.find((x) => x.id === resumeId || String((x as { resumeId?: number }).resumeId) === resumeId);
+  if (r) {
+    r.file_name = data.resumeName;
+    (r as { resumeName?: string }).resumeName = data.resumeName;
+  }
+}
+
 export async function mockDeleteResume(
   userId: string,
   resumeId: string

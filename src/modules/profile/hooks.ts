@@ -40,11 +40,18 @@ export function useAddProfileSkill() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, skillId, level }: { userId: string; skillId: string; level: string }) =>
-      profileService.addProfileSkill(userId, skillId, level),
+    mutationFn: ({
+      userId,
+      skillId,
+      level,
+    }: {
+      userId: string;
+      skillId: string;
+      level: string;
+    }) => profileService.addProfileSkill(userId, skillId, level),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.skills(variables.userId) });
-    }
+    },
   });
 }
 

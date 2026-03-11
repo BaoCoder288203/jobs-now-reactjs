@@ -13,7 +13,6 @@ import {
   Settings,
   LayoutDashboard,
   FileText,
-  UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -164,22 +163,6 @@ export function UserDropdown() {
               </Link>
             )}
 
-            {/* Hồ sơ - Only for Job Seeker */}
-            {isJobSeeker && (
-              <Link
-                to="/user/profile"
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                  <UserCircle className="h-4 w-4 text-gray-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-sm text-gray-900">Hồ sơ</p>
-                </div>
-              </Link>
-            )}
-
             {/* CV của tôi - Only for Job Seeker */}
             {isJobSeeker && (
               <Link
@@ -252,17 +235,6 @@ export function UserDropdown() {
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                       <span className="text-sm text-gray-900">Việc làm chờ ứng tuyển</span>
-                    </Link>
-                    <Link
-                      to="/user/profile"
-                      className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-gray-100 transition-colors"
-                      onClick={() => {
-                        setIsOpen(false);
-                        setIsJobMenuOpen(false);
-                      }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                      <span className="text-sm text-gray-900">Nhà tuyển dụng xem hồ sơ bạn</span>
                     </Link>
                   </div>
                 )}

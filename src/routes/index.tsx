@@ -13,8 +13,8 @@ import { CVBuilderPage } from '@/pages/public/CVBuilderPage';
 
 // Job Seeker Pages
 import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
-import { JobSeekerProfilePage } from '@/pages/job-seeker/ProfilePage';
 import { JobSeekerResumesPage } from '@/pages/job-seeker/ResumesPage';
+import { ResumeEditPage } from '@/pages/job-seeker/ResumeEditPage';
 import { JobSeekerApplicationsPage } from '@/pages/job-seeker/ApplicationsPage';
 import { JobSeekerSavedJobsPage } from '@/pages/job-seeker/SavedJobsPage';
 import { JobSeekerSettingsPage } from '@/pages/job-seeker/SettingsPage';
@@ -224,14 +224,6 @@ export function AppRoutes() {
           }
         />
         <Route
-          path="profile"
-          element={
-            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
-              <JobSeekerProfilePage />
-            </RoleGuard>
-          }
-        />
-        <Route
           path="applications"
           element={
             <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
@@ -244,6 +236,14 @@ export function AppRoutes() {
           element={
             <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerResumesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="resumes/edit"
+          element={
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <ResumeEditPage />
             </RoleGuard>
           }
         />
