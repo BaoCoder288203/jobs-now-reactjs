@@ -8,6 +8,7 @@ import { logoutAsync } from '@/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Lock, Shield, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export function JobSeekerSettingsPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -23,25 +24,24 @@ export function JobSeekerSettingsPage() {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      alert('New passwords do not match');
+      toast.error('Mật khẩu mới không khớp');
       return;
     }
 
     if (newPassword.length < 6) {
-      alert('Password must be at least 6 characters');
+      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
 
     setIsChangingPassword(true);
     try {
-      // In real app, call API to change password
       await new Promise(resolve => setTimeout(resolve, 500));
-      alert('Password changed successfully');
+      toast.success('Đổi mật khẩu thành công');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      alert('Failed to change password');
+      toast.error('Đổi mật khẩu thất bại');
     } finally {
       setIsChangingPassword(false);
     }
@@ -53,11 +53,10 @@ export function JobSeekerSettingsPage() {
   };
 
   const handleDeleteAccount = () => {
-    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    if (!window.confirm('Bạn có chắc muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
       return;
     }
-    // In real app, call API to delete account
-    alert('Account deletion requested. Please contact support.');
+    toast.info('Yêu cầu xóa tài khoản đã gửi. Vui lòng liên hệ hỗ trợ.');
   };
 
   return (

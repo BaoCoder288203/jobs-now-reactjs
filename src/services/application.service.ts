@@ -39,7 +39,18 @@ function mapApplicationDetailToApplication(dto: ApplicationDetailDTO): Applicati
       ? { userId: profile.userId ?? 0, fullName: profile.fullName ?? '', email: profile.email ?? '', phone: null, role: '', avatar: null, profileId: profile.profileId ?? null, companyId: null, companyName: null }
       : undefined,
     resume: resume
-      ? { id: String(resume.resumeId ?? ''), job_seeker_profile_id: '', file_url: resume.resumeUrl ?? '', file_name: resume.resumeName ?? '', is_default: false, created_at: '' }
+      ? {
+          resumeId: Number(resume.resumeId ?? 0),
+          resumeName: resume.resumeName ?? '',
+          resumeUrl: resume.resumeUrl ?? '',
+          uploadedAt: '',
+          id: String(resume.resumeId ?? ''),
+          job_seeker_profile_id: '',
+          file_url: resume.resumeUrl ?? '',
+          file_name: resume.resumeName ?? '',
+          is_default: false,
+          created_at: '',
+        }
       : undefined,
   };
 }

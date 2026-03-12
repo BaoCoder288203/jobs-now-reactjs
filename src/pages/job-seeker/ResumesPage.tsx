@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useResumes, useUploadResume, useSetDefaultResume, useDeleteResume } from '@/modules/resumes/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { FileText, Upload, Star, Trash2, Download, Edit } from 'lucide-react';
+import { FileText, Upload, Star, Trash2, Download, Edit, FileEdit } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function JobSeekerResumesPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -23,12 +24,12 @@ export function JobSeekerResumesPage() {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Only PDF files are allowed');
+      toast.error('Chỉ chấp nhận file PDF');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      toast.error('Kích thước file tối đa 5MB');
       return;
     }
 
@@ -38,7 +39,7 @@ export function JobSeekerResumesPage() {
         fileInputRef.current.value = '';
       }
     } catch (error: any) {
-      alert(error.message || 'Failed to upload resume');
+      toast.error(error.message || 'Tải lên CV thất bại');
     }
   };
 
@@ -51,12 +52,13 @@ export function JobSeekerResumesPage() {
   };
 
   const handleDelete = async (resumeId: string) => {
-    if (!confirm('Are you sure you want to delete this resume?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa CV này?')) return;
 
     try {
       await deleteResume.mutateAsync({ userId, resumeId });
+      toast.success('Đã xóa CV');
     } catch (error: any) {
-      alert(error.message || 'Failed to delete resume');
+      toast.error(error.message || 'Xóa CV thất bại');
     }
   };
 
@@ -64,7 +66,7 @@ export function JobSeekerResumesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Quản lý CV</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Link to="/tools/tao-cv/builder">
             <Button variant="outline" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -121,7 +123,7 @@ export function JobSeekerResumesPage() {
               <CardContent>
                 <div className="space-y-2 mb-4">
                   <p className="text-sm text-gray-600">
-                    {resume.type === 'UPLOADED' ? 'Đã tải lên' : 'Đã tạo'}: {new Date(resume.created_at).toLocaleDateString('vi-VN')}
+                    {resume.type === 'UPLOADED' ? 'Đã tải lên' : 'Đã tạo'}: {new Date(resume.created_at ?? resume.uploadedAt ?? 0).toLocaleDateString('vi-VN')}
                   </p>
                 </div>
 
@@ -136,6 +138,13 @@ export function JobSeekerResumesPage() {
                     Xem
                   </Button>
 
+                  <Link to={`/user/resumes/edit?id=${resume.id ?? (resume as { resumeId?: number }).resumeId}`} state={{ resumeName: resume.file_name ?? (resume as { resumeName?: string }).resumeName }}>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <FileEdit className="h-4 w-4" />
+                      Chỉnh sửa nội dung
+                    </Button>
+                  </Link>
+
                   {resume.extracted_text && (
                     <Link to={`/tools/tao-cv/builder?edit=${resume.id}`}>
                       <Button variant="outline" size="sm" className="gap-2">
@@ -149,7 +158,7 @@ export function JobSeekerResumesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleSetDefault(resume.id)}
+                      onClick={() => handleSetDefault(resume.id ?? String(resume.resumeId))}
                       disabled={setDefault.isPending}
                       className="gap-2"
                     >
@@ -162,7 +171,7 @@ export function JobSeekerResumesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(resume.id)}
+                      onClick={() => handleDelete(resume.id ?? String(resume.resumeId))}
                       disabled={deleteResume.isPending}
                       className="gap-2 text-red-600 hover:text-red-700"
                     >

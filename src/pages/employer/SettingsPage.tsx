@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { logoutAsync } from '@/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Lock, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function EmployerSettingsPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -24,25 +25,24 @@ export function EmployerSettingsPage() {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      alert('New passwords do not match');
+      toast.error('Mật khẩu mới không khớp');
       return;
     }
 
     if (newPassword.length < 6) {
-      alert('Password must be at least 6 characters');
+      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
 
     setIsChangingPassword(true);
     try {
-      // In real app, call API to change password
       await new Promise(resolve => setTimeout(resolve, 500));
-      alert('Password changed successfully');
+      toast.success('Đổi mật khẩu thành công');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      alert('Failed to change password');
+      toast.error('Đổi mật khẩu thất bại');
     } finally {
       setIsChangingPassword(false);
     }

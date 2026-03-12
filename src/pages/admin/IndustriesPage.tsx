@@ -13,6 +13,7 @@ import {
 import type { Industry } from '@/types';
 import { Layers, Search, Plus, Edit2, Trash2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { toast } from 'sonner';
 
 export function AdminIndustriesPage() {
   const [industries, setIndustries] = useState<Industry[]>([]);
@@ -52,7 +53,7 @@ export function AdminIndustriesPage() {
       await fetchIndustries();
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể thêm ngành nghề';
-      alert(msg);
+      toast.error(msg);
     }
   };
 
@@ -70,7 +71,7 @@ export function AdminIndustriesPage() {
       await fetchIndustries();
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể cập nhật ngành nghề';
-      alert(msg);
+      toast.error(msg);
     }
   };
 
@@ -80,13 +81,14 @@ export function AdminIndustriesPage() {
   };
 
   const handleDelete = async (industryId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa ngành nghề này?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa ngành nghề này?')) return;
     try {
       await deleteIndustry(Number(industryId));
       await fetchIndustries();
+      toast.success('Đã xóa ngành nghề');
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể xóa ngành nghề';
-      alert(msg);
+      toast.error(msg);
     }
   };
 

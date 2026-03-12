@@ -1,4 +1,5 @@
 import type { ExtractedCVData } from '@/types';
+import { RichTextContent } from '@/components/ui/RichTextContent';
 
 interface CVPreviewProps {
   data: ExtractedCVData;
@@ -9,7 +10,7 @@ export function CVPreview({ data }: CVPreviewProps) {
   return (
     <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-8 border">
       <h3 className="text-xl font-bold text-gray-900">{data.headline ?? 'CV'}</h3>
-      <p className="text-gray-600 mt-2">{data.summary}</p>
+      <RichTextContent html={data.summary ?? ''} className="text-gray-600 mt-2" />
       {data.work_experiences?.length ? (
         <div className="mt-6">
           <h4 className="font-semibold text-gray-900">Kinh nghiệm làm việc</h4>

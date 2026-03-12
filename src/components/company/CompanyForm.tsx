@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useDeleteLogo, useDeleteBanner, useDeleteCompanyImage } from '@/modules/companies/hooks';
 import { ImageUploadMultiple } from '@/components/ui/image-upload';
 import type { Company, CreateCompanyRequest } from '@/types';
+import { toast } from 'sonner';
 
 interface CompanyFormProps {
   open: boolean;
@@ -184,7 +185,7 @@ export function CompanyForm({
       setLogoFile(null);
       setLogoPreview('');
     } catch (err: unknown) {
-      alert((err as { message?: string })?.message || 'Không thể xóa logo');
+      toast.error((err as { message?: string })?.message || 'Không thể xóa logo');
     }
   };
 
@@ -209,7 +210,7 @@ export function CompanyForm({
       setBannerFile(null);
       setBannerPreview('');
     } catch (err: unknown) {
-      alert((err as { message?: string })?.message || 'Không thể xóa banner');
+      toast.error((err as { message?: string })?.message || 'Không thể xóa banner');
     }
   };
 
@@ -238,7 +239,7 @@ export function CompanyForm({
       await deleteImageMutation.mutateAsync(imageId);
       setDeletedImageIds((prev) => [...prev, imageId]);
     } catch (err: unknown) {
-      alert((err as { message?: string })?.message || 'Không thể xóa ảnh');
+      toast.error((err as { message?: string })?.message || 'Không thể xóa ảnh');
     }
   };
 

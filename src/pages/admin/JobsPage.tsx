@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Briefcase, Search, Edit2, Trash2, Building2, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
+import { toast } from 'sonner';
 
 export function AdminJobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,11 +32,12 @@ export function AdminJobsPage() {
   });
 
   const handleDelete = async (jobId: string) => {
-    if (!confirm('Are you sure you want to delete this job?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa việc làm này?')) return;
     try {
       await deleteJob.mutateAsync(jobId);
+      toast.success('Đã xóa việc làm');
     } catch (error) {
-      alert('Failed to delete job');
+      toast.error('Xóa việc làm thất bại');
     }
   };
 

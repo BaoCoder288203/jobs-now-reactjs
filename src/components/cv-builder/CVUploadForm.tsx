@@ -3,6 +3,7 @@ import { useAppSelector } from '@/app/hooks';
 import { useUploadResume } from '@/modules/resumes/hooks';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function CVUploadForm() {
   const { user } = useAppSelector((state) => state.auth);
@@ -13,18 +14,19 @@ export function CVUploadForm() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || file.type !== 'application/pdf') {
-      alert('Chỉ chấp nhận file PDF');
+      toast.error('Chỉ chấp nhận file PDF');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Kích thước file tối đa 5MB');
+      toast.error('Kích thước file tối đa 5MB');
       return;
     }
     try {
       await uploadMutation.mutateAsync({ userId, file });
       if (fileInputRef.current) fileInputRef.current.value = '';
+      toast.success('Tải lên CV thành công');
     } catch (err: unknown) {
-      alert((err as Error)?.message ?? 'Tải lên thất bại');
+      toast.error((err as Error)?.message ?? 'Tải lên thất bại');
     }
   };
 

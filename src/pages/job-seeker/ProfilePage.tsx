@@ -11,6 +11,7 @@ import { useProfile, useProfileSkills, useUpdateProfile, useAddProfileSkill, use
 import { mockSkills } from '@/mocks/data/skills.mock';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { RichTextContent } from '@/components/ui/RichTextContent';
 import { Edit2, X, Plus } from 'lucide-react';
 import type { ProfileSkill } from '@/types';
 
@@ -38,17 +39,17 @@ export function JobSeekerProfilePage() {
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newSkill, setNewSkill] = useState({ skillId: '', level: 'beginner' });
 
-  // Initialize form data when profile loads
+  // Initialize form data when profile loads (support BE fields: title, bio)
   useEffect(() => {
     if (profile) {
       setFormData({
-        headline: profile.headline || '',
-        summary: profile.summary || '',
-        current_position: profile.current_position || '',
-        years_experience: profile.years_experience?.toString() || '',
-        education_level: profile.education_level || '',
-        date_of_birth: profile.date_of_birth || '',
-        gender: profile.gender || ''
+        headline: profile.headline ?? profile.title ?? '',
+        summary: profile.summary ?? profile.bio ?? '',
+        current_position: profile.current_position ?? '',
+        years_experience: profile.years_experience?.toString() ?? '',
+        education_level: profile.education_level ?? '',
+        date_of_birth: profile.date_of_birth ?? profile.dob ?? '',
+        gender: profile.gender ?? ''
       });
     }
   }, [profile]);
@@ -215,7 +216,9 @@ export function JobSeekerProfilePage() {
 
               <div>
                 <Label className="text-sm text-gray-500">Summary</Label>
-                <p className="mt-1 text-gray-700">{profile?.summary || 'Not set'}</p>
+                <div className="mt-1">
+                  <RichTextContent html={profile?.summary ?? ''} className="text-gray-700" emptyPlaceholder="Not set" />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -271,7 +274,7 @@ export function JobSeekerProfilePage() {
                 >
                   <option value="">Select a skill</option>
                   {mockSkills
-                    .filter(skill => !skills.some(ps => ps.skill_id === skill.skillId))
+                    .filter(skill => !skills.some(ps => String(ps.skillId ?? (ps as { skill_id?: string }).skill_id) === String(skill.skillId)))
                     .map(skill => (
                       <option key={skill.skillId} value={skill.skillId}>
                         {skill.name}
@@ -306,10 +309,10 @@ export function JobSeekerProfilePage() {
           {skills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {skills.map((skillItem: ProfileSkill) => (
-                <Badge key={skillItem.id} variant="primary" className="text-sm py-1 px-3 flex items-center gap-2">
-                  {skillItem.skill?.name} ({skillItem.level})
+                <Badge key={skillItem.skillId ?? skillItem.id} variant="primary" className="text-sm py-1 px-3 flex items-center gap-2">
+                  {skillItem.skillName ?? skillItem.skill?.name} ({skillItem.level})
                   <button
-                    onClick={() => handleRemoveSkill(skillItem.skill_id)}
+                    onClick={() => handleRemoveSkill(String(skillItem.skillId ?? skillItem.skill_id))}
                     className="hover:text-red-600"
                     disabled={removeSkill.isPending}
                   >

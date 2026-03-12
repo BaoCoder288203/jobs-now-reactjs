@@ -1,4 +1,4 @@
-import { User, LayoutDashboard, Briefcase, FileText, Bookmark, UserCircle, Settings, Bell } from "lucide-react";
+import { User, LayoutDashboard, Briefcase, FileText, Bookmark, Settings, Bell } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { Navigate, NavLink, Outlet } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -12,7 +12,6 @@ const commonItems = [
 
 const jobSeekerItems = [
   { title: "Tổng quan", icon: LayoutDashboard, href: "dashboard" },
-  { title: "Hồ sơ", icon: UserCircle, href: "profile" },
   { title: "Ứng tuyển", icon: Briefcase, href: "applications" },
   { title: "CV của tôi", icon: FileText, href: "resumes" },
   { title: "Việc làm đã lưu", icon: Bookmark, href: "saved-jobs" },

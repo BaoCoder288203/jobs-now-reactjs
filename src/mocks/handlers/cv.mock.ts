@@ -1,4 +1,4 @@
-import type { ExtractedCVData } from '@/types';
+import type { ExtractedCVData, Resume } from '@/types';
 import { delay } from './auth.mock';
 import { getProfileByUserId, getSkillsByProfileId, mockResumes } from '../data/profiles.mock';
 import type { AIGenerateInput } from '@/services/cv.service';
@@ -50,23 +50,28 @@ export async function mockCreateCV(
   if (!profile) throw new Error('Profile not found');
 
   const fileUrl = `/resumes/${userId}/${resumeName}`;
-  const resumeId = `resume-${Date.now()}`;
-
-  const newResume = {
-    id: resumeId,
+  const resumeIdStr = `resume-${Date.now()}`;
+  const created_at = new Date().toISOString();
+  const nextNumericId = Math.max(0, ...mockResumes.map((r) => r.resumeId)) + 1;
+  const newResume: Resume = {
+    resumeId: nextNumericId,
+    resumeName,
+    resumeUrl: fileUrl,
+    uploadedAt: created_at,
+    id: resumeIdStr,
     job_seeker_profile_id: profile.id,
     file_url: fileUrl,
     file_name: resumeName,
     is_default: mockResumes.length === 0,
-    created_at: new Date().toISOString(),
-    type: 'CREATED' as const,
+    created_at,
+    type: 'CREATED',
     is_ai_generated: isAiGenerated,
     extracted_text: JSON.stringify(cvData),
     profile,
   };
   mockResumes.push(newResume);
 
-  return { file_url: fileUrl, resume_id: resumeId };
+  return { file_url: fileUrl, resume_id: resumeIdStr };
 }
 
 export async function mockUpdateCV(
