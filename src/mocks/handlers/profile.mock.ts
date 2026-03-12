@@ -44,15 +44,15 @@ export async function mockGetProfileSkills(userId: string): Promise<ProfileSkill
   if (!profile) {
     return [];
   }
-  
-  return getSkillsByProfileId(profile.id);
+  const profileId = profile.id ?? String(profile.profileId);
+  return getSkillsByProfileId(profileId);
 }
 
 export async function mockAddProfileSkill(
   userId: string,
   skillId: string,
   level: string,
-  skillTopic?: string
+  _skillTopic?: string
 ): Promise<ProfileSkill> {
   await delay(400);
 
@@ -66,18 +66,17 @@ export async function mockAddProfileSkill(
     throw new Error('Skill not found');
   }
 
-  const existingSkills = getSkillsByProfileId(profile.id);
+  const profileId = profile.id ?? String(profile.profileId);
+  const existingSkills = getSkillsByProfileId(profileId);
   if (existingSkills.some(ps => ps.skill_id === skillId)) {
     throw new Error('Skill already added');
   }
 
-  const numericId = mockSkills.findIndex(s => s.skillId === skillId) + 1;
+  const numericId = mockProfileSkills.length + 1;
   const newProfileSkill: ProfileSkill = {
     skillId: numericId,
     skillName: (skill as { name?: string }).name ?? skillId,
-    skill_id: skillId,
     level,
-    skillTopic: skillTopic ?? null,
     profile,
     skill,
   };

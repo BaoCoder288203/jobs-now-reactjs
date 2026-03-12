@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -21,6 +22,7 @@ export function TiptapEditor({
   minHeight = '120px',
   className = '',
 }: TiptapEditorProps) {
+  const editorRef = useRef<Editor | null>(null);
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -37,8 +39,9 @@ export function TiptapEditor({
         class: 'tiptap-editor-content focus:outline-none min-h-[120px] px-3 py-2',
       },
       handleDOMEvents: {
-        blur: ({ editor: ed }) => {
-          onChange(ed.getHTML());
+        blur: () => {
+          const ed = editorRef.current;
+          if (ed) onChange(ed.getHTML());
         },
       },
     },
@@ -46,12 +49,13 @@ export function TiptapEditor({
       onChange(ed.getHTML());
     },
   });
+  editorRef.current = editor;
 
   useEffect(() => {
     if (!editor || value === undefined) return;
     const current = editor.getHTML();
     if ((value || '').trim() !== current.trim()) {
-      editor.commands.setContent(value || '', false);
+      editor.commands.setContent(value || '', { emitUpdate: false });
     }
   }, [value, editor]);
 

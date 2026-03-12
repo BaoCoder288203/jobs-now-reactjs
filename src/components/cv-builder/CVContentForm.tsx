@@ -34,7 +34,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/services/api';
 import { profileKeys } from '@/modules/profile/hooks';
 import { toast } from 'sonner';
-import { Plus, Trash2, GripVertical, User } from 'lucide-react';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
 import type {
   WorkExperienceDTO,
   EducationDTO,
@@ -64,65 +64,6 @@ export interface CVContentFormProps {
   resumeTitle?: string;
   /** Khi có resumeId thì đổi title sẽ gọi API cập nhật resume_name */
   resumeId?: string;
-}
-
-const PROGRESS_SECTIONS = 6; // Summary, Skills, Work exp, Education, Projects, Certificates
-const CIRCLE_R = 45;
-const CIRCLE_C = 50;
-const CIRCLE_LENGTH = 2 * Math.PI * CIRCLE_R;
-
-function AvatarProgressCard({
-  avatarUrl,
-  fullName,
-  progressPercent,
-}: {
-  avatarUrl: string | null;
-  fullName: string;
-  progressPercent: number;
-}) {
-  const offset = CIRCLE_LENGTH * (1 - progressPercent / 100);
-  const initial = fullName?.trim() ? fullName.trim().charAt(0).toUpperCase() : '?';
-
-  return (
-    <Card>
-      <CardContent className="pt-6 pb-6 flex flex-col items-center">
-        <div className="relative w-32 h-32">
-          <svg className="w-32 h-32 -rotate-90" viewBox="0 0 100 100">
-            <circle
-              cx={CIRCLE_C}
-              cy={CIRCLE_C}
-              r={CIRCLE_R}
-              fill="none"
-              stroke="#e5e7eb"
-              strokeWidth="6"
-            />
-            <circle
-              cx={CIRCLE_C}
-              cy={CIRCLE_C}
-              r={CIRCLE_R}
-              fill="none"
-              stroke="#2563eb"
-              strokeWidth="6"
-              strokeDasharray={CIRCLE_LENGTH}
-              strokeDashoffset={offset}
-              strokeLinecap="round"
-              className="transition-[stroke-dashoffset] duration-300"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-2xl font-semibold text-gray-600">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                initial !== '?' ? initial : <User className="w-10 h-10" />
-              )}
-            </div>
-          </div>
-        </div>
-        <p className="mt-3 text-xl font-bold text-[#2563eb]">{Math.round(progressPercent)}%</p>
-      </CardContent>
-    </Card>
-  );
 }
 
 const parseResumeId = (resumeId: string | undefined): number | null => {
@@ -247,16 +188,6 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
       skillInputRef.current?.blur();
     }
   };
-
-  const progressFilled = [
-    (summaryValue || '').trim() !== '',
-    resumeSkills.length > 0,
-    workExperiences.length > 0,
-    educations.length > 0,
-    projects.length > 0,
-    certificates.length > 0,
-  ].filter(Boolean).length;
-  const progressPercent = (progressFilled / PROGRESS_SECTIONS) * 100;
 
   return (
     <div className="space-y-8">

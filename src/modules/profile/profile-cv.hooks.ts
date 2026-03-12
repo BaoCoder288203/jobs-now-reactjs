@@ -1,10 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type {
-  WorkExperienceDTO,
-  EducationDTO,
-  ProjectDTO,
-  CertificateDTO,
-} from '@/types';
 import { profileKeys } from './hooks';
 import * as profileCvService from '@/services/profile-cv.service';
 

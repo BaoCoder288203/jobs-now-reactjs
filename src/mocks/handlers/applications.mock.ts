@@ -26,20 +26,19 @@ export async function mockApplyJob(
   if (!profile) {
     throw new Error('Profile not found');
   }
-  
-  let resume = resumeId 
-    ? (getPrimaryResumeByProfileId(profile.id) || null)
-    : getPrimaryResumeByProfileId(profile.id);
-    
+  const profileId = profile.id ?? String(profile.profileId);
+  let resume = resumeId
+    ? (getPrimaryResumeByProfileId(profileId) || null)
+    : getPrimaryResumeByProfileId(profileId);
   if (!resume) {
     throw new Error('Please upload a resume first');
   }
-  
+  const rid = resume.id ?? String(resume.resumeId);
   const newApplication: Application = {
     id: `app-${Date.now()}`,
     job_id: jobId,
     user_id: userId,
-    resume_id: resume.id,
+    resume_id: rid,
     cover_letter: coverLetter,
     status: 'pending',
     created_at: new Date().toISOString(),

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/app/hooks";
-import { Camera, Mail, Phone, User as UserIcon, MapPin, Calendar, FileText } from "lucide-react";
+import { Camera, Mail, Phone, User as UserIcon, MapPin, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useProfile, useUpdateProfile } from "@/modules/profile/hooks";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export default function UserInfoPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.id ? String(user.id) : "";
+  const userId = user?.userId != null ? String(user.userId) : "";
 
   const { data: profile } = useProfile(userId);
   const updateProfile = useUpdateProfile();
