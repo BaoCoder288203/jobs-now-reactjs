@@ -21,7 +21,15 @@ export function useUpdateProfile() {
 
   return useMutation({
     mutationFn: ({ userId, data }: { userId: string; data: Partial<JobSeekerProfile> }) =>
-      profileService.updateProfile(userId, data),
+      profileService.updateProfile(userId, {
+        ...data,
+        phone: data.phone ?? undefined,
+        fullName: data.fullName ?? undefined,
+        title: data.title ?? undefined,
+        bio: data.bio ?? undefined,
+        address: data.address ?? undefined,
+        dob: data.dob ?? undefined,
+      }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.detail(variables.userId) });
     }
