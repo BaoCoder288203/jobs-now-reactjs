@@ -16,14 +16,16 @@ export function JobSeekerApplicationsPage() {
   const { data: applicationsData, isLoading } = useMyApplications(profileId, userId);
 
   const getStatusBadge = (status: string) => {
+    const normalized = (status ?? '').toUpperCase();
     const statusMap: Record<string, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-gray-100 text-gray-700' },
-      approved: { label: 'Approved', className: 'bg-accent-light text-gray-900' },
-      rejected: { label: 'Rejected', className: 'bg-red-100 text-red-800' },
-      reviewing: { label: 'Reviewing', className: 'bg-primary-light text-gray-900' }
+      PENDING: { label: 'Chờ xử lý', className: 'bg-gray-100 text-gray-700' },
+      REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SHORTLISTED: { label: 'Đạt vòng hồ sơ', className: 'bg-green-100 text-green-800' },
+      INTERVIEWING: { label: 'Phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+      REJECTED: { label: 'Từ chối', className: 'bg-red-100 text-red-800' },
+      HIRED: { label: 'Đã tuyển', className: 'bg-emerald-600 text-white' }
     };
-
-    const statusInfo = statusMap[status.toLowerCase()] || statusMap.pending;
+    const statusInfo = statusMap[normalized] || statusMap.PENDING;
 
     return (
       <Badge className={statusInfo.className}>

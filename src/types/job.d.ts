@@ -1,5 +1,6 @@
 import type { Company } from './company.d';
 import type { Skill } from './skill.d';
+import type { User } from './user.d';
 
 export interface Industry {
   id: string;
@@ -59,12 +60,16 @@ export interface Job {
   jobSkills?: JobSkill[];
   majors?: Major[];
 
+  isActive?: boolean;
+  isApproved?: boolean;
+  isPending?: boolean;
+  isDeleted?: boolean;
+  isExpired?: boolean;
+  note?: string;
+
   company?: Company;
   category?: JobCategory;
 }
-
-// Forward declaration
-import type { User } from './user.d';
 
 export interface SavedJob {
   id: string;

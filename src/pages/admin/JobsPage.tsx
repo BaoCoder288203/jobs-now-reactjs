@@ -5,30 +5,48 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
+import { useAdminJobs, useDeleteJob, useApproveJob, useRejectJob, useUnpublishJob } from '@/modules/jobs/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Search, Edit2, Trash2, Building2, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Briefcase, Search, Trash2, Building2, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { toast } from 'sonner';
+import type { Job } from '@/types';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+function getJobStatusBadge(job: Job) {
+  if (job.isDeleted) {
+    return <Badge className="bg-gray-500 text-white">Đã xóa</Badge>;
+  }
+  if (job.isExpired) {
+    return <Badge className="bg-amber-100 text-amber-800">Đã hết hạn</Badge>;
+  }
+  if (job.isPending) {
+    return <Badge className="bg-blue-100 text-blue-800">Chờ duyệt</Badge>;
+  }
+  if (job.isApproved) {
+    return <Badge className="bg-green-100 text-green-800">Đã duyệt</Badge>;
+  }
+  return <Badge className="bg-red-100 text-red-800">Từ chối</Badge>;
+}
 
 export function AdminJobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  
-  const { data: jobsData, isLoading } = useJobs({ limit: 100 });
-  const deleteJob = useDeleteJob();
+  const [rejectModal, setRejectModal] = useState<{ jobId: string; jobTitle: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
-  const jobs = jobsData?.items || [];
-  
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+  const { data: jobs = [], isLoading } = useAdminJobs(statusFilter === 'all' ? undefined : statusFilter);
+  const deleteJob = useDeleteJob();
+  const approveJob = useApproveJob();
+  const rejectJob = useRejectJob();
+  const unpublishJob = useUnpublishJob();
+
+  const filteredJobs = jobs.filter((job: Job) => {
+    const matchesSearch =
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.company?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   const handleDelete = async (jobId: string) => {
@@ -40,6 +58,39 @@ export function AdminJobsPage() {
       toast.error('Xóa việc làm thất bại');
     }
   };
+
+  const handleApprove = async (jobId: string) => {
+    try {
+      await approveJob.mutateAsync(jobId);
+      toast.success('Đã duyệt việc làm');
+    } catch (error: unknown) {
+      toast.error((error as { message?: string })?.message ?? 'Duyệt thất bại');
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectModal?.jobId) return;
+    try {
+      await rejectJob.mutateAsync({ jobId: rejectModal.jobId, reason: rejectReason || 'Không đạt yêu cầu' });
+      toast.success('Đã từ chối việc làm');
+      setRejectModal(null);
+      setRejectReason('');
+    } catch (error: unknown) {
+      toast.error((error as { message?: string })?.message ?? 'Từ chối thất bại');
+    }
+  };
+
+  const handleUnpublish = async (jobId: string) => {
+    try {
+      await unpublishJob.mutateAsync(jobId);
+      toast.success('Đã gỡ bài');
+    } catch (error: unknown) {
+      toast.error((error as { message?: string })?.message ?? 'Gỡ bài thất bại');
+    }
+  };
+
+  const isRejected = (job: Job) =>
+    !job.isDeleted && !job.isExpired && !job.isPending && !job.isApproved;
 
   if (isLoading) {
     return (
@@ -56,9 +107,9 @@ export function AdminJobsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Job Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Quản lý việc làm</h1>
             <p className="text-gray-600 mt-1">
-              Manage all job postings in the platform
+              Xem tất cả tin tuyển dụng, duyệt hoặc từ chối tin chờ duyệt
             </p>
           </div>
         </div>
@@ -70,7 +121,7 @@ export function AdminJobsPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search jobs..."
+                  placeholder="Tìm theo tên job hoặc công ty..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -81,9 +132,10 @@ export function AdminJobsPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="all">All Status</option>
-                <option value="open">Open</option>
-                <option value="closed">Closed</option>
+                <option value="all">Tất cả</option>
+                <option value="pending">Chờ duyệt</option>
+                <option value="approved">Đã duyệt</option>
+                <option value="rejected">Đã từ chối</option>
               </select>
             </div>
           </CardContent>
@@ -91,19 +143,17 @@ export function AdminJobsPage() {
 
         {/* Jobs List */}
         <div className="space-y-4">
-          {filteredJobs.map((job) => (
+          {filteredJobs.map((job: Job) => (
             <Card key={job.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Briefcase className="h-5 w-5 text-primary" />
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <Briefcase className="h-5 w-5 text-primary shrink-0" />
                       <h3 className="text-xl font-semibold text-gray-900">
                         {job.title}
                       </h3>
-                      <Badge variant="primary">
-                        {job.status}
-                      </Badge>
+                      {getJobStatusBadge(job)}
                     </div>
 
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
@@ -129,17 +179,56 @@ export function AdminJobsPage() {
                     )}
 
                     <p className="text-xs text-gray-500">
-                      Posted {new Date(job.created_at).toLocaleDateString()}
+                      Đăng {job.created_at ? new Date(job.created_at).toLocaleDateString() : '—'}
                     </p>
                   </div>
 
-                  <div className="ml-6 flex gap-2">
-                    <Link to={`/admin/jobs/${job.id}`}>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Edit2 className="h-4 w-4" />
-                        Edit
+                  <div className="ml-6 flex flex-wrap gap-2">
+                    {job.isPending && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="gap-1 bg-[#90D3B4] text-white hover:bg-[#90D3B4]/80"
+                          onClick={() => handleApprove(job.id)}
+                          disabled={approveJob.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Duyệt
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-red-600 hover:text-red-700"
+                          onClick={() => setRejectModal({ jobId: job.id, jobTitle: job.title ?? '' })}
+                          disabled={rejectJob.isPending}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Từ chối
+                        </Button>
+                      </>
+                    )}
+                    {job.isApproved && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={() => handleUnpublish(job.id)}
+                        disabled={unpublishJob.isPending}
+                      >
+                        Gỡ bài
                       </Button>
-                    </Link>
+                    )}
+                    {isRejected(job) && (
+                      <Button
+                        size="sm"
+                        className="gap-1 bg-[#90D3B4] text-white hover:bg-[#90D3B4]/80"
+                        onClick={() => handleApprove(job.id)}
+                        disabled={approveJob.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Cho phép đăng lại
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -160,12 +249,52 @@ export function AdminJobsPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Briefcase className="h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-600">No jobs found</p>
+              <p className="text-gray-600">Không có việc làm nào</p>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* Reject reason modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-2">Từ chối việc làm</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {rejectModal.jobTitle}
+              </p>
+              <div className="space-y-2 mb-4">
+                <Label>Lý do từ chối (tùy chọn)</Label>
+                <Textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                  placeholder="Nhập lý do từ chối..."
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRejectModal(null);
+                    setRejectReason('');
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleRejectSubmit}
+                  disabled={rejectJob.isPending}
+                  className="text-white bg-red-500 hover:bg-red-700"
+                >
+                  {rejectJob.isPending ? 'Đang gửi...' : 'Từ chối'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
-

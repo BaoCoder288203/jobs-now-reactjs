@@ -30,7 +30,12 @@ interface JobDTO {
   postedAt?: string;
   deadline?: string;
   isActive?: boolean;
+  isApproved?: boolean;
+  isPending?: boolean;
+  isDeleted?: boolean;
+  isExpired?: boolean;
   thumbnailUrl?: string;
+  note?: string;
   companyId?: number;
   companyName?: string;
   companyLogo?: string;
@@ -55,6 +60,12 @@ function mapJobDTOToJob(dto: JobDTO): Job {
     location: dto.location,
     job_type: dto.jobType,
     status: dto.isActive ? 'open' : 'closed',
+    isActive: dto.isActive,
+    isApproved: dto.isApproved,
+    isPending: dto.isPending,
+    isDeleted: dto.isDeleted,
+    isExpired: dto.isExpired,
+    note: dto.note,
     expired_at: dto.deadline,
     deadline: dto.deadline,
     created_at: dto.postedAt ?? new Date().toISOString(),
@@ -185,7 +196,7 @@ export async function createJob(data: Partial<Job>): Promise<Job> {
     jobSkills: (data as { jobSkills?: { skillId: number; isRequired?: boolean; level?: string }[] }).jobSkills ?? [],
     majorIds: (data as { majorIds?: number[] }).majorIds ?? [],
     thumbnailUrl: data.thumbnail_url ?? undefined,
-    isActive: data.status === 'open',
+    isActive: false,
   };
   await apiClient.post('/job/create', body);
   return { ...data, id: 'new', created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as Job;
@@ -228,4 +239,33 @@ export async function deleteJob(jobId: string): Promise<void> {
     return mockJobs.mockDeleteJob(jobId);
   }
   await apiClient.delete(`/job/${jobId}`);
+}
+
+/** Admin: get all jobs (optional filter: pending | approved | rejected | all) */
+export async function getAdminJobs(status?: string): Promise<Job[]> {
+  if (USE_MOCK) {
+    const res = await mockJobs.mockGetJobs({});
+    return res.items ?? [];
+  }
+  const res = (await apiClient.get('/admin/jobs', {
+    params: status ? { status } : undefined,
+  })) as { data?: JobDTO[] };
+  const list = (res?.data ?? res) as JobDTO[] | JobDTO;
+  const arr = Array.isArray(list) ? list : list ? [list] : [];
+  return arr.map(mapJobDTOToJob);
+}
+
+export async function unpublishJob(jobId: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put(`/job/${jobId}`, { isActive: false });
+}
+
+export async function approveJob(jobId: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put(`/job/approve/${jobId}`);
+}
+
+export async function rejectJob(jobId: string, reason: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put('/job/reject', { jobId: parseInt(jobId, 10), reason });
 }

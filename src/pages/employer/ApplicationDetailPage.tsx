@@ -166,10 +166,12 @@ export function EmployerApplicationDetailPage() {
                     onChange={(e) => handleStatusChange(e.target.value)}
                     disabled={updateStatus.isPending}
                   >
-                    <option value="pending">Pending</option>
-                    <option value="reviewing">Reviewing</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="pending">Đang chờ</option>
+                    <option value="reviewing">Đang xem xét</option>
+                    <option value="shortlisted">Đạt vòng hồ sơ</option>
+                    <option value="interviewing">Phỏng vấn</option>
+                    <option value="rejected">Đã từ chối</option>
+                    <option value="hired">Đã tuyển</option>
                   </Select>
                 </div>
 
@@ -198,7 +200,7 @@ export function EmployerApplicationDetailPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <Link to={`/jobs/${application.job_id}`}>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full mb-2">
                     View Job Posting
                   </Button>
                 </Link>

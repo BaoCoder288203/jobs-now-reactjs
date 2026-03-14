@@ -6,26 +6,24 @@ import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users } from 'lucide-react';
+import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { toast } from 'sonner';
 
 export function EmployerJobsPage() {
-  // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const companyId = company?.id;
   
-  // Lấy jobs của company này
   const { data: jobsData, isLoading: jobsLoading } = useJobs({ 
     company_id: companyId, 
     limit: 100 
   });
   const deleteJob = useDeleteJob();
 
-  // Filter jobs chỉ của company này (đảm bảo chắc chắn)
   const companyJobs = jobsData?.items?.filter(job => job.company_id === companyId) || [];
-  
+
+  console.log(companyJobs);
   const isLoading = companyLoading || jobsLoading;
 
   const handleDelete = async (jobId: string) => {
@@ -99,7 +97,21 @@ export function EmployerJobsPage() {
                         <Badge variant="primary">
                           {job.status === 'open' ? 'Đang tuyển' : job.status === 'closed' ? 'Đã đóng' : job.status}
                         </Badge>
+                        {!job.isDeleted && !job.isExpired && !job.isPending && !job.isApproved && job.note && (
+                          <Badge variant="outline" className="border-red-300 text-red-700 bg-red-50">
+                            Đã từ chối
+                          </Badge>
+                        )}
                       </div>
+
+                      {!job.isActive && job.note && (
+                        <div className="flex items-start gap-2 p-3 mb-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-medium">Lý do từ chối:</span> {job.note}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                         {job.location && (

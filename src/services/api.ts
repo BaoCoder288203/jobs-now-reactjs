@@ -27,7 +27,16 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response: any) => {
-    return response.data;
+    const data = response.data;
+    if (data != null && typeof data === 'object' && data.code !== undefined && data.code !== 200) {
+      const apiError: ApiError = {
+        message: data.message ?? 'Có lỗi xảy ra',
+        errors: data.errors,
+        statusCode: data.code,
+      };
+      return Promise.reject(apiError);
+    }
+    return data;
   },
   (error: AxiosError<ApiError>) => {
     if (error.response?.status === 401) {

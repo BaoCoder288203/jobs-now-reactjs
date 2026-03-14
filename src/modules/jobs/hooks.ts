@@ -6,6 +6,8 @@ export const jobKeys = {
   all: ['jobs'] as const,
   lists: () => [...jobKeys.all, 'list'] as const,
   list: (params?: JobListParams) => [...jobKeys.lists(), params] as const,
+  adminList: () => [...jobKeys.all, 'admin'] as const,
+  adminListWithStatus: (status?: string) => [...jobKeys.adminList(), status ?? 'all'] as const,
   details: () => [...jobKeys.all, 'detail'] as const,
   detail: (id: string) => [...jobKeys.details(), id] as const
 };
@@ -56,6 +58,48 @@ export function useDeleteJob() {
   return useMutation({
     mutationFn: (jobId: string) => jobService.deleteJob(jobId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+    }
+  });
+}
+
+export function useAdminJobs(status?: string) {
+  return useQuery({
+    queryKey: jobKeys.adminListWithStatus(status),
+    queryFn: () => jobService.getAdminJobs(status),
+    enabled: true
+  });
+}
+
+export function useApproveJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) => jobService.approveJob(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.adminList() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+    }
+  });
+}
+
+export function useRejectJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ jobId, reason }: { jobId: string; reason: string }) =>
+      jobService.rejectJob(jobId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.adminList() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+    }
+  });
+}
+
+export function useUnpublishJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) => jobService.unpublishJob(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.adminList() });
       queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
     }
   });

@@ -11,6 +11,19 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, User, Calendar, Download, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const APPLICATION_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'pending', label: 'Đang chờ' },
+  { value: 'reviewing', label: 'Đang xem xét' },
+  { value: 'shortlisted', label: 'Đạt vòng hồ sơ' },
+  { value: 'interviewing', label: 'Phỏng vấn' },
+  { value: 'rejected', label: 'Đã từ chối' },
+  { value: 'hired', label: 'Đã tuyển' },
+];
+
+function getApplicationStatusLabel(status: string): string {
+  return APPLICATION_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+}
+
 export function EmployerApplicationsPage() {
   // const { user } = useAppSelector((state) => state.auth);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -87,10 +100,9 @@ export function EmployerApplicationsPage() {
             className="w-48"
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Đang chờ</option>
-            <option value="reviewing">Đang xem xét</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="rejected">Đã từ chối</option>
+            {APPLICATION_STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </Select>
         </div>
 
@@ -108,14 +120,14 @@ export function EmployerApplicationsPage() {
                         </h3>
                         <Badge
                           className={
-                            application.status === 'approved'
+                            ['shortlisted', 'interviewing', 'hired'].includes(application.status)
                               ? 'bg-accent-light text-gray-900'
                               : application.status === 'rejected'
                               ? 'bg-red-100 text-red-800'
                               : 'bg-gray-100 text-gray-700'
                           }
                         >
-                          {application.status === 'approved' ? 'Đã duyệt' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status === 'reviewing' ? 'Đang xem xét' : application.status}
+                          {getApplicationStatusLabel(application.status)}
                         </Badge>
                       </div>
 
@@ -168,16 +180,15 @@ export function EmployerApplicationsPage() {
                       <Select
                         value={application.status}
                         onChange={(e) => {
-                      const newStatus = e.target.value;
-                      handleStatusChange(application.id, newStatus);
-                    }}
+                          const newStatus = e.target.value;
+                          handleStatusChange(application.id, newStatus);
+                        }}
                         disabled={updateStatus.isPending}
                         className="w-full"
                       >
-                        <option value="pending">Đang chờ</option>
-                        <option value="reviewing">Đang xem xét</option>
-                        <option value="approved">Đã duyệt</option>
-                        <option value="rejected">Đã từ chối</option>
+                        {APPLICATION_STATUS_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
                       </Select>
 
                       <Link to={`/employer/applications/${application.id}`}>
@@ -199,7 +210,7 @@ export function EmployerApplicationsPage() {
               <p className="text-gray-600 mb-2">Không tìm thấy đơn ứng tuyển</p>
               <p className="text-sm text-gray-500">
                 {statusFilter !== 'all' 
-                  ? `Không có đơn ứng tuyển với trạng thái "${statusFilter === 'pending' ? 'Đang chờ' : statusFilter === 'approved' ? 'Đã duyệt' : statusFilter === 'rejected' ? 'Đã từ chối' : statusFilter === 'reviewing' ? 'Đang xem xét' : statusFilter}"`
+                  ? `Không có đơn ứng tuyển với trạng thái "${getApplicationStatusLabel(statusFilter)}"`
                   : 'Đơn ứng tuyển sẽ xuất hiện ở đây khi ứng viên ứng tuyển vào việc làm của bạn'}
               </p>
             </CardContent>
