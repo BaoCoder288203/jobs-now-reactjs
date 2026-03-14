@@ -7,7 +7,7 @@ interface ApplicationDetailDTO {
   applicationId?: number;
   status?: string;
   appliedAt?: string;
-  job?: { jobId?: number; title?: string; companyId?: number; [k: string]: unknown };
+  job?: { jobId?: number; title?: string; companyId?: number; companyName?: string; companyLogo?: string; location?: string; [k: string]: unknown };
   jobSeekerProfile?: { profileId?: number; userId?: number; fullName?: string; email?: string; avatarUrl?: string; [k: string]: unknown };
   resumeApplied?: { resumeId?: number; resumeName?: string; resumeUrl?: string; [k: string]: unknown };
   statusHistory?: { status?: string; time?: string }[];
@@ -33,6 +33,9 @@ function mapApplicationDetailToApplication(dto: ApplicationDetailDTO): Applicati
           status: 'open',
           created_at: '',
           updated_at: '',
+          company: (job.companyName != null || job.companyId != null)
+            ? { id: String(job.companyId ?? ''), name: job.companyName ?? '', logo_url: job.companyLogo, owner_user_id: '', created_at: '', updated_at: '' }
+            : undefined,
         }
       : undefined,
     user: profile

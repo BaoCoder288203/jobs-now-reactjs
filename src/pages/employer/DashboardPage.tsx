@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useJobs } from '@/modules/jobs/hooks';
 import { useCompanyApplications } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
@@ -10,6 +11,15 @@ import { Link } from 'react-router-dom';
 import { Briefcase, Users, FileText, ArrowRight, Plus } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { getJobTypeLabel } from '@/constants/jobEnums';
+import type { Job } from '@/types';
+
+function getJobStatusBadge(job: Job) {
+  if (job.isDeleted) return <Badge className="bg-gray-500 text-white">Đã xóa</Badge>;
+  if (job.isExpired) return <Badge className="bg-amber-100 text-amber-800">Đã hết hạn</Badge>;
+  if (job.isPending) return <Badge className="bg-blue-100 text-blue-800">Chờ duyệt</Badge>;
+  if (job.isApproved) return <Badge className="bg-green-100 text-green-800">Đã duyệt</Badge>;
+  return <Badge className="bg-red-100 text-red-800">Từ chối</Badge>;
+}
 
 export function RecruiterDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -162,14 +172,14 @@ export function RecruiterDashboardPage() {
                     </div>
                     <div className="ml-4 flex items-center gap-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${['approved', 'hired'].includes(application.status)
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${['shortlisted', 'interviewing', 'hired'].includes(application.status)
                           ? 'bg-accent-light text-gray-900'
                           : application.status === 'rejected'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-700'
                           }`}
                       >
-                        {['approved', 'hired'].includes(application.status) ? 'Đã duyệt' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status}
+                        {application.status === 'shortlisted' ? 'Đạt vòng hồ sơ' : application.status === 'interviewing' ? 'Phỏng vấn' : application.status === 'hired' ? 'Đã tuyển' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status === 'reviewing' ? 'Đang xem xét' : application.status}
                       </span>
                       <Link to={`/employer/applications/${application.id}`}>
                         <Button variant="outline" size="sm">
@@ -221,11 +231,7 @@ export function RecruiterDashboardPage() {
                       </p>
                     </div>
                     <div className="ml-4">
-                      <Link to={`/employer/jobs/${job.id}`}>
-                        <Button variant="outline" size="sm">
-                          Quản lý
-                        </Button>
-                      </Link>
+                      {getJobStatusBadge(job)}
                     </div>
                   </div>
                 ))}

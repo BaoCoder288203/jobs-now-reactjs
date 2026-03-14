@@ -2,21 +2,35 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useJobs } from '@/modules/jobs/hooks';
+import { Badge } from '@/components/ui/badge';
+import { useAdminJobs } from '@/modules/jobs/hooks';
+import { useAdminStats } from '@/modules/admin/hooks';
 import { useCompanies } from '@/modules/companies/hooks';
+import { useSkills } from '@/modules/skills/hooks';
 import { Link } from 'react-router-dom';
 import { Users, Building2, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
+import type { Job } from '@/types';
+
+function getJobStatusBadge(job: Job) {
+  if (job.isDeleted) return <Badge className="bg-gray-500 text-white">Đã xóa</Badge>;
+  if (job.isExpired) return <Badge className="bg-amber-100 text-amber-800">Đã hết hạn</Badge>;
+  if (job.isPending) return <Badge className="bg-blue-100 text-blue-800">Chờ duyệt</Badge>;
+  if (job.isApproved) return <Badge className="bg-green-100 text-green-800">Đã duyệt</Badge>;
+  return <Badge className="bg-red-100 text-red-800">Từ chối</Badge>;
+}
 
 export function AdminDashboardPage() {
   // const { user } = useAppSelector((state) => state.auth);
 
-  const { data: jobsData } = useJobs({ limit: 10 });
+  const { data: adminJobs = [], isLoading: jobsLoading } = useAdminJobs();
+  const { data: adminStats } = useAdminStats();
   const { data: companiesData } = useCompanies({ limit: 10 });
+  const { data: skills = [] } = useSkills();
 
   const stats = [
     {
       title: 'Tổng người dùng',
-      value: '1,234', // Mock data - in real app, get from API
+      value: adminStats?.activeUsers ?? 0,
       icon: Users,
       link: '/admin/users',
       color: 'text-primary'
@@ -29,15 +43,15 @@ export function AdminDashboardPage() {
       color: 'text-accent'
     },
     {
-      title: 'Việc làm đang hoạt động',
-      value: jobsData?.items?.length || 0,
+      title: 'Việc làm',
+      value: adminJobs.length,
       icon: Briefcase,
       link: '/admin/jobs',
       color: 'text-primary'
     },
     {
       title: 'Kỹ năng',
-      value: '156', // Mock data
+      value: skills.length,
       icon: Sparkles,
       link: '/admin/skills',
       color: 'text-accent'
@@ -141,9 +155,11 @@ export function AdminDashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            {jobsData?.items && jobsData.items.length > 0 ? (
+            {jobsLoading ? (
+              <div className="text-center py-8 text-gray-500">Đang tải...</div>
+            ) : adminJobs.length > 0 ? (
               <div className="space-y-4">
-                {jobsData.items.slice(0, 5).map((job) => (
+                {adminJobs.slice(0, 5).map((job) => (
                   <div
                     key={job.id}
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -158,11 +174,7 @@ export function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="ml-4">
-                      <Link to={`/admin/jobs/${job.id}`}>
-                        <Button variant="outline" size="sm">
-                          Quản lý
-                        </Button>
-                      </Link>
+                      {getJobStatusBadge(job)}
                     </div>
                   </div>
                 ))}

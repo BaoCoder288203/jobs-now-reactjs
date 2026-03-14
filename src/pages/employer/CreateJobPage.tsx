@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/select';
 import { useJobDetail, useCreateJob, useUpdateJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobCategories } from '@/services/category.service';
 import type { JobCategoryDTO } from '@/services/category.service';
@@ -80,7 +80,7 @@ export function CreateJobPage() {
     resolver: zodResolver(jobSchema),
     defaultValues: {
       job_type: 'full_time',
-      status: 'open',
+      status: 'closed',
       educationLevel: 'BACHELOR',
       yearsOfExperience: '0',
       deadline: defaultDeadline(),
@@ -196,6 +196,16 @@ export function CreateJobPage() {
             <CardTitle>Job Information</CardTitle>
           </CardHeader>
           <CardContent>
+            {isEditMode && job?.note && (
+              <div className="flex items-start gap-3 p-4 mb-6 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold mb-1">Tin này đã bị từ chối</p>
+                  <p className="mb-1"><span className="font-medium">Lý do từ quản trị:</span> {job.note}</p>
+                  <p className="text-red-700">Bạn có thể chỉnh sửa nội dung và gửi lại để được duyệt.</p>
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="title">Job Title *</Label>
@@ -351,19 +361,21 @@ export function CreateJobPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    id="status"
-                    value={watch('status')}
-                    onChange={(e) => setValue('status', e.target.value as 'open' | 'closed')}
-                  >
-                    <option value="open">Open</option>
-                    <option value="closed">Closed</option>
-                  </Select>
+              {isEditMode && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      id="status"
+                      value={watch('status')}
+                      onChange={(e) => setValue('status', e.target.value as 'open' | 'closed')}
+                    >
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                    </Select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <ImageUploadSingle
                 id="thumbnail"

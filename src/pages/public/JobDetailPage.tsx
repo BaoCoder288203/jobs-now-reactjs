@@ -42,8 +42,20 @@ export function JobDetailPage() {
   const isSaved = savedJobs.some(sj => sj.job_id === id);
   const defaultResume = resumes.find(r => r.is_default);
 
+  /** Job còn khả dụng để ứng tuyển (active, approved, chưa xóa, chưa hết hạn) */
+  const isAvailable =
+    job != null &&
+    job.isActive === true &&
+    job.isApproved === true &&
+    job.isDeleted !== true &&
+    job.isExpired !== true;
+
   const handleApply = async () => {
     if (!id || !userId) return;
+    if (user?.profileId == null) {
+      toast.warning('Vui lòng hoàn thiện hồ sơ trước khi ứng tuyển');
+      return;
+    }
     if (!selectedResumeId && !defaultResume) {
       toast.warning('Vui lòng tải CV lên trước hoặc chọn một CV');
       return;
@@ -55,13 +67,20 @@ export function JobDetailPage() {
         jobId: id,
         resumeId: selectedResumeId || defaultResume?.id,
         coverLetter: coverLetter || undefined,
-        profileId: user?.profileId ?? undefined
+        profileId: user.profileId
       });
       setShowApplyModal(false);
       setCoverLetter('');
       toast.success('Ứng tuyển thành công!');
     } catch (error: any) {
-      toast.error(error.message || 'Ứng tuyển thất bại');
+      const msg = error?.message ?? '';
+      if (msg.toLowerCase().includes('already applied')) {
+        toast.error('Bạn đã ứng tuyển công việc này rồi');
+      } else if (msg.toLowerCase().includes('not available')) {
+        toast.error('Công việc không còn khả dụng');
+      } else {
+        toast.error(msg || 'Ứng tuyển thất bại');
+      }
     }
   };
 
@@ -204,7 +223,16 @@ export function JobDetailPage() {
               <div className="sticky top-24 space-y-4">
                 <Card>
                   <CardContent className="p-6 space-y-4">
-                    {isAuthenticated && user ? (
+                    {!isAvailable ? (
+                      <div className="text-center">
+                        <p className="text-amber-700 font-medium mb-1">
+                          Công việc không còn khả dụng
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Công việc có thể đã hết hạn, bị xóa hoặc tạm ngưng nhận hồ sơ.
+                        </p>
+                      </div>
+                    ) : isAuthenticated && user ? (
                       <>
                         {user.role === 'ROLE_JOBSEEKER' ? (
                           <>
