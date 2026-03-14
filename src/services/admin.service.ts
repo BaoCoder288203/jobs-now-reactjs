@@ -10,7 +10,8 @@ export interface AdminDashboardStats {
 /** GET /admin/stats – dashboard counts for admin */
 export async function getAdminStats(): Promise<AdminDashboardStats> {
   const res = await apiClient.get('/admin/stats');
-  const data = (res as { data?: AdminDashboardStats })?.data ?? res;
+  const raw = (res as { data?: AdminDashboardStats })?.data ?? res;
+  const data = raw as AdminDashboardStats;
   return {
     totalApplications: Number(data?.totalApplications ?? 0),
     openJobs: Number(data?.openJobs ?? 0),
