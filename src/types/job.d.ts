@@ -72,10 +72,15 @@ export interface Job {
 }
 
 export interface SavedJob {
-  id: string;
-  user_id: string;
-  job_id: string;
-  created_at: string;
-  user?: User;
-  job?: Job;
+  savedJobId: number;
+  jobId: number;
+  jobTitle: string;
+  companyName: string;
+  companyLogo: string;
+  location: string;
+  salaryMin: number;
+  salaryMax: number;
+  jobType: string;
+  savedAt: string;
+  isSaved?: boolean;
 }

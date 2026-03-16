@@ -39,6 +39,7 @@ import UserPage from '@/pages/user/UserPage';
 import UserInfoPage from '@/pages/user/UserInfoPage';
 import { NotificationsPage } from '@/pages/user/NotificationsPage';
 import { AdminSupportPage } from '@/pages/admin/SupportPage';
+import ChatPage from '@/pages/user/ChatPage';
 
 export function AppRoutes() {
   return (
@@ -268,6 +269,16 @@ export function AppRoutes() {
             <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminSupportPage />
             </RoleGuard>
+          </RequireAuth>
+        }
+      />
+
+      {/* Chat Page */}
+      <Route
+        path="/chat"
+        element={
+          <RequireAuth>
+            <ChatPage />
           </RequireAuth>
         }
       />

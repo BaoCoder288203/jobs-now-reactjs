@@ -1,4 +1,4 @@
-import { User, LayoutDashboard, Briefcase, FileText, Bookmark, Settings, Bell } from "lucide-react";
+import { User, LayoutDashboard, Briefcase, FileText, Bookmark, Settings, Bell, MessageCircle } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { Navigate, NavLink, Outlet } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 const commonItems = [
   { title: "Thông tin", icon: User, href: "info" },
   { title: "Thông báo", icon: Bell, href: "notifications" },
+  { title: "Tin nhắn", icon: MessageCircle, href: "/chat", external: true },
   { title: "Cài đặt", icon: Settings, href: "settings" },
 ];
 
