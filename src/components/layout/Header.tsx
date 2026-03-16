@@ -14,7 +14,7 @@ import { TOOLS_MENU } from '@/constants/toolsMenu';
 const SCROLL_THRESHOLD = 60;
 
 export function Header() {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user, unreadMessageCount } = useAppSelector((state) => state.auth);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -189,11 +189,17 @@ export function Header() {
                   <button
                     ref={notificationAnchorRef}
                     type="button"
-                    className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     aria-label="Mở thông báo"
                     onMouseEnter={() => setNotificationOpen(true)}
                   >
                     <Bell className="h-5 w-5 text-gray-600" />
+                    {/* Badge showing unread messages */}
+                    {(unreadMessageCount > 0) && (
+                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                        {unreadMessageCount}
+                      </span>
+                    )}
                   </button>
                   <NotificationDropdown
                     isOpen={notificationOpen}

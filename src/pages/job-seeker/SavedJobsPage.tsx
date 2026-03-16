@@ -8,14 +8,14 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export function JobSeekerSavedJobsPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.userId ? String(user.userId) : '';
+  const profileId = user?.profileId ? String(user.profileId) : '';
 
-  const { data: savedJobs = [], isLoading } = useSavedJobs(userId);
+  const { data: savedJobs = [], isLoading } = useSavedJobs(profileId);
   const unsaveJob = useUnsaveJob();
 
   const handleUnsave = async (jobId: string) => {
     try {
-      await unsaveJob.mutateAsync({ userId, jobId });
+      await unsaveJob.mutateAsync({ profileId, jobId });
     } catch (error) {
       console.error('Failed to unsave job:', error);
     }
@@ -33,20 +33,35 @@ export function JobSeekerSavedJobsPage() {
       {savedJobs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {savedJobs.map((savedJob) => {
-            if (!savedJob.job) return null;
+            const jobData: any = {
+              id: String(savedJob.jobId),
+              title: savedJob.jobTitle,
+              location: savedJob.location,
+              salary_min: savedJob.salaryMin,
+              salary_max: savedJob.salaryMax,
+              job_type: savedJob.jobType,
+              company: {
+                name: savedJob.companyName,
+                logo_url: savedJob.companyLogo
+              }
+            };
 
             return (
-              <div key={savedJob.id} className="relative">
-                <JobCard job={savedJob.job} />
+              <div key={savedJob.savedJobId} className="relative">
+                <JobCard job={jobData} />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleUnsave(savedJob.job_id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleUnsave(String(savedJob.jobId));
+                  }}
                   disabled={unsaveJob.isPending}
-                  className="absolute top-2 right-2 gap-2"
+                  className="absolute top-2 right-2 gap-2 bg-white/80 hover:bg-white z-10"
                 >
                   <BookmarkX className="h-4 w-4" />
-                  Unsave
+                  Bỏ lưu
                 </Button>
               </div>
             );

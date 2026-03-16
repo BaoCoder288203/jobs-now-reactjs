@@ -1,15 +1,16 @@
-import { useAppSelector } from '@/app/hooks';
+import { useAppSelector, useAppDispatch } from '@/app/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  getNotificationsByUserId,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
-} from '@/mocks/data/notifications.mock';
+import { getNotifications, markAsRead, markAllAsRead, getUnreadCount } from '@/services/notification.service';
+import { setUnreadMessageCount } from '@/auth/authSlice';
 import { Bell } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Notification } from '@/types/notification';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 function formatDate(iso: string) {
+  if (!iso) return 'Vừa xong';
   const d = new Date(iso);
   const now = new Date();
   const diff = now.getTime() - d.getTime();
@@ -21,21 +22,38 @@ function formatDate(iso: string) {
 
 export function NotificationsPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const notifications = useMemo(
-    () => (user ? getNotificationsByUserId(String(user.userId)) : []),
-    [user]
-  );
+  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const handleMarkAsRead = useCallback(
-    (id: string) => {
-      markNotificationAsRead(id);
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+    queryKey: ['notifications', user?.userId],
+    queryFn: () => getNotifications(String(user?.userId)),
+    enabled: !!user?.userId,
+  });
+
+  const updateUnreadCount = async () => {
+    if (user?.userId) {
+      const count = await getUnreadCount(user.userId);
+      dispatch(setUnreadMessageCount(count));
+    }
+  };
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => markAsRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.userId] });
+      updateUnreadCount();
     },
-    []
-  );
+  });
 
-  const handleMarkAllRead = useCallback(() => {
-    if (user) markAllNotificationsAsRead(String(user.userId));
-  }, [user]);
+  const markAllReadMutation = useMutation({
+    mutationFn: () => markAllAsRead(String(user?.userId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.userId] });
+      updateUnreadCount();
+    },
+  });
 
   if (!user) return null;
 
@@ -48,9 +66,14 @@ export function NotificationsPage() {
             Tổng hợp thông báo ứng tuyển, việc làm và hệ thống
           </p>
         </div>
-        {notifications.some((n) => !n.is_read) && (
-          <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
-            Đánh dấu tất cả đã đọc
+        {notifications.some((n) => !n.isRead) && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={markAllReadMutation.isPending}
+          >
+            {markAllReadMutation.isPending ? 'Đang cập nhật...' : 'Đánh dấu tất cả đã đọc'}
           </Button>
         )}
       </div>
@@ -63,7 +86,11 @@ export function NotificationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <p className="text-gray-500 text-center py-8">
+              Đang tải thông báo...
+            </p>
+          ) : notifications.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
               Chưa có thông báo nào.
             </p>
@@ -71,28 +98,36 @@ export function NotificationsPage() {
             <ul className="divide-y divide-gray-200">
               {notifications.map((n) => (
                 <li
-                  key={n.id}
-                  className={`py-4 px-3 rounded-lg transition-colors ${!n.is_read ? 'bg-primary/5' : ''
+                  key={n.notificationId}
+                  className={`py-4 px-3 rounded-lg transition-colors ${!n.isRead ? 'bg-primary/5' : ''
                     }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div 
+                    className={cn("flex items-start justify-between gap-3", n.type === 'CHAT' ? "cursor-pointer" : "")}
+                    onClick={() => {
+                      if (n.type === 'CHAT') {
+                        navigate('/chat', { state: { openConversationId: n.conversationId } });
+                      }
+                    }}
+                  >
                     <div className="min-w-0 flex-1">
                       <p
-                        className={`font-medium ${!n.is_read ? 'text-gray-900' : 'text-gray-700'
+                        className={`font-medium ${!n.isRead ? 'text-gray-900' : 'text-gray-700'
                           }`}
                       >
-                        {n.title}
+                        {n.type === 'CHAT' ? `Tin nhắn từ ${n.senderName || 'Người dùng'}` : 'Thông báo hệ thống'}
                       </p>
                       <p className="text-sm text-gray-500 mt-0.5">{n.content}</p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {formatDate(n.created_at)}
+                        {formatDate(n.createdAt)}
                       </p>
                     </div>
-                    {!n.is_read && (
+                    {!n.isRead && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleMarkAsRead(n.id)}
+                        onClick={() => markReadMutation.mutate(n.notificationId)}
+                        disabled={markReadMutation.isPending}
                       >
                         Đánh dấu đã đọc
                       </Button>
