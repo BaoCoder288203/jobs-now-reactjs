@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { JobCard } from '@/components/common/JobCard';
 import { useJobs } from '@/modules/jobs/hooks';
@@ -9,12 +9,24 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { JobListParams } from '@/types';
 import { Search } from 'lucide-react';
 import { JOB_TYPE_OPTIONS } from '@/constants/jobEnums';
+import { useSearchParams } from 'react-router-dom';
 
 export function JobListingPage() {
   const [filters, setFilters] = useState<JobListParams>({
     page: 1,
     limit: 12
   });
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const ids = searchParams.getAll('categoryIds');
+    const categoryIds = ids.length ? ids : undefined;
+    setFilters((prev) => ({
+      ...prev,
+      category_ids: categoryIds,
+      page: 1,
+    }));
+  }, [searchParams]);
 
   const { data, isLoading, error } = useJobs(filters);
 

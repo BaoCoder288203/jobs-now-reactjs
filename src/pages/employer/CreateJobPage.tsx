@@ -18,7 +18,10 @@ import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobCategories } from '@/services/category.service';
 import type { JobCategoryDTO } from '@/services/category.service';
-import type { Job } from '@/types';
+import { getAllSkills } from '@/services/skill.service';
+import { getMajors } from '@/services/major.service';
+import type { MajorDTO } from '@/services/major.service';
+import type { Job, Skill } from '@/types';
 import { ImageUploadSingle } from '@/components/ui/image-upload';
 import { getEducationLevelLabel } from '@/constants/jobEnums';
 
@@ -67,6 +70,8 @@ export function CreateJobPage() {
   const createJob = useCreateJob();
   const updateJob = useUpdateJob();
   const [categories, setCategories] = useState<JobCategoryDTO[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [majorsOptions, setMajorsOptions] = useState<MajorDTO[]>([]);
 
   const {
     register,
@@ -92,6 +97,8 @@ export function CreateJobPage() {
 
   useEffect(() => {
     getJobCategories().then(setCategories).catch(() => setCategories([]));
+    getAllSkills().then(setSkills).catch(() => setSkills([]));
+    getMajors().then(setMajorsOptions).catch(() => setMajorsOptions([]));
   }, []);
 
   useEffect(() => {
@@ -151,6 +158,27 @@ export function CreateJobPage() {
     } catch (error) {
       console.error('Failed to save job:', error);
     }
+  };
+
+  const jobSkills = watch('jobSkills') ?? [];
+
+  const addJobSkill = () => {
+    const current = getValues('jobSkills') ?? [];
+    const firstSkillId = skills[0]?.skillId ? Number(skills[0].skillId) : 0;
+    setValue('jobSkills', [...current, { skillId: firstSkillId, isRequired: true, level: '' }]);
+  };
+
+  const updateJobSkillField = (index: number, field: 'skillId' | 'isRequired' | 'level', value: unknown) => {
+    const current = getValues('jobSkills') ?? [];
+    const updated = [...current];
+    updated[index] = { ...updated[index], [field]: value };
+    setValue('jobSkills', updated);
+  };
+
+  const removeJobSkill = (index: number) => {
+    const current = getValues('jobSkills') ?? [];
+    const updated = current.filter((_, i) => i !== index);
+    setValue('jobSkills', updated);
   };
 
   if (jobLoading && isEditMode) {
@@ -329,6 +357,108 @@ export function CreateJobPage() {
                       <option key={v} value={v}>{getEducationLevelLabel(v)}</option>
                     ))}
                   </Select>
+                </div>
+              </div>
+
+              <div className="space-y-3 border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold">Required Skills</Label>
+                  <Button type="button" size="sm" onClick={addJobSkill}>
+                    + Add skill
+                  </Button>
+                </div>
+
+                {jobSkills.length === 0 && (
+                  <p className="text-sm text-gray-500">
+                    No skills added yet. Click &quot;Add skill&quot; to define required skills for this job.
+                  </p>
+                )}
+
+                {jobSkills.map((item, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div className="space-y-1">
+                      <Label>Skill</Label>
+                      <Select
+                        value={String(item.skillId ?? '')}
+                        onChange={(e) => updateJobSkillField(index, 'skillId', Number(e.target.value))}
+                      >
+                        <option value="">-- Select skill --</option>
+                        {skills.map((s) => (
+                          <option key={s.skillId} value={s.skillId}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label>Required</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={item.isRequired ?? false}
+                          onChange={(e) => updateJobSkillField(index, 'isRequired', e.target.checked)}
+                        />
+                        <span className="text-sm text-gray-700">
+                          {item.isRequired ? 'Required' : 'Optional'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label>Level</Label>
+                      <Input
+                        placeholder="e.g., Junior, Senior, B2..."
+                        value={item.level ?? ''}
+                        onChange={(e) => updateJobSkillField(index, 'level', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeJobSkill(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3 border rounded-lg p-4">
+                <Label className="font-semibold">Majors</Label>
+                <p className="text-xs text-gray-500">
+                  Chọn ngành học phù hợp với yêu cầu học vấn ở trên (có thể chọn nhiều).
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {majorsOptions.map((m) => {
+                    const selected = (watch('majorIds') ?? []).includes(m.majorId ?? 0);
+                    return (
+                      <label key={m.majorId} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => {
+                            const current = watch('majorIds') ?? [];
+                            if (e.target.checked) {
+                              if (!current.includes(m.majorId ?? 0)) {
+                                setValue('majorIds', [...current, m.majorId ?? 0]);
+                              }
+                            } else {
+                              setValue(
+                                'majorIds',
+                                current.filter((id) => id !== (m.majorId ?? 0)),
+                              );
+                            }
+                          }}
+                        />
+                        <span>{m.name}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -34,6 +34,8 @@ import { AdminCompaniesPage } from '@/pages/admin/CompaniesPage';
 import { AdminJobsPage } from '@/pages/admin/JobsPage';
 import { AdminSkillsPage } from '@/pages/admin/SkillsPage';
 import { AdminIndustriesPage } from '@/pages/admin/IndustriesPage';
+import { AdminCategoriesPage } from '@/pages/admin/CategoriesPage';
+import { AdminMajorsPage } from '@/pages/admin/MajorsPage';
 
 import UserPage from '@/pages/user/UserPage';
 import UserInfoPage from '@/pages/user/UserInfoPage';
@@ -197,6 +199,26 @@ export function AppRoutes() {
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminIndustriesPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/categories"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminCategoriesPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/majors"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminMajorsPage />
             </RoleGuard>
           </RequireAuth>
         }
