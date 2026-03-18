@@ -6,7 +6,7 @@ import { Toaster } from 'sonner';
 import { useEffect } from 'react';
 import { store } from '../store';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { getCurrentUserAsync } from '@/auth/authSlice';
+import { clearAuth, getCurrentUserAsync, setToken } from '@/auth/authSlice';
 import { AuthModalProvider } from '@/contexts/AuthModalContext';
 
 const queryClient = new QueryClient({
@@ -28,6 +28,28 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       dispatch(getCurrentUserAsync());
     }
   }, [token, user, dispatch]);
+
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.storageArea !== localStorage) return;
+      if (e.key !== 'token') return;
+
+      const newToken = e.newValue;
+      const prevToken = token ?? null;
+      if ((newToken ?? null) === prevToken) return;
+
+      if (!newToken) {
+        dispatch(clearAuth());
+        return;
+      }
+
+      dispatch(setToken(newToken));
+      dispatch(getCurrentUserAsync());
+    }
+
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [dispatch, token]);
 
   return <>{children}</>;
 }

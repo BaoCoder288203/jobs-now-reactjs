@@ -267,8 +267,7 @@ export function UserDropdown() {
               </>
             )}
 
-            {/* Tuyển dụng / Employer Dashboard - Hiển thị cho Recruiter và Admin */}
-            {canAccessRecruiter && (
+            {isRecruiter && (
               <Link
                 to="/employer/dashboard"
                 className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"

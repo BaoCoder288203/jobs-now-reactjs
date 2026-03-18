@@ -73,6 +73,17 @@ function mapJobDTOToJob(dto: JobDTO): Job {
     thumbnail_url: dto.thumbnailUrl,
     category_id: dto.categoryId != null ? dto.categoryId : undefined,
     categoryName: dto.categoryName,
+    company:
+      dto.companyId != null || dto.companyName || dto.companyLogo
+        ? {
+            id: String(dto.companyId ?? ''),
+            name: dto.companyName ?? '',
+            logo_url: dto.companyLogo,
+            owner_user_id: '',
+            created_at: '',
+            updated_at: '',
+          }
+        : undefined,
     jobSkills: dto.jobSkills?.map((js) => ({
       id: '',
       job_id: String(dto.jobId ?? ''),
@@ -109,12 +120,14 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   }
 
   const keyword = params?.search;
-  const categoryId = params?.category_id ? parseInt(params.category_id, 10) : undefined;
+  const categoryIds =
+    params?.category_ids?.map((v) => parseInt(String(v), 10)).filter((n) => !Number.isNaN(n)) ??
+    (params?.category_id ? [parseInt(params.category_id, 10)].filter((n) => !Number.isNaN(n)) : undefined);
   const location = params?.location ? [params.location] : undefined;
 
-  if (keyword || (location && location.length > 0) || categoryId != null) {
+  if (keyword || (location && location.length > 0) || (categoryIds && categoryIds.length > 0)) {
     const res = (await apiClient.get('/job/searchJobs', {
-      params: { keyword, location, categoryId },
+      params: { keyword, location, categoryIds },
     })) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];

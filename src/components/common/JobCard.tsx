@@ -13,7 +13,7 @@ interface JobCardProps {
 export function JobCard({ job, className }: JobCardProps) {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const { openLoginModal } = useAuthModal();
-
+  console.log(job);
   const formatSalary = () => {
     if (!job.salary_min && !job.salary_max) return 'Mức lương không tiết lộ';
     if (!job.salary_min || !job.salary_max) return 'Mức lương không tiết lộ';
@@ -141,7 +141,7 @@ export function JobCard({ job, className }: JobCardProps) {
               <span
                 key={i}
                 className={cn(
-                  'text-xs px-2 py-0.5 rounded-md border',
+                  'text-xs px-2 py-0.5 rounded-md border max-w-full break-words [overflow-wrap:anywhere] line-clamp-1',
                   hasThumb
                     ? 'text-white/90 border-white/40 bg-white/10'
                     : 'text-gray-600 border-gray-300 bg-gray-50'

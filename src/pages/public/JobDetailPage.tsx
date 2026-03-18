@@ -13,7 +13,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send, Briefcase } from 'lucide-react';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { toast } from 'sonner';
@@ -122,6 +122,52 @@ export function JobDetailPage() {
     );
   }
 
+  const salaryText = (() => {
+    if (!job.salary_min && !job.salary_max) return 'Thỏa thuận';
+    const min = job.salary_min ? job.salary_min / 1_000_000 : null;
+    const max = job.salary_max ? job.salary_max / 1_000_000 : null;
+    if (min && max) return `${min} - ${max} triệu`;
+    if (min && !max) return `Từ ${min} triệu`;
+    if (!min && max) return `Đến ${max} triệu`;
+    return 'Thỏa thuận';
+  })();
+
+  const experienceText = (() => {
+    if (!job.yearsOfExperience) return 'Không yêu cầu';
+    switch (job.yearsOfExperience) {
+      case '0':
+        return 'Không yêu cầu';
+      case '1':
+        return 'Từ 1 năm';
+      case '1-3':
+        return '1 - 3 năm';
+      case '3-5':
+        return '3 - 5 năm';
+      case '5+':
+        return 'Từ 5 năm trở lên';
+      default:
+        return job.yearsOfExperience;
+    }
+  })();
+
+  const deadlineInfo = (() => {
+    const raw = job.deadline ?? job.expired_at;
+    if (!raw) return null;
+    const d = new Date(raw);
+    const today = new Date();
+    const diffMs = d.getTime() - today.getTime();
+    const diffDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const dateText = d.toLocaleDateString('vi-VN');
+    return { dateText, diffDays };
+  })();
+
+  const shortLocation = (() => {
+    if (!job.location) return 'Không xác định';
+    const parts = job.location.split(',');
+    const last = parts[parts.length - 1]?.trim();
+    return last || job.location;
+  })();
+
   return (
     <AppLayout>
       <div className="bg-gray-50 min-h-screen py-8">
@@ -136,32 +182,37 @@ export function JobDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Card>
-                <CardContent className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex-1">
-                      <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                <CardContent className="p-8 space-y-4">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h1 className="text-3xl font-bold text-gray-900 mb-2 break-words">
                         {job.title}
                       </h1>
-                      <div className="flex items-center text-gray-600 mb-4">
+                      <div className="flex items-center text-gray-600 mb-2">
                         <Building2 className="h-5 w-5 mr-2" />
                         <Link
                           to={`/companies/${job.company_id}`}
-                          className="hover:text-gray-900 font-medium"
+                          className="hover:text-gray-900 font-medium truncate"
                         >
                           {job.company?.name}
                         </Link>
                       </div>
+                      {job.location && (
+                        <p className="text-sm text-gray-600">
+                          {job.location}
+                        </p>
+                      )}
                     </div>
                     {job.company?.logo_url && (
                       <img
                         src={job.company.logo_url}
                         alt={job.company.name}
-                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                        className="w-20 h-20 rounded-lg object-cover border border-gray-200 flex-shrink-0"
                       />
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="flex flex-wrap gap-2">
                     {job.job_type && (
                       <Badge variant="outline">{getJobTypeLabel(job.job_type)}</Badge>
                     )}
@@ -170,24 +221,77 @@ export function JobDetailPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                    {job.location && (
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        {job.location}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50 rounded-xl px-4 py-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center text-emerald-600">
+                          <Briefcase className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Hình thức</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {job.job_type ? getJobTypeLabel(job.job_type) : 'Không xác định'}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    {(job.salary_min || job.salary_max) && (
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        {job.salary_min?.toLocaleString()} - {job.salary_max?.toLocaleString()} VNĐ
+
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center text-emerald-600">
+                          <DollarSign className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Thu nhập</p>
+                          <p className="text-sm font-semibold text-gray-900">{salaryText}</p>
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center text-emerald-600">
+                          <MapPin className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Địa điểm</p>
+                          <p className="text-sm font-semibold text-emerald-700">
+                            {shortLocation}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center text-emerald-600">
+                          <Clock className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Kinh nghiệm</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {experienceText}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+                    {deadlineInfo && (
+                      <p>
+                        Hạn nộp hồ sơ:{' '}
+                        <span className="font-medium">
+                          {deadlineInfo.dateText}
+                        </span>
+                        {deadlineInfo.diffDays > 0 && (
+                          <span className="text-emerald-600 font-medium">
+                            {' '}({`Còn ${deadlineInfo.diffDays} ngày`})
+                          </span>
+                        )}
+                      </p>
                     )}
                     {job.created_at && (
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2" />
+                      <p className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
                         Đăng ngày {new Date(job.created_at).toLocaleDateString('vi-VN')}
-                      </div>
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -198,7 +302,7 @@ export function JobDetailPage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">
                     Mô tả công việc
                   </h2>
-                  <div className="prose prose-gray max-w-none whitespace-pre-line">
+                  <div className="prose prose-gray max-w-none whitespace-pre-line break-words [overflow-wrap:anywhere]">
                     {job.description}
                   </div>
                 </CardContent>
@@ -210,7 +314,7 @@ export function JobDetailPage() {
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">
                       Yêu cầu
                     </h2>
-                    <div className="prose prose-gray max-w-none whitespace-pre-line">
+                    <div className="prose prose-gray max-w-none whitespace-pre-line break-words [overflow-wrap:anywhere]">
                       {job.requirements}
                     </div>
                   </CardContent>
