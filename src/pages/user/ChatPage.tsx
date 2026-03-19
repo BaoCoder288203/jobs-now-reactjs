@@ -400,7 +400,7 @@ export default function ChatPage() {
                     <div key={msg.messageId} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                       <div
                         className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${isMine
-                            ? 'bg-blue-600 text-white rounded-br-md'
+                          ? 'bg-blue-500 text-white rounded-br-md'
                             : 'bg-white text-gray-800 shadow-sm rounded-bl-md'
                           }`}
                       >
@@ -416,7 +416,7 @@ export default function ChatPage() {
                             href={msg.attachment.filePath}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex items-center gap-2 p-3 mt-1 rounded-lg border hover:bg-black/5 hover:opacity-90 transition-colors ${isMine ? 'bg-blue-700/50 border-blue-500 text-white' : 'bg-gray-50 border-gray-200 text-blue-600'}`}
+                            className={`flex items-center gap-2 p-3 mt-1 rounded-lg border hover:bg-black/5 hover:opacity-90 transition-colors ${isMine ? 'bg-blue-400/40 border-blue-300 text-white' : 'bg-gray-50 border-gray-200 text-blue-600'}`}
                           >
                             <div className="p-2 bg-white/20 rounded-md">
                               <FileText className="w-5 h-5 shrink-0" />
@@ -427,7 +427,7 @@ export default function ChatPage() {
                         ) : (
                           <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                         )}
-                        <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>
+                        <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-50/90' : 'text-gray-400'}`}>
                           {formatTime(msg.sentAt)}
                         </p>
                       </div>
