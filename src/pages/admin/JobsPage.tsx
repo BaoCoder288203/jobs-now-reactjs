@@ -9,26 +9,11 @@ import { useAdminJobs, useDeleteJob, useApproveJob, useRejectJob, useUnpublishJo
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Briefcase, Search, Trash2, Building2, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { getJobTypeLabel } from '@/constants/jobEnums';
+import { getJobStatusBadge } from '@/utils/jobStatus';
 import { toast } from 'sonner';
 import type { Job } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-function getJobStatusBadge(job: Job) {
-  if (job.isDeleted) {
-    return <Badge className="bg-gray-500 text-white">Đã xóa</Badge>;
-  }
-  if (job.isExpired) {
-    return <Badge className="bg-amber-100 text-amber-800">Đã hết hạn</Badge>;
-  }
-  if (job.isPending) {
-    return <Badge className="bg-blue-100 text-blue-800">Chờ duyệt</Badge>;
-  }
-  if (job.isApproved) {
-    return <Badge className="bg-green-100 text-green-800">Đã duyệt</Badge>;
-  }
-  return <Badge className="bg-red-100 text-red-800">Từ chối</Badge>;
-}
 
 export function AdminJobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
