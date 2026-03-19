@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/select';
 import { useJobDetail, useCreateJob, useUpdateJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobCategories } from '@/services/category.service';
 import type { JobCategoryDTO } from '@/services/category.service';
@@ -23,7 +23,8 @@ import { getMajors } from '@/services/major.service';
 import type { MajorDTO } from '@/services/major.service';
 import type { Job, Skill } from '@/types';
 import { ImageUploadSingle } from '@/components/ui/image-upload';
-import { getEducationLevelLabel } from '@/constants/jobEnums';
+import { getEducationLevelLabel, buildEducationMajorLine } from '@/constants/jobEnums';
+import { Badge } from '@/components/ui/badge';
 
 const EDUCATION_LEVELS = ['ANY', 'HIGH_SCHOOL', 'VOCATIONAL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'OTHER'] as const;
 const JOB_TYPES = ['full_time', 'part_time', 'contract', 'internship', 'freelance'] as const;
@@ -72,6 +73,19 @@ export function CreateJobPage() {
   const [categories, setCategories] = useState<JobCategoryDTO[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [majorsOptions, setMajorsOptions] = useState<MajorDTO[]>([]);
+  const [majorSearch, setMajorSearch] = useState('');
+  const [majorDropdownOpen, setMajorDropdownOpen] = useState(false);
+  const majorDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (majorDropdownRef.current && !majorDropdownRef.current.contains(e.target as Node)) {
+        setMajorDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const {
     register,
@@ -127,6 +141,19 @@ export function CreateJobPage() {
       });
     }
   }, [job, isEditMode, reset]);
+
+  const educationLevel = watch('educationLevel');
+  const majorIds = watch('majorIds') ?? [];
+
+  useEffect(() => {
+    const line = buildEducationMajorLine(educationLevel ?? 'BACHELOR', majorIds, majorsOptions);
+    const current = getValues('requirements') ?? '';
+    const lines = current.split('\n');
+    const firstLine = lines[0] ?? '';
+    const isTemplateLine = /^- Tốt nghiệp .+ trở lên chuyên ngành .+\.\s*$/.test(firstLine.trim());
+    const rest = isTemplateLine ? lines.slice(1).join('\n').trimStart() : current;
+    setValue('requirements', rest ? `${line}\n${rest}` : line);
+  }, [educationLevel, majorIds, majorsOptions, setValue, getValues]);
 
   const onSubmit = async (data: JobFormData) => {
     try {
@@ -260,6 +287,9 @@ export function CreateJobPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="requirements">Requirements *</Label>
+                <p className="text-xs text-gray-500">
+                  Dòng đầu tiên (yêu cầu học vấn) tự động cập nhật theo Education Level và Majors bên dưới.
+                </p>
                 <Textarea
                   id="requirements"
                   {...register('requirements')}
@@ -428,37 +458,82 @@ export function CreateJobPage() {
                 ))}
               </div>
 
-              <div className="space-y-3 border rounded-lg p-4">
+              <div className="space-y-3 border rounded-lg p-4" ref={majorDropdownRef}>
                 <Label className="font-semibold">Majors</Label>
                 <p className="text-xs text-gray-500">
-                  Chọn ngành học phù hợp với yêu cầu học vấn ở trên (có thể chọn nhiều).
+                  Nhập để tìm và chọn ngành học phù hợp (có thể chọn nhiều).
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {majorsOptions.map((m) => {
-                    const selected = (watch('majorIds') ?? []).includes(m.majorId ?? 0);
-                    return (
-                      <label key={m.majorId} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={(e) => {
-                            const current = watch('majorIds') ?? [];
-                            if (e.target.checked) {
-                              if (!current.includes(m.majorId ?? 0)) {
-                                setValue('majorIds', [...current, m.majorId ?? 0]);
-                              }
-                            } else {
-                              setValue(
-                                'majorIds',
-                                current.filter((id) => id !== (m.majorId ?? 0)),
-                              );
-                            }
-                          }}
-                        />
-                        <span>{m.name}</span>
-                      </label>
-                    );
-                  })}
+                <div className="relative">
+                  <div
+                    className="flex min-h-11 w-full flex-wrap items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent"
+                    onClick={() => setMajorDropdownOpen(true)}
+                  >
+                    {(watch('majorIds') ?? []).map((id) => {
+                      const m = majorsOptions.find((o) => o.majorId === id);
+                      return m ? (
+                        <Badge key={id} variant="outline" className="gap-1 pr-1">
+                          {m.name}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const current = watch('majorIds') ?? [];
+                              setValue('majorIds', current.filter((x) => x !== id));
+                            }}
+                            className="rounded-full p-0.5 hover:bg-gray-200"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                    <input
+                      type="text"
+                      placeholder="Gõ để tìm chuyên ngành..."
+                      value={majorSearch}
+                      onChange={(e) => setMajorSearch(e.target.value)}
+                      onFocus={() => setMajorDropdownOpen(true)}
+                      className="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm outline-none placeholder:text-gray-400"
+                    />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+                  </div>
+                  {majorDropdownOpen && (
+                    <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                      {majorsOptions
+                        .filter((m) =>
+                          (m.name ?? '').toLowerCase().includes(majorSearch.toLowerCase())
+                        )
+                        .map((m) => {
+                          const selected = (watch('majorIds') ?? []).includes(m.majorId ?? 0);
+                          return (
+                            <button
+                              key={m.majorId}
+                              type="button"
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${
+                                selected ? 'bg-primary/10 font-medium' : ''
+                              }`}
+                              onClick={() => {
+                                const current = watch('majorIds') ?? [];
+                                if (selected) {
+                                  setValue('majorIds', current.filter((id) => id !== (m.majorId ?? 0)));
+                                } else {
+                                  setValue('majorIds', [...current, m.majorId ?? 0]);
+                                }
+                              }}
+                            >
+                              {m.name}
+                            </button>
+                          );
+                        })}
+                      {majorsOptions.filter((m) =>
+                        (m.name ?? '').toLowerCase().includes(majorSearch.toLowerCase())
+                      ).length === 0 && (
+                        <p className="px-3 py-4 text-center text-sm text-gray-500">
+                          Không tìm thấy chuyên ngành
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

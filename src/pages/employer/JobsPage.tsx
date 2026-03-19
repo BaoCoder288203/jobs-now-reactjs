@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Badge } from '@/components/ui/badge';
 import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
+import { getJobStatusBadge } from '@/utils/jobStatus';
 import { toast } from 'sonner';
 
 export function EmployerJobsPage() {
@@ -23,7 +23,6 @@ export function EmployerJobsPage() {
 
   const companyJobs = jobsData?.items?.filter(job => job.company_id === companyId) || [];
 
-  console.log(companyJobs);
   const isLoading = companyLoading || jobsLoading;
 
   const handleDelete = async (jobId: string) => {
@@ -94,14 +93,7 @@ export function EmployerJobsPage() {
                         <h3 className="text-xl font-semibold text-gray-900">
                           {job.title}
                         </h3>
-                        <Badge variant="primary">
-                          {job.status === 'open' ? 'Đang tuyển' : job.status === 'closed' ? 'Đã đóng' : job.status}
-                        </Badge>
-                        {!job.isDeleted && !job.isExpired && !job.isPending && !job.isApproved && job.note && (
-                          <Badge variant="outline" className="border-red-300 text-red-700 bg-red-50">
-                            Đã từ chối
-                          </Badge>
-                        )}
+                        {getJobStatusBadge(job)}
                       </div>
 
                       {!job.isActive && job.note && (
