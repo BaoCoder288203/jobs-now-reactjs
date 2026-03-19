@@ -7,22 +7,13 @@ import { Select } from '@/components/ui/select';
 import { useCompanyApplications, useUpdateApplicationStatus } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Badge } from '@/components/ui/badge';
 import { FileText, User, Calendar, Download, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const APPLICATION_STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'pending', label: 'Đang chờ' },
-  { value: 'reviewing', label: 'Đang xem xét' },
-  { value: 'shortlisted', label: 'Đạt vòng hồ sơ' },
-  { value: 'interviewing', label: 'Phỏng vấn' },
-  { value: 'rejected', label: 'Đã từ chối' },
-  { value: 'hired', label: 'Đã tuyển' },
-];
-
-function getApplicationStatusLabel(status: string): string {
-  return APPLICATION_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
-}
+import {
+  APPLICATION_STATUS_OPTIONS,
+  getApplicationStatusLabel,
+  getApplicationStatusBadge,
+} from '@/utils/applicationStatus';
 
 export function EmployerApplicationsPage() {
   // const { user } = useAppSelector((state) => state.auth);
@@ -118,17 +109,7 @@ export function EmployerApplicationsPage() {
                         <h3 className="text-xl font-semibold text-gray-900">
                           {application.job?.title}
                         </h3>
-                        <Badge
-                          className={
-                            ['shortlisted', 'interviewing', 'hired'].includes(application.status)
-                              ? 'bg-accent-light text-gray-900'
-                              : application.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-700'
-                          }
-                        >
-                          {getApplicationStatusLabel(application.status)}
-                        </Badge>
+                        {getApplicationStatusBadge(application.status)}
                       </div>
 
                       <div className="flex items-center gap-4 mb-3">

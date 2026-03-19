@@ -101,11 +101,14 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
     return mockJobs.mockGetJobs(params);
   }
 
+  const sortByNewest = (items: Job[]) =>
+    [...items].sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+
   if (params?.company_id) {
     const res = (await apiClient.get(`/job/company/${params.company_id}`)) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
-    const items = arr.map(mapJobDTOToJob);
+    const items = sortByNewest(arr.map(mapJobDTOToJob));
     return {
       items,
       pagination: {
@@ -131,7 +134,7 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
     })) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
-    const items = arr.map(mapJobDTOToJob);
+    const items = sortByNewest(arr.map(mapJobDTOToJob));
     return {
       items,
       pagination: {
@@ -148,7 +151,7 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   const res = (await apiClient.get('/job')) as { data?: JobDTO[] };
   const list = (res.data ?? res) as JobDTO[] | JobDTO;
   const arr = Array.isArray(list) ? list : [list];
-  const items = arr.map(mapJobDTOToJob);
+  const items = sortByNewest(arr.map(mapJobDTOToJob));
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 10;
   const start = (page - 1) * limit;

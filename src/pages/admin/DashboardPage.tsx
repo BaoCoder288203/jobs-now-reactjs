@@ -2,22 +2,13 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useAdminJobs } from '@/modules/jobs/hooks';
 import { useAdminStats } from '@/modules/admin/hooks';
 import { useCompanies } from '@/modules/companies/hooks';
 import { useSkills } from '@/modules/skills/hooks';
 import { Link } from 'react-router-dom';
 import { Users, Building2, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
-import type { Job } from '@/types';
-
-function getJobStatusBadge(job: Job) {
-  if (job.isDeleted) return <Badge className="bg-gray-500 text-white">Đã xóa</Badge>;
-  if (job.isExpired) return <Badge className="bg-amber-100 text-amber-800">Đã hết hạn</Badge>;
-  if (job.isPending) return <Badge className="bg-blue-100 text-blue-800">Chờ duyệt</Badge>;
-  if (job.isApproved) return <Badge className="bg-green-100 text-green-800">Đã duyệt</Badge>;
-  return <Badge className="bg-red-100 text-red-800">Từ chối</Badge>;
-}
+import { getJobStatusBadge } from '@/utils/jobStatus';
 
 export function AdminDashboardPage() {
   // const { user } = useAppSelector((state) => state.auth);

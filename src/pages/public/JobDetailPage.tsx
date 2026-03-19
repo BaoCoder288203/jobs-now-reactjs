@@ -329,6 +329,19 @@ export function JobDetailPage() {
                 </Card>
               )}
 
+              {job.benefits && (
+                <Card>
+                  <CardContent className="p-8">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                      Quyền lợi
+                    </h2>
+                    <div className="prose prose-gray max-w-none whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                      {job.benefits}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
             </div>
 
             <div className="lg:col-span-1">
