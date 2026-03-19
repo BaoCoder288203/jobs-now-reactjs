@@ -10,6 +10,7 @@ interface IndustryDTO {
 
 interface CompanyDTO {
   companyId?: number;
+  ownerUserId?: number;
   companyName?: string;
   logoUrl?: string;
   bannerUrl?: string;
@@ -49,7 +50,7 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
     industries,
     is_verified: dto.isVerified ?? false,
     create_job_count: dto.jobPostCount,
-    owner_user_id: '',
+    owner_user_id: dto.ownerUserId != null ? String(dto.ownerUserId) : '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     thumbnail_images: dto.images?.map((img) => img.imageUrl).filter(Boolean) as string[] | undefined,
@@ -98,7 +99,6 @@ export async function getCompanyDetail(companyId: string): Promise<Company> {
   return company;
 }
 
-// Lấy company của user hiện tại (recruiter chỉ có 1 company)
 export async function getMyCompany(): Promise<Company | null> {
   if (USE_MOCK) {
     return mockCompanies.mockGetMyCompany();
@@ -115,7 +115,6 @@ export async function getMyCompany(): Promise<Company | null> {
   }
 }
 
-// Tạo company mới cho recruiter hiện tại
 export async function createMyCompany(formData: FormData): Promise<Company> {
   if (USE_MOCK) {
     return mockCompanies.mockCreateMyCompany(formData);

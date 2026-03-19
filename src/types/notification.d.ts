@@ -1,13 +1,11 @@
-import type { User } from './user.d';
-
 export interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
+  notificationId: number;
   content: string;
-  type: string; // system, application, message
-  is_read: boolean;
-  created_at: string;
-  
-  user?: User;
+  isRead: boolean;
+  createdAt: string;
+  applicationId?: number;
+  // For Chat notifications
+  type?: 'SYSTEM' | 'CHAT';
+  senderName?: string;
+  conversationId?: number;
 }
