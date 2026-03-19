@@ -1,18 +1,25 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { CVPreview } from '@/components/cv-builder/CVPreview';
 import { useResumes, useUploadResume, useSetDefaultResume, useDeleteResume } from '@/modules/resumes/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import * as profileCvService from '@/services/profile-cv.service';
 import { FileText, Upload, Star, Trash2, Download, Edit, FileEdit } from 'lucide-react';
 import { toast } from 'sonner';
+import type { ExtractedCVData } from '@/types';
 
 export function JobSeekerResumesPage() {
   const { user } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<ExtractedCVData | null>(null);
+  const [previewLanguage, setPreviewLanguage] = useState<'vi' | 'en'>('en');
 
   const { data: resumes = [], isLoading } = useResumes(userId);
   const uploadResume = useUploadResume();
@@ -59,6 +66,86 @@ export function JobSeekerResumesPage() {
       toast.success('Đã xóa CV');
     } catch (error: any) {
       toast.error(error.message || 'Xóa CV thất bại');
+    }
+  };
+
+  const toDisplayDate = (dateValue?: string | null) => {
+    if (!dateValue) return '';
+    const [year, month] = dateValue.slice(0, 10).split('-');
+    if (!year || !month) return dateValue;
+    return `${month}/${year}`;
+  };
+
+  const getResumeIdentity = (resume: { id?: string; resumeId?: number; file_name?: string; resumeName?: string }) => ({
+    resumeId: Number(resume.id ?? resume.resumeId),
+    resumeName: resume.file_name ?? resume.resumeName ?? 'CV',
+  });
+
+  const handleDownloadCreatedResumePdf = async (resume: {
+    id?: string;
+    resumeId?: number;
+    file_name?: string;
+    resumeName?: string;
+    summary?: string | null;
+  }) => {
+    const { resumeId, resumeName } = getResumeIdentity(resume);
+    if (!resumeId || Number.isNaN(resumeId)) {
+      toast.error('Không tìm thấy resumeId để tạo PDF');
+      return;
+    }
+
+    try {
+      const [profile, workExperiences, educations, projects, certificates, skills] = await Promise.all([
+        profileCvService.getProfileByUserId(userId),
+        profileCvService.getWorkExperiences(resumeId),
+        profileCvService.getEducations(resumeId),
+        profileCvService.getProjects(resumeId),
+        profileCvService.getCertificates(resumeId),
+        profileCvService.getResumeSkills(resumeId),
+      ]);
+
+      const mappedData: ExtractedCVData = {
+        fullName: profile.fullName ?? user?.fullName ?? '',
+        email: profile.email ?? user?.email ?? '',
+        phone: profile.phone ?? user?.phone ?? '',
+        address: profile.address ?? '',
+        title: profile.title ?? '',
+        headline: profile.title ?? resumeName,
+        summary: resume.summary ?? profile.bio ?? '',
+        work_experiences: workExperiences.map((we) => ({
+          company: '',
+          position: we.title,
+          start_date: toDisplayDate(we.startDate),
+          end_date: toDisplayDate(we.endDate),
+          description: we.description ?? '',
+        })),
+        educations: educations.map((edu) => ({
+          school: edu.title,
+          major: edu.majorName ?? '',
+          degree: edu.educationLevel,
+          start_date: toDisplayDate(edu.startDate),
+          end_date: toDisplayDate(edu.endDate),
+        })),
+        skills: skills.map((skill) => ({ name: skill.skillName, level: skill.level ?? '' })),
+        projects: projects.map((project) => ({
+          name: project.title,
+          description: project.description ?? '',
+          duration: [toDisplayDate(project.startDate), toDisplayDate(project.endDate)].filter(Boolean).join(' - '),
+        })),
+        languages: [],
+        certificates: certificates.map((cert) => ({
+          name: cert.title,
+          issuer: cert.description ?? '',
+          issue_date: toDisplayDate(cert.issueDate),
+        })),
+      };
+
+      setPreviewData(mappedData);
+      setPreviewLanguage('en');
+      setPreviewOpen(true);
+    } catch (error) {
+      console.error('Failed to build PDF data for created resume:', error);
+      toast.error('Không thể tạo PDF từ CV này. Vui lòng thử lại.');
     }
   };
 
@@ -128,15 +215,27 @@ export function JobSeekerResumesPage() {
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(resume.file_url, '_blank')}
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Xem
-                  </Button>
+                  {resume.file_url && resume.file_url.trim() ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(resume.file_url, '_blank', 'noopener,noreferrer')}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Xem
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownloadCreatedResumePdf(resume)}
+                      className="gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Tải PDF
+                    </Button>
+                  )}
 
                   <Link to={`/user/resumes/edit?id=${resume.id ?? (resume as { resumeId?: number }).resumeId}`} state={{ resumeName: resume.file_name ?? (resume as { resumeName?: string }).resumeName }}>
                     <Button variant="outline" size="sm" className="gap-2">
@@ -230,6 +329,30 @@ export function JobSeekerResumesPage() {
     );
   }
 
-  return <div className="p-6">{content}</div>;
+  return (
+    <div className="p-6">
+      {content}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-[95vw] p-4" onClose={() => setPreviewOpen(false)}>
+          {previewData ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-sm text-gray-600">Ngôn ngữ PDF</span>
+                <select
+                  value={previewLanguage}
+                  onChange={(e) => setPreviewLanguage(e.target.value as 'vi' | 'en')}
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                >
+                  <option value="vi">Tiếng Việt</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+              <CVPreview data={previewData} language={previewLanguage} onDataChange={() => {}} />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 

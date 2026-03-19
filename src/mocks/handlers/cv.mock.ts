@@ -1,7 +1,13 @@
 import type { ExtractedCVData, Resume } from '@/types';
 import { delay } from './auth.mock';
 import { getProfileByUserId, getSkillsByProfileId, mockResumes } from '../data/profiles.mock';
-import type { AIGenerateInput } from '@/services/cv.service';
+
+interface AIGenerateInput {
+  industry_id: string;
+  target_position: string;
+  years_experience: number;
+  additional_info?: string;
+}
 
 export async function mockGenerateCVWithAI(
   userId: string,

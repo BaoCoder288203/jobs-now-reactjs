@@ -1,43 +1,44 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ExtractedCVData } from '@/types';
-import type { AIGenerateInput } from '@/services/cv.service';
-import * as cvService from '@/services/cv.service';
-import { resumeKeys } from '@/modules/resumes/hooks';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import * as aiService from '@/services/ai.service';
+import type { GenerateCVRequest, ImproveCVRequest, JobMatchRequest } from '@/services/ai.service';
 
 export function useGenerateCVWithAI() {
   return useMutation({
-    mutationFn: ({ userId, input }: { userId: string; input: AIGenerateInput }) =>
-      cvService.generateCVWithAI(userId, input),
+    mutationFn: (request: GenerateCVRequest) => aiService.generateCV(request),
   });
 }
 
-export function useCreateCV() {
-  const queryClient = useQueryClient();
+export function useImproveCVFromText() {
   return useMutation({
-    mutationFn: ({
-      userId,
-      cvData,
-      resumeName,
-      isAiGenerated,
-    }: {
-      userId: string;
-      cvData: ExtractedCVData;
-      resumeName: string;
-      isAiGenerated: boolean;
-    }) => cvService.createCV(userId, cvData, resumeName, isAiGenerated),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
-    },
+    mutationFn: (request: ImproveCVRequest) => aiService.improveCVFromText(request),
   });
 }
 
-export function useUpdateCV() {
-  const queryClient = useQueryClient();
+export function useImproveCVFromFile() {
   return useMutation({
-    mutationFn: ({ resumeId, cvData }: { resumeId: string; cvData: ExtractedCVData }) =>
-      cvService.updateCV(resumeId, cvData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: resumeKeys.all });
-    },
+    mutationFn: ({ file, language }: { file: File; language?: 'auto' | 'vi' | 'en' }) =>
+      aiService.improveCVFromFile(file, language ?? 'auto'),
+  });
+}
+
+export function useCalculateJobMatch() {
+  return useMutation({
+    mutationFn: (request: JobMatchRequest) => aiService.calculateJobMatch(request),
+  });
+}
+
+export function useMyMatches(profileId: number | undefined) {
+  return useQuery({
+    queryKey: ['ai', 'my-matches', profileId],
+    queryFn: () => aiService.getMyMatches(profileId!),
+    enabled: !!profileId,
+  });
+}
+
+export function useMatchedCandidates(jobId: number | undefined) {
+  return useQuery({
+    queryKey: ['ai', 'candidates', jobId],
+    queryFn: () => aiService.getMatchedCandidates(jobId!),
+    enabled: !!jobId,
   });
 }

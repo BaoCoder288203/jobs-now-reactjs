@@ -43,11 +43,17 @@ export interface CertificateDTO {
 
 // Cấu trúc JSON lưu trong extracted_text
 export interface ExtractedCVData {
+  fullName?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
   headline?: string;
   summary?: string;
   work_experiences: {
     company: string;
     position: string;
+    duration?: string;
     start_date?: string;
     end_date?: string;
     is_current?: boolean;
@@ -57,11 +63,12 @@ export interface ExtractedCVData {
     school: string;
     major: string;
     degree: string;
+    duration?: string;
     start_date?: string;
     end_date?: string;
   }[];
   skills: { name: string; level?: string; topic?: string }[];
-  projects?: { name: string; description?: string; technologies?: string[] }[];
+  projects?: { name: string; description?: string; duration?: string; technologies?: string[] }[];
   languages?: { name: string; proficiency: string }[];
   certificates?: { name: string; issuer: string; issue_date?: string }[];
 }

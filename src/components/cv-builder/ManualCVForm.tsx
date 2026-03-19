@@ -42,6 +42,11 @@ export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFor
     if (profile && !initialData) {
       setCvData((prev) => ({
         ...prev,
+        fullName: user?.fullName ?? prev.fullName,
+        email: user?.email ?? prev.email,
+        phone: profile.phone ?? prev.phone,
+        address: profile.address ?? prev.address,
+        title: profile.title ?? prev.title,
         headline: profile.title ?? profile.headline ?? prev.headline,
         summary: profile.bio ?? profile.summary ?? prev.summary,
         skills:
@@ -51,7 +56,7 @@ export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFor
           })) ?? prev.skills,
       }));
     }
-  }, [profile, profileSkills, initialData]);
+  }, [profile, profileSkills, initialData, user]);
 
   const handleSave = async () => {
     if (isGuest) {

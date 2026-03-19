@@ -1,0 +1,133 @@
+import { apiClient } from './api';
+
+export interface ImproveCVRequest {
+  cvText?: string;
+  resumeId?: number;
+  language?: 'auto' | 'vi' | 'en';
+}
+
+export interface SectionFeedback {
+  section: string;
+  score: number;
+  issues: string[];
+  suggestions: string[];
+}
+
+export interface ImproveCVResponse {
+  overallScore: number;
+  overviewFeedback: string;
+  sections: SectionFeedback[];
+  missingKeywords: string[];
+  extractedSkills: string[];
+  improvedSummary: string;
+  actionItems: string[];
+}
+
+export interface JobMatchRequest {
+  jobId: number;
+  profileId?: number;
+  resumeId?: number;
+}
+
+export interface JobMatchResponse {
+  overallScore: number;
+  skillMatchScore: number;
+  experienceMatchScore: number;
+  educationMatchScore: number;
+  ruleBasedScore: number;
+  aiSemanticScore: number;
+  aiFeedback: string;
+  matchedSkills: string[];
+  missingSkills: string[];
+  recommendations: string[];
+  jobTitle: string;
+  companyName: string;
+}
+
+export interface GenerateCVRequest {
+  profileId?: number;
+  fullName?: string;
+  title?: string;
+  targetJob?: string;
+  industry?: string;
+  additionalInfo?: string;
+  skills?: string[];
+  experiences?: { company: string; title: string; duration: string; bullets: string[] }[];
+  educations?: { school: string; degree: string; major: string; duration: string }[];
+  certifications?: string[];
+  projects?: { name: string; description: string; duration: string }[];
+  language?: string;
+}
+
+export interface GenerateCVExperience {
+  company: string;
+  title: string;
+  duration: string;
+  bullets: string[];
+}
+
+export interface GenerateCVEducation {
+  school: string;
+  degree: string;
+  major: string;
+  duration: string;
+}
+
+export interface GenerateCVProject {
+  name: string;
+  description: string;
+  duration: string;
+}
+
+export interface GenerateCVResponse {
+  summary: string;
+  experiences: GenerateCVExperience[];
+  educations: GenerateCVEducation[];
+  skillsSection: string;
+  certifications: string[];
+  projects: GenerateCVProject[];
+}
+
+export interface JobMatchScoreDTO {
+  jobId: number;
+  jobTitle: string;
+  companyName: string;
+  overallScore: number;
+  skillMatchScore: number;
+  calculatedAt: string;
+}
+
+export async function improveCVFromText(request: ImproveCVRequest): Promise<ImproveCVResponse> {
+  const response = await apiClient.post('/api/ai/improve-cv', request);
+  return response.data;
+}
+
+export async function improveCVFromFile(file: File, language: 'auto' | 'vi' | 'en' = 'auto'): Promise<ImproveCVResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('language', language);
+  const response = await apiClient.post('/api/ai/improve-cv/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function generateCV(request: GenerateCVRequest): Promise<GenerateCVResponse> {
+  const response = await apiClient.post('/api/ai/generate-cv', request);
+  return response.data;
+}
+
+export async function calculateJobMatch(request: JobMatchRequest): Promise<JobMatchResponse> {
+  const response = await apiClient.post('/api/ai/job-match', request);
+  return response.data;
+}
+
+export async function getMyMatches(profileId: number): Promise<JobMatchScoreDTO[]> {
+  const response = await apiClient.get(`/api/ai/job-match/my-matches/${profileId}`);
+  return response.data;
+}
+
+export async function getMatchedCandidates(jobId: number): Promise<JobMatchScoreDTO[]> {
+  const response = await apiClient.get(`/api/ai/job-match/candidates/${jobId}`);
+  return response.data;
+}

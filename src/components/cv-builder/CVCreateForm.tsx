@@ -7,14 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useProfileWithCV } from '@/modules/profile/profile-cv.hooks';
 import { profileKeys } from '@/modules/profile/hooks';
 import * as profileCvService from '@/services/profile-cv.service';
 import { initResume } from '@/services/resume.service';
 import { apiClient } from '@/services/api';
+import { CVPreview } from './CVPreview';
 import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
+import type { ExtractedCVData } from '@/types';
 
 const WORK_LEVELS = ['INTERN', 'FRESHER', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'OTHER'] as const;
 const EDUCATION_LEVELS = ['HIGH_SCHOOL', 'VOCATIONAL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'OTHER'] as const;
@@ -89,6 +92,9 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
   const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
+  const [downloadFlowOpen, setDownloadFlowOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Skill search state
   const [skillSearch, setSkillSearch] = useState('');
@@ -155,14 +161,73 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
     setCertificates((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
   };
 
-  const handleSave = async () => {
+  const toDisplayDate = (dateValue: string) => {
+    if (!dateValue) return '';
+    const [year, month] = dateValue.split('-');
+    if (!year || !month) return dateValue;
+    return `${month}/${year}`;
+  };
+
+  const buildPreviewData = (): ExtractedCVData => {
+    const selectedSkills = selectedSkillIds
+      .map((id) => skillOptions.find((s) => s.skillId === id)?.skillName)
+      .filter((name): name is string => Boolean(name));
+
+    return {
+      fullName: profile?.fullName ?? '',
+      email: profile?.email ?? '',
+      phone: profile?.phone ?? '',
+      address: profile?.address ?? '',
+      title: profile?.title ?? '',
+      headline: profile?.title ?? 'Curriculum Vitae',
+      summary: summary.trim(),
+      work_experiences: workExps
+        .filter((we) => we.title.trim())
+        .map((we) => ({
+          company: '',
+          position: we.title.trim(),
+          start_date: toDisplayDate(we.startDate),
+          end_date: toDisplayDate(we.endDate),
+          description: we.description.trim(),
+        })),
+      educations: educations
+        .filter((edu) => edu.title.trim())
+        .map((edu) => ({
+          school: edu.title.trim(),
+          major: '',
+          degree: edu.educationLevel,
+          start_date: toDisplayDate(edu.startDate),
+          end_date: toDisplayDate(edu.endDate),
+        })),
+      skills: selectedSkills.map((name) => ({ name })),
+      projects: projects
+        .filter((proj) => proj.title.trim())
+        .map((proj) => ({
+          name: proj.title.trim(),
+          description: proj.description.trim(),
+          start_date: toDisplayDate(proj.startDate),
+          end_date: toDisplayDate(proj.endDate),
+          duration: [toDisplayDate(proj.startDate), toDisplayDate(proj.endDate)].filter(Boolean).join(' - '),
+        })),
+      languages: [],
+      certificates: certificates
+        .filter((cert) => cert.title.trim())
+        .map((cert) => ({
+          name: cert.title.trim(),
+          issuer: cert.description.trim(),
+          issue_date: toDisplayDate(cert.issueDate),
+        })),
+    };
+  };
+
+  const saveCV = async (navigateAfterSave: boolean) => {
     if (!profile?.profileId) {
       toast.error('Không tìm thấy profile. Vui lòng thử lại.');
-      return;
+      return false;
     }
     if (!resumeName.trim()) {
       toast.error('Vui lòng nhập tên CV');
-      return;
+      return false;
     }
     setIsSaving(true);
     try {
@@ -237,14 +302,38 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
 
       // 8. Invalidate cache + redirect
       await queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      setHasSaved(true);
       toast.success('Tạo CV thành công!');
-      navigate('/user/resumes');
+      if (navigateAfterSave) {
+        navigate('/user/resumes');
+      }
+      return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
       toast.error(message);
+      return false;
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    await saveCV(true);
+  };
+
+  const handleDownloadPdf = () => {
+    if (hasSaved) {
+      setPreviewOpen(true);
+      return;
+    }
+    setDownloadFlowOpen(true);
+  };
+
+  const handleSaveThenDownload = async () => {
+    const saved = await saveCV(false);
+    if (!saved) return;
+    setDownloadFlowOpen(false);
+    setPreviewOpen(true);
   };
 
   if (isLoading || !profile) {
@@ -261,6 +350,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
       <Card>
         <CardContent className="pt-6 space-y-1.5">
           <Label>Tên CV</Label>
+          <p className="text-sm text-gray-500">Đặt tên dễ nhận biết để quản lý nhiều phiên bản CV.</p>
           <Input
             value={resumeName}
             onChange={(e) => setResumeName(e.target.value)}
@@ -277,6 +367,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
         </CardHeader>
         <CardContent className="space-y-2">
           <Label>Tóm tắt CV</Label>
+          <p className="text-sm text-gray-500">Viết 3-5 câu về kinh nghiệm nổi bật, thế mạnh và mục tiêu ứng tuyển của CV này.</p>
           <Textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
@@ -292,6 +383,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           <CardTitle className="text-primary-dark uppercase text-sm font-bold">SKILLS</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-sm text-gray-500">Tìm theo tên kỹ năng rồi chọn để thêm vào CV.</p>
           <div className="relative max-w-md">
             <Input
               ref={skillInputRef}
@@ -351,6 +443,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">Ghi theo thứ tự mới nhất đến cũ hơn. Mỗi mục nên có vai trò và kết quả đạt được.</p>
           {workExps.length === 0 && <p className="text-sm text-gray-500">Chưa có kinh nghiệm. Bấm + để thêm.</p>}
           {workExps.map((we, idx) => (
             <div key={idx} className="rounded-lg border p-4 bg-gray-50/50 space-y-2">
@@ -383,6 +476,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">Thêm bậc học phù hợp với vị trí ứng tuyển, ưu tiên thông tin gần nhất.</p>
           {educations.length === 0 && <p className="text-sm text-gray-500">Chưa có học vấn. Bấm + để thêm.</p>}
           {educations.map((edu, idx) => (
             <div key={idx} className="rounded-lg border p-4 bg-gray-50/50 space-y-2">
@@ -415,6 +509,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">Chọn các dự án liên quan vị trí mục tiêu và mô tả ngắn vai trò của bạn.</p>
           {projects.length === 0 && <p className="text-sm text-gray-500">Chưa có dự án. Bấm + để thêm.</p>}
           {projects.map((proj, idx) => (
             <div key={idx} className="rounded-lg border p-4 bg-gray-50/50 space-y-2">
@@ -444,6 +539,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">Thêm chứng chỉ có giá trị cho vị trí ứng tuyển, kèm ngày cấp nếu có.</p>
           {certificates.length === 0 && <p className="text-sm text-gray-500">Chưa có chứng chỉ. Bấm + để thêm.</p>}
           {certificates.map((cert, idx) => (
             <div key={idx} className="rounded-lg border p-4 bg-gray-50/50 space-y-2">
@@ -461,9 +557,14 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
       </Card>
 
       {/* Submit */}
-      <div className="flex justify-end gap-3 pt-2 pb-8">
+      <div className="space-y-2 pt-2 pb-8">
+        <p className="text-sm text-gray-500">Lưu CV để cập nhật hồ sơ của bạn. Tải PDF để xuất bản CV hiện tại ra file.</p>
+        <div className="flex justify-end gap-3">
         <Button variant="outline" onClick={() => navigate('/user/resumes')} disabled={isSaving}>
           Hủy
+        </Button>
+        <Button variant="outline" onClick={handleDownloadPdf} disabled={isSaving}>
+          Tải PDF
         </Button>
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? (
@@ -473,7 +574,31 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
             </span>
           ) : 'Lưu CV'}
         </Button>
+        </div>
       </div>
+
+      <Dialog open={downloadFlowOpen} onOpenChange={setDownloadFlowOpen}>
+        <DialogContent className="max-w-md p-6" onClose={() => setDownloadFlowOpen(false)}>
+          <h3 className="text-lg font-semibold text-gray-900">Tải CV dưới dạng PDF</h3>
+          <p className="mt-2 text-sm text-gray-600">
+            CV này chưa được lưu vào hệ thống. Bạn muốn lưu trước khi tải hay tải ngay mà không lưu?
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => { setDownloadFlowOpen(false); setPreviewOpen(true); }} disabled={isSaving}>
+              Tải ngay không lưu
+            </Button>
+            <Button onClick={handleSaveThenDownload} disabled={isSaving}>
+              {isSaving ? 'Đang lưu...' : 'Lưu rồi tải'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-[95vw] p-4" onClose={() => setPreviewOpen(false)}>
+          <CVPreview data={buildPreviewData()} language="vi" onDataChange={() => {}} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

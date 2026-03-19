@@ -1,61 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useHotkey } from '@tanstack/react-hotkeys';
 import { useAppSelector } from '@/app/hooks';
-import { useGenerateCVWithAI, useCreateCV } from '@/modules/cv/hooks';
-import { mockIndustries } from '@/mocks/data/industries.mock';
+import { useGenerateCVWithAI } from '@/modules/cv/hooks';
+import { useProfile } from '@/modules/profile/hooks';
+import { getIndustriesList } from '@/services/industry.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CVPreview } from './CVPreview';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import type { ExtractedCVData } from '@/types';
+import type { GenerateCVResponse } from '@/services/ai.service';
+import { toast } from 'sonner';
+
+interface IndustryItem {
+  id: string;
+  name: string;
+}
 
 export function AIGeneratorForm() {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
+  const profileId = user?.profileId;
   const userId = user?.userId ? String(user.userId) : '';
+  const { data: profile } = useProfile(userId);
+
   const [step, setStep] = useState<'input' | 'loading' | 'preview'>('input');
+  const [industries, setIndustries] = useState<IndustryItem[]>([]);
   const [input, setInput] = useState({
-    industry_id: '',
-    target_position: '',
-    years_experience: 0,
-    additional_info: '',
+    industry: '',
+    targetJob: '',
+    language: 'vi',
+    additionalInfo: '',
   });
-  const [cvData, setCvData] = useState<ExtractedCVData | null>(null);
+  const [cvData, setCvData] = useState<GenerateCVResponse | null>(null);
 
   const generateMutation = useGenerateCVWithAI();
-  const createMutation = useCreateCV();
+
+  useEffect(() => {
+    getIndustriesList().then(setIndustries).catch(() => {});
+  }, []);
 
   const handleGenerate = async () => {
-    if (!input.industry_id || !input.target_position) return;
+    if (!input.targetJob) {
+      toast.error('Vui lòng nhập vị trí mong muốn');
+      return;
+    }
     setStep('loading');
     try {
-      const data = await generateMutation.mutateAsync({ userId, input });
+      const data = await generateMutation.mutateAsync({
+        profileId: profileId ?? undefined,
+        targetJob: input.targetJob,
+        industry: input.industry || undefined,
+        additionalInfo: input.additionalInfo.trim() || undefined,
+        language: input.language,
+      });
       setCvData(data);
       setStep('preview');
     } catch {
+      toast.error('Tạo CV thất bại. Vui lòng thử lại.');
       setStep('input');
     }
   };
-
-  const handleSave = async () => {
-    if (!cvData) return;
-    const resumeName = `CV_${input.target_position}_${Date.now()}.pdf`;
-    await createMutation.mutateAsync({
-      userId,
-      cvData,
-      resumeName,
-      isAiGenerated: true,
-    });
-    navigate('/user/resumes');
-  };
-
-  const canSavePreview = step === 'preview' && !!cvData && !createMutation.isPending;
-  useHotkey('Mod+S', (e) => {
-    e.preventDefault();
-    if (canSavePreview) handleSave();
-  }, { enabled: canSavePreview });
 
   if (step === 'loading') {
     return (
@@ -67,15 +72,57 @@ export function AIGeneratorForm() {
   }
 
   if (step === 'preview' && cvData) {
+    const previewData = {
+      fullName: user?.fullName ?? '',
+      email: user?.email ?? '',
+      phone: user?.phone ?? '',
+      address: profile?.address ?? '',
+      title: input.targetJob,
+      headline: input.targetJob,
+      summary: cvData.summary,
+      work_experiences: (cvData.experiences ?? []).map((e) => ({
+        company: e.company,
+        position: e.title,
+        duration: e.duration,
+        start_date: '',
+        end_date: '',
+        description: (e.bullets ?? []).join('\n'),
+      })),
+      educations: (cvData.educations ?? []).map((e) => ({
+        school: e.school,
+        major: e.major,
+        degree: e.degree,
+        duration: e.duration,
+        start_date: '',
+        end_date: '',
+      })),
+      skills: cvData.skillsSection
+        ? cvData.skillsSection
+            .split(/[;]/)
+            .flatMap((group) => {
+              const cleaned = group.replace(/^[^:]+:\s*/, '');
+              return cleaned.split(',').map((s) => s.trim()).filter(Boolean);
+            })
+            .map((s) => ({ name: s, level: '' }))
+        : [],
+      projects: (cvData.projects ?? []).map((p) => ({
+        name: p.name,
+        description: p.description,
+        duration: p.duration,
+      })),
+      languages: [],
+      certificates: (cvData.certifications ?? []).map((c) => ({ name: c, issuer: '' })),
+    };
+
     return (
       <div className="space-y-6">
-        <CVPreview data={cvData} onDataChange={setCvData} />
+        <CVPreview data={previewData} language={input.language as 'vi' | 'en'} onDataChange={() => {}} />
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={() => setStep('input')}>
             Tạo lại
           </Button>
-          <Button onClick={handleSave} disabled={createMutation.isPending}>
-            Lưu CV
+          <Button onClick={() => navigate('/user/resumes')}>
+            Quay về danh sách CV
           </Button>
         </div>
       </div>
@@ -86,42 +133,43 @@ export function AIGeneratorForm() {
     <div className="max-w-xl mx-auto space-y-4">
       <div>
         <Label>Ngành nghề</Label>
-        <select
-          value={input.industry_id}
-          onChange={(e) => setInput((p) => ({ ...p, industry_id: e.target.value }))}
-          className="w-full mt-1 px-3 py-2 border rounded-lg"
-        >
-          <option value="">Chọn ngành nghề</option>
-          {mockIndustries.map((i) => (
-            <option key={i.id} value={i.id}>{i.name}</option>
+        <Input
+          value={input.industry}
+          onChange={(e) => setInput((p) => ({ ...p, industry: e.target.value }))}
+          className="w-full mt-1"
+          placeholder="Gõ để tìm nhanh ngành nghề"
+          list="industry-options"
+        />
+        <datalist id="industry-options">
+          {industries.map((i) => (
+            <option key={i.id} value={i.name}>{i.name}</option>
           ))}
-        </select>
+        </datalist>
       </div>
       <div>
         <Label>Vị trí mong muốn</Label>
         <Input
-          value={input.target_position}
-          onChange={(e) => setInput((p) => ({ ...p, target_position: e.target.value }))}
+          value={input.targetJob}
+          onChange={(e) => setInput((p) => ({ ...p, targetJob: e.target.value }))}
           placeholder="VD: Software Engineer"
         />
       </div>
       <div>
-        <Label>Số năm kinh nghiệm</Label>
+        <Label>Ngôn ngữ CV</Label>
         <select
-          value={input.years_experience}
-          onChange={(e) => setInput((p) => ({ ...p, years_experience: +e.target.value }))}
+          value={input.language}
+          onChange={(e) => setInput((p) => ({ ...p, language: e.target.value }))}
           className="w-full mt-1 px-3 py-2 border rounded-lg"
         >
-          {[0, 1, 2, 3, 5, 7, 10].map((n) => (
-            <option key={n} value={n}>{n} năm</option>
-          ))}
+          <option value="vi">Tiếng Việt</option>
+          <option value="en">English</option>
         </select>
       </div>
       <div>
         <Label>Thông tin bổ sung (tùy chọn)</Label>
         <textarea
-          value={input.additional_info}
-          onChange={(e) => setInput((p) => ({ ...p, additional_info: e.target.value }))}
+          value={input.additionalInfo}
+          onChange={(e) => setInput((p) => ({ ...p, additionalInfo: e.target.value }))}
           className="w-full mt-1 px-3 py-2 border rounded-lg min-h-[80px]"
           placeholder="Mô tả ngắn về bản thân, mục tiêu nghề nghiệp..."
         />

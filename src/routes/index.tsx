@@ -10,6 +10,7 @@ import { CompanyDetailPage } from '@/pages/public/CompanyDetailPage';
 import { ToolsPlaceholderPage } from '@/pages/public/ToolsPlaceholderPage';
 import { CVToolsLandingPage } from '@/pages/public/CVToolsLandingPage';
 import { CVBuilderPage } from '@/pages/public/CVBuilderPage';
+import { CVImprovePage } from '@/pages/public/CVImprovePage';
 
 // Job Seeker Pages
 import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
@@ -57,6 +58,7 @@ export function AppRoutes() {
       <Route path="/tools/tao-cv/builder" element={<CVBuilderPage />} />
       <Route path="/tools/tao-cv" element={<CVToolsLandingPage />} />
       <Route path="/tools/chuan-hoa-cv" element={<CVToolsLandingPage />} />
+      <Route path="/tools/chuan-hoa-cv/analyze" element={<CVImprovePage />} />
       {/* Tools (placeholder) */}
       <Route path="/tools/tinh-luong-gross-net" element={<ToolsPlaceholderPage />} />
       <Route path="/tools/phong-van" element={<ToolsPlaceholderPage />} />
