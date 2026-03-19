@@ -27,7 +27,7 @@ export function JobDetailPage() {
 
   const { data: job, isLoading: jobLoading } = useJobDetail(id!);
   const { data: myApplications = [] } = useMyApplications(profileId, userId);
-  const { data: savedJobs = [] } = useSavedJobs(userId);
+  const { data: savedJobs = [] } = useSavedJobs(profileId ? String(profileId) : '');
   const { data: resumes = [] } = useResumes(userId);
 
   const applyJob = useApplyJob();
@@ -39,10 +39,9 @@ export function JobDetailPage() {
   const [coverLetter, setCoverLetter] = useState('');
 
   const hasApplied = myApplications.some(app => app.job_id === id);
-  const isSaved = savedJobs.some(sj => sj.job_id === id);
+  const isSaved = savedJobs.some(sj => String(sj.jobId) === id);
   const defaultResume = resumes.find(r => r.is_default);
 
-  /** Job còn khả dụng để ứng tuyển (active, approved, chưa xóa, chưa hết hạn) */
   const isAvailable =
     job != null &&
     job.isActive === true &&
@@ -85,12 +84,21 @@ export function JobDetailPage() {
   };
 
   const handleSaveJob = async () => {
-    if (!id || !userId) return;
+    if (!id || !profileId) {
+      if (!isAuthenticated) {
+        toast.warning('Vui lòng đăng nhập để lưu việc làm');
+        openLoginModal('job_seeker');
+      } else {
+        toast.warning('Vui lòng hoàn thiện hồ sơ trước khi lưu việc làm');
+      }
+      return;
+    }
+    
     try {
       if (isSaved) {
-        await unsaveJob.mutateAsync({ userId, jobId: id });
+        await unsaveJob.mutateAsync({ profileId: String(profileId), jobId: id });
       } else {
-        await saveJob.mutateAsync({ userId, jobId: id });
+        await saveJob.mutateAsync({ profileId: String(profileId), jobId: id });
       }
     } catch (error: any) {
       toast.error(error.message || 'Lưu việc làm thất bại');

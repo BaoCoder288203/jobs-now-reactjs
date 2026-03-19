@@ -9,6 +9,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  unreadMessageCount: number;
 }
 
 const initialState: AuthState = {
@@ -17,6 +18,7 @@ const initialState: AuthState = {
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: false,
   error: null,
+  unreadMessageCount: 0,
 };
 
 function toUser(res: AuthResponse): User {
@@ -141,11 +143,15 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
     },
+    setUnreadMessageCount: (state, action: PayloadAction<number>) => {
+      state.unreadMessageCount = action.payload;
+    },
     clearAuth: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
+      state.unreadMessageCount = 0;
     },
   },
   extraReducers: (builder) => {
@@ -252,5 +258,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setToken, setUser, clearAuth } = authSlice.actions;
+export const { clearError, setToken, setUser, clearAuth, setUnreadMessageCount } = authSlice.actions;
 export default authSlice.reducer;
