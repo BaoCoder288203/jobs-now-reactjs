@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useCompanyDetail } from '@/modules/companies/hooks';
 import { useJobs } from '@/modules/jobs/hooks';
@@ -6,12 +6,16 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { JobCard } from '@/components/common/JobCard';
-import { ArrowLeft, Globe, Briefcase, MapPin, Building2 } from 'lucide-react';
+import { ArrowLeft, Globe, Briefcase, MapPin, Building2, MessageCircle } from 'lucide-react';
+import { useAppSelector } from '@/app/hooks';
+import * as chatService from '@/services/chat.service';
 
 export function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: company, isLoading } = useCompanyDetail(id!);
   const { data: jobsData, isLoading: jobsLoading } = useJobs({ company_id: id, limit: 100 });
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -22,6 +26,31 @@ export function CompanyDetailPage() {
       </AppLayout>
     );
   }
+
+  const handleSendMessage = async () => {
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user.role !== 'ROLE_JOBSEEKER') {
+      alert('Chỉ người tìm việc mới có thể nhắn tin cho công ty.');
+      return;
+    }
+
+    try {
+      if (!company?.owner_user_id) {
+        alert('Tài khoản công ty này không khả dụng để nhắn tin.');
+        return;
+      }
+      
+      await chatService.createConversation(user.userId, Number(company.owner_user_id));
+      navigate('/chat');
+    } catch (error) {
+      console.error('Failed to start conversation', error);
+      alert('Không thể tạo cuộc trò chuyện lúc này.');
+    }
+  };
 
   if (!company) {
     return (
@@ -102,6 +131,13 @@ export function CompanyDetailPage() {
                       Trang web
                     </a>
                   )}
+                </div>
+                {/* Chat Button */}
+                <div className="mt-4">
+                  <Button onClick={handleSendMessage} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                    <MessageCircle className="w-4 h-4" />
+                    Nhắn tin cho công ty
+                  </Button>
                 </div>
               </div>
             </div>

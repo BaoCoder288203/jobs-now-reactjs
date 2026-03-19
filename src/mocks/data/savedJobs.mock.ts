@@ -1,38 +1,58 @@
 import type { SavedJob } from '@/types';
-import { mockJobs } from './jobs.mock';
-import { mockUsers } from './users.mock';
 
-export const mockSavedJobs: SavedJob[] = [
+export interface SavedJobMock extends SavedJob {
+  profileId: string;
+}
+
+export const mockSavedJobs: SavedJobMock[] = [
   {
-    id: 'saved-1',
-    user_id: 'user-2',
-    job_id: 'job-3',
-    created_at: '2024-02-01T10:00:00Z',
-    user: mockUsers[1],
-    job: mockJobs[2]
+    profileId: '2',
+    savedJobId: 1,
+    jobId: 3,
+    jobTitle: 'Senior Frontend Developer',
+    companyName: 'Tech Corp',
+    companyLogo: '',
+    location: 'Ho Chi Minh City',
+    salaryMin: 1500,
+    salaryMax: 2500,
+    jobType: 'full_time',
+    savedAt: '2024-02-01T10:00:00Z',
   },
   {
-    id: 'saved-2',
-    user_id: 'user-2',
-    job_id: 'job-4',
-    created_at: '2024-02-05T14:00:00Z',
-    user: mockUsers[1],
-    job: mockJobs[3]
+    profileId: '2',
+    savedJobId: 2,
+    jobId: 4,
+    jobTitle: 'Backend Engineer',
+    companyName: 'FinTech Labs',
+    companyLogo: '',
+    location: 'Ha Noi',
+    salaryMin: 1200,
+    salaryMax: 2200,
+    jobType: 'full_time',
+    savedAt: '2024-02-05T14:00:00Z',
   },
   {
-    id: 'saved-3',
-    user_id: 'user-3',
-    job_id: 'job-1',
-    created_at: '2024-02-10T09:00:00Z',
-    user: mockUsers[2],
-    job: mockJobs[0]
+    profileId: '3',
+    savedJobId: 3,
+    jobId: 1,
+    jobTitle: 'UI/UX Designer',
+    companyName: 'Creative Studio',
+    companyLogo: '',
+    location: 'Da Nang',
+    salaryMin: 900,
+    salaryMax: 1600,
+    jobType: 'part_time',
+    savedAt: '2024-02-10T09:00:00Z',
   }
 ];
 
-export function getSavedJobsByProfileId(userId: string): SavedJob[] {
-  return mockSavedJobs.filter(s => s.user_id === userId);
+export function getSavedJobsByProfileId(profileId: string): SavedJob[] {
+  return mockSavedJobs
+    .filter((s) => s.profileId === profileId)
+    .map(({ profileId: _profileId, ...saved }) => saved);
 }
 
-export function isJobSaved(userId: string, jobId: string): boolean {
-  return mockSavedJobs.some(s => s.user_id === userId && s.job_id === jobId);
+export function isJobSaved(profileId: string, jobId: string): boolean {
+  const id = Number(jobId);
+  return mockSavedJobs.some((s) => s.profileId === profileId && s.jobId === id);
 }

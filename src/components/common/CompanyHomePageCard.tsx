@@ -60,7 +60,7 @@ export function CompanyTopCard({ company, className }: CompanyTopCardProps) {
         <div className="flex-1 flex flex-col justify-between min-w-0">
           {/* Top: Category tag - góc trên phải */}
           <div className="flex justify-end mb-2 shrink-0">
-            <span className="px-3 py-1 rounded-full border border-gray-300 text-sm text-gray-700 whitespace-nowrap">
+            <span className="px-3 py-1 rounded-full border border-gray-300 text-sm text-gray-700 max-w-[240px] truncate">
               {category}
             </span>
           </div>

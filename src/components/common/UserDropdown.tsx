@@ -41,6 +41,9 @@ export function UserDropdown() {
   }, [isOpen]);
 
   const handleLogout = async () => {
+    import('@/services/websocket').then(({ disconnectWebSocket }) => {
+      disconnectWebSocket();
+    });
     await dispatch(logoutAsync());
     navigate('/');
     setIsOpen(false);
