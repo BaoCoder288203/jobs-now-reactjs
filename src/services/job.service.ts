@@ -126,11 +126,12 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   const categoryIds =
     params?.category_ids?.map((v) => parseInt(String(v), 10)).filter((n) => !Number.isNaN(n)) ??
     (params?.category_id ? [parseInt(params.category_id, 10)].filter((n) => !Number.isNaN(n)) : undefined);
-  const location = params?.location ? [params.location] : undefined;
+  const location = params?.location?.trim() || undefined;
+  const jobType = params?.job_type?.trim() ? params.job_type.trim().toUpperCase().replace('-', '_') : undefined;
 
-  if (keyword || (location && location.length > 0) || (categoryIds && categoryIds.length > 0)) {
+  if (keyword || location || (categoryIds && categoryIds.length > 0) || jobType) {
     const res = (await apiClient.get('/job/searchJobs', {
-      params: { keyword, location, categoryIds },
+      params: { keyword, location, categoryIds, jobType },
     })) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
@@ -254,7 +255,7 @@ export async function deleteJob(jobId: string): Promise<void> {
   if (USE_MOCK) {
     return mockJobs.mockDeleteJob(jobId);
   }
-  await apiClient.delete(`/job/${jobId}`);
+  await apiClient.delete(`/admin/jobs/${jobId}`);
 }
 
 /** Admin: get all jobs (optional filter: pending | approved | rejected | all) */
@@ -273,7 +274,7 @@ export async function getAdminJobs(status?: string): Promise<Job[]> {
 
 export async function unpublishJob(jobId: string): Promise<void> {
   if (USE_MOCK) return;
-  await apiClient.put(`/job/${jobId}`, { isActive: false });
+  await apiClient.put(`/admin/jobs/${jobId}/unpublish`);
 }
 
 export async function approveJob(jobId: string): Promise<void> {

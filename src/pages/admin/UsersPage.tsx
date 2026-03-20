@@ -6,19 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Users, Search, Edit2, Mail } from 'lucide-react';
-import { mockUsers } from '@/mocks/data/users.mock';
+import { useQuery } from '@tanstack/react-query';
+import { getAdminUsers, type AdminUserItem } from '@/services/admin.service';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: getAdminUsers,
+  });
+
   // Filter users
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = users.filter((user: AdminUserItem) => {
     const matchesSearch = 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.email ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.fullName ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const status = user.isVerified ? 'active' : 'inactive';
+    const matchesStatus = statusFilter === 'all' || status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -35,8 +43,11 @@ export function AdminUsersPage() {
     if (!roleName) return null;
     
     const colors: Record<string, string> = {
+      'role_jobseeker': 'bg-primary-light text-gray-900',
       'job_seeker': 'bg-primary-light text-gray-900',
+      'role_company': 'bg-accent-light text-gray-900',
       'recruiter': 'bg-accent-light text-gray-900',
+      'role_admin': 'bg-gray-100 text-gray-700',
       'admin': 'bg-gray-100 text-gray-700'
     };
     
@@ -91,7 +102,11 @@ export function AdminUsersPage() {
             <CardTitle>Users ({filteredUsers.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredUsers.length > 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : filteredUsers.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -105,39 +120,31 @@ export function AdminUsersPage() {
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={user.userId} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            {user.avatar ? (
-                              <img
-                                src={user.avatar}
-                                alt={user.fullName}
-                                className="h-10 w-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {user.fullName.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )}
+                            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                              <span className="text-sm font-medium text-gray-900">
+                                {(user.fullName ?? '?').charAt(0).toUpperCase()}
+                              </span>
+                            </div>
                             <div>
-                              <p className="font-medium text-gray-900">{user.fullName}</p>
+                              <p className="font-medium text-gray-900">{user.fullName ?? 'N/A'}</p>
                               <div className="flex items-center gap-1 text-sm text-gray-600">
                                 <Mail className="h-3 w-3" />
-                                {user.email}
+                                {user.email ?? 'N/A'}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          {getRoleBadge(user.roleDetail?.name ?? (user.role === 'ROLE_JOBSEEKER' ? 'job_seeker' : user.role === 'ROLE_COMPANY' ? 'recruiter' : 'admin'))}
+                          {getRoleBadge(user.role ?? '')}
                         </td>
                         <td className="py-4 px-4">
-                          {getStatusBadge(user.status)}
+                          {getStatusBadge(user.isVerified ? 'active' : 'inactive')}
                         </td>
                         <td className="py-4 px-4 text-sm text-gray-600">
-                          {new Date(user.created_at).toLocaleDateString()}
+                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex justify-end gap-2">

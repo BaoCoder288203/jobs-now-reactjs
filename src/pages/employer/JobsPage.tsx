@@ -1,25 +1,93 @@
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
+import { useMatchedCandidates, useRecalculateForJob } from '@/modules/cv/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle } from 'lucide-react';
+import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle, Target, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { getJobStatusBadge } from '@/utils/jobStatus';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+function MatchedCandidatesSection({ jobId }: { jobId: number }) {
+  const { data: candidates, isLoading } = useMatchedCandidates(jobId);
+  const recalculate = useRecalculateForJob();
+  const queryClient = useQueryClient();
+
+  const handleRecalculate = async () => {
+    try {
+      await recalculate.mutateAsync(jobId);
+      queryClient.invalidateQueries({ queryKey: ['ai', 'candidates', jobId] });
+      toast.success('Đã cập nhật');
+    } catch {
+      toast.error('Cập nhật thất bại');
+    }
+  };
+
+  if (isLoading) return <p className="text-sm text-gray-500 py-2">Đang tải...</p>;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+          <Target className="h-4 w-4 text-primary" />
+          Top ứng viên phù hợp
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRecalculate}
+          disabled={recalculate.isPending}
+          className="gap-1 text-xs h-7 px-2"
+        >
+          <RefreshCw className={`h-3 w-3 ${recalculate.isPending ? 'animate-spin' : ''}`} />
+          Tính lại
+        </Button>
+      </div>
+      {candidates && candidates.length > 0 ? (
+        <div className="space-y-2">
+          {candidates.slice(0, 5).map((c) => {
+            let scoreColor = 'text-red-600 bg-red-50';
+            if (c.overallScore >= 80) scoreColor = 'text-green-700 bg-green-50';
+            else if (c.overallScore >= 60) scoreColor = 'text-blue-700 bg-blue-50';
+            else if (c.overallScore >= 40) scoreColor = 'text-yellow-700 bg-yellow-50';
+            return (
+              <div key={c.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{c.profileName}</p>
+                  {c.profileTitle && (
+                    <p className="text-xs text-gray-500 truncate">{c.profileTitle}</p>
+                  )}
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ml-3 ${scoreColor}`}>
+                  {c.overallScore}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500 text-center py-3">Chưa có dữ liệu. Nhấn "Tính lại" để bắt đầu.</p>
+      )}
+    </div>
+  );
+}
 
 export function EmployerJobsPage() {
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const companyId = company?.id;
-  
-  const { data: jobsData, isLoading: jobsLoading } = useJobs({ 
-    company_id: companyId, 
-    limit: 100 
+
+  const { data: jobsData, isLoading: jobsLoading } = useJobs({
+    company_id: companyId,
+    limit: 100
   });
   const deleteJob = useDeleteJob();
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const companyJobs = jobsData?.items?.filter(job => job.company_id === companyId) || [];
 
@@ -30,7 +98,7 @@ export function EmployerJobsPage() {
     try {
       await deleteJob.mutateAsync(jobId);
       toast.success('Đã xóa việc làm');
-    } catch (error) {
+    } catch {
       toast.error('Xóa việc làm thất bại');
     }
   };
@@ -44,8 +112,7 @@ export function EmployerJobsPage() {
       </DashboardLayout>
     );
   }
-  
-  // Nếu recruiter chưa có company, hiển thị thông báo
+
   if (!company) {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
@@ -137,6 +204,16 @@ export function EmployerJobsPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                        className="gap-2 w-full"
+                      >
+                        <Target className="h-4 w-4" />
+                        Ứng viên
+                        {expandedJobId === job.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleDelete(job.id)}
                         disabled={deleteJob.isPending}
                         className="gap-2 w-full text-red-600 hover:text-red-700"
@@ -146,6 +223,10 @@ export function EmployerJobsPage() {
                       </Button>
                     </div>
                   </div>
+
+                  {expandedJobId === job.id && (
+                    <MatchedCandidatesSection jobId={Number(job.id)} />
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -168,4 +249,3 @@ export function EmployerJobsPage() {
     </DashboardLayout>
   );
 }
-

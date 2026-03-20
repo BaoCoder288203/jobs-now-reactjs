@@ -16,6 +16,7 @@ export function JobListingPage() {
     page: 1,
     limit: 12
   });
+  const [locationInput, setLocationInput] = useState('');
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -47,6 +48,18 @@ export function JobListingPage() {
       page: 1
     }));
   };
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setFilters((prev) => ({
+        ...prev,
+        location: locationInput.trim() || undefined,
+        page: 1,
+      }));
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [locationInput]);
 
   return (
     <AppLayout>
@@ -92,8 +105,8 @@ export function JobListingPage() {
                 </label>
                 <Input
                   placeholder="Thành phố hoặc Quốc gia"
-                  value={filters.location || ''}
-                  onChange={(e) => handleFilterChange('location', e.target.value || undefined)}
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
                 />
               </div>
             </div>

@@ -5,9 +5,12 @@ import { useJobs } from '@/modules/jobs/hooks';
 import { useMyApplications } from '@/modules/applications/hooks';
 import { useSavedJobs } from '@/modules/savedJobs/hooks';
 import { useProfile } from '@/modules/profile/hooks';
+import { useMyMatches, useRecalculateForProfile } from '@/modules/cv/hooks';
 import { JobCard } from '@/components/common/JobCard';
 import { Link } from 'react-router-dom';
-import { Briefcase, FileText, Bookmark, TrendingUp, ArrowRight } from 'lucide-react';
+import { Briefcase, FileText, Bookmark, TrendingUp, ArrowRight, Sparkles, RefreshCw, Target } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { Application } from '@/types';
 
 export function JobSeekerDashboardPage() {
@@ -19,6 +22,20 @@ export function JobSeekerDashboardPage() {
   const { data: applicationsData } = useMyApplications(profileId, userId);
   const { data: savedJobs } = useSavedJobs(userId);
   const { data: profile } = useProfile(userId);
+  const { data: myMatches, isLoading: matchesLoading } = useMyMatches(profileId);
+  const recalculate = useRecalculateForProfile();
+  const queryClient = useQueryClient();
+
+  const handleRecalculate = async () => {
+    if (!profileId) return;
+    try {
+      await recalculate.mutateAsync(profileId);
+      queryClient.invalidateQueries({ queryKey: ['ai', 'my-matches', profileId] });
+      toast.success('Đã cập nhật độ phù hợp');
+    } catch {
+      toast.error('Cập nhật thất bại');
+    }
+  };
 
   const stats = [
     {
@@ -131,6 +148,68 @@ export function JobSeekerDashboardPage() {
               <Link to="/jobs">
                 <Button>Duyệt việc làm</Button>
               </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Việc làm phù hợp AI
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={handleRecalculate}
+            disabled={recalculate.isPending || !profileId}
+          >
+            <RefreshCw className={`h-4 w-4 ${recalculate.isPending ? 'animate-spin' : ''}`} />
+            Cập nhật
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {matchesLoading ? (
+            <div className="text-center py-6 text-gray-500 text-sm">Đang tải...</div>
+          ) : myMatches && myMatches.length > 0 ? (
+            <div className="space-y-3">
+              {myMatches.map((match) => {
+                let scoreColor = 'text-red-600 bg-red-50';
+                if (match.overallScore >= 80) scoreColor = 'text-green-700 bg-green-50';
+                else if (match.overallScore >= 60) scoreColor = 'text-blue-700 bg-blue-50';
+                else if (match.overallScore >= 40) scoreColor = 'text-yellow-700 bg-yellow-50';
+                return (
+                  <Link key={match.id} to={`/jobs/${match.jobId}`}>
+                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Target className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate">{match.jobTitle}</h3>
+                          <p className="text-sm text-gray-500 truncate">{match.companyName}</p>
+                        </div>
+                      </div>
+                      <div className="ml-4 flex items-center gap-2 flex-shrink-0">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${scoreColor}`}>
+                          {match.overallScore}%
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2">Chưa có dữ liệu phù hợp</p>
+              <p className="text-sm text-gray-500 mb-4">Nhấn "Cập nhật" để AI tính điểm phù hợp với các việc làm</p>
+              <Button size="sm" onClick={handleRecalculate} disabled={recalculate.isPending || !profileId}>
+                {recalculate.isPending ? 'Đang tính...' : 'Tính ngay'}
+              </Button>
             </div>
           )}
         </CardContent>

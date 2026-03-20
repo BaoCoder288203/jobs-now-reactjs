@@ -6,6 +6,8 @@ import { useJobDetail } from '@/modules/jobs/hooks';
 import { useApplyJob, useMyApplications } from '@/modules/applications/hooks';
 import { useSaveJob, useUnsaveJob, useSavedJobs } from '@/modules/savedJobs/hooks';
 import { useResumes } from '@/modules/resumes/hooks';
+import { useCalculateJobMatch } from '@/modules/cv/hooks';
+import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +15,11 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send, Briefcase } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Building2, ArrowLeft, Bookmark, BookmarkCheck, Send, Briefcase, Target } from 'lucide-react';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { toast } from 'sonner';
+import type { JobMatchResponse } from '@/services/ai.service';
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +40,8 @@ export function JobDetailPage() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   const [coverLetter, setCoverLetter] = useState('');
+  const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
+  const calculateMatch = useCalculateJobMatch();
 
   const hasApplied = myApplications.some(app => app.job_id === id);
   const isSaved = savedJobs.some(sj => String(sj.jobId) === id);
@@ -408,6 +413,28 @@ export function JobDetailPage() {
                                 </>
                               )}
                             </Button>
+
+                            {profileId && (
+                              <Button
+                                variant="outline"
+                                className="w-full gap-2"
+                                onClick={async () => {
+                                  try {
+                                    const data = await calculateMatch.mutateAsync({
+                                      jobId: Number(id),
+                                      profileId: profileId,
+                                    });
+                                    setMatchResult(data);
+                                  } catch {
+                                    toast.error('Kiểm tra độ phù hợp thất bại');
+                                  }
+                                }}
+                                disabled={calculateMatch.isPending}
+                              >
+                                <Target className="h-4 w-4" />
+                                {calculateMatch.isPending ? 'Đang phân tích...' : 'Kiểm tra độ phù hợp'}
+                              </Button>
+                            )}
                           </>
                         ) : (
                           <div className="text-center">
@@ -433,6 +460,14 @@ export function JobDetailPage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {matchResult && (
+                  <Card className="border-blue-200 bg-blue-50/30">
+                    <CardContent className="p-6">
+                      <JobMatchResultCard result={matchResult} compact />
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Apply Modal */}
                 {showApplyModal && (

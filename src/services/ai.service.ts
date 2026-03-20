@@ -89,11 +89,16 @@ export interface GenerateCVResponse {
 }
 
 export interface JobMatchScoreDTO {
+  id: number;
+  profileId: number;
+  profileName: string;
+  profileTitle: string;
   jobId: number;
   jobTitle: string;
   companyName: string;
   overallScore: number;
   skillMatchScore: number;
+  aiSemanticScore: number;
   calculatedAt: string;
 }
 
@@ -130,4 +135,12 @@ export async function getMyMatches(profileId: number): Promise<JobMatchScoreDTO[
 export async function getMatchedCandidates(jobId: number): Promise<JobMatchScoreDTO[]> {
   const response = await apiClient.get(`/api/ai/job-match/candidates/${jobId}`);
   return response.data;
+}
+
+export async function recalculateForProfile(profileId: number): Promise<void> {
+  await apiClient.post(`/api/ai/job-match/recalculate/profile/${profileId}`);
+}
+
+export async function recalculateForJob(jobId: number): Promise<void> {
+  await apiClient.post(`/api/ai/job-match/recalculate/job/${jobId}`);
 }

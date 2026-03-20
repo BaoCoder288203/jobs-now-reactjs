@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { CVPreview } from '@/components/cv-builder/CVPreview';
+import { improveCVFromText, type ImproveCVResponse } from '@/services/ai.service';
 import { useResumes, useUploadResume, useSetDefaultResume, useDeleteResume } from '@/modules/resumes/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import * as profileCvService from '@/services/profile-cv.service';
-import { FileText, Upload, Star, Trash2, Download, Edit, FileEdit } from 'lucide-react';
+import { FileText, Upload, Star, Trash2, Download, Edit, FileEdit, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ExtractedCVData } from '@/types';
+
+type ImproveLanguage = 'auto' | 'vi' | 'en';
 
 export function JobSeekerResumesPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -20,6 +23,12 @@ export function JobSeekerResumesPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<ExtractedCVData | null>(null);
   const [previewLanguage, setPreviewLanguage] = useState<'vi' | 'en'>('en');
+  const [improveOpen, setImproveOpen] = useState(false);
+  const [improveResult, setImproveResult] = useState<ImproveCVResponse | null>(null);
+  const [improvingResumeId, setImprovingResumeId] = useState<number | null>(null);
+  const [improveTargetResumeId, setImproveTargetResumeId] = useState<number | null>(null);
+  const [improvingResumeName, setImprovingResumeName] = useState('');
+  const [improveLanguage, setImproveLanguage] = useState<ImproveLanguage>('auto');
 
   const { data: resumes = [], isLoading } = useResumes(userId);
   const uploadResume = useUploadResume();
@@ -149,6 +158,42 @@ export function JobSeekerResumesPage() {
     }
   };
 
+  const runImproveByResumeId = async (resumeId: number, resumeName: string, language: ImproveLanguage) => {
+    try {
+      setImprovingResumeId(resumeId);
+      setImproveTargetResumeId(resumeId);
+      setImprovingResumeName(resumeName);
+      setImproveLanguage(language);
+      const result = await improveCVFromText({ resumeId, language });
+      setImproveResult(result);
+      setImproveOpen(true);
+    } catch (error: any) {
+      toast.error(error?.message || 'Không thể cải thiện CV. Vui lòng thử lại.');
+    } finally {
+      setImprovingResumeId(null);
+    }
+  };
+
+  const handleImproveResume = async (resume: {
+    id?: string;
+    resumeId?: number;
+    file_name?: string;
+    resumeName?: string;
+  }) => {
+    const { resumeId, resumeName } = getResumeIdentity(resume);
+    if (!resumeId || Number.isNaN(resumeId)) {
+      toast.error('Không tìm thấy resumeId để cải thiện CV');
+      return;
+    }
+
+    await runImproveByResumeId(resumeId, resumeName, improveLanguage);
+  };
+
+  const handleChangeImproveLanguage = async (language: ImproveLanguage) => {
+    if (!improveTargetResumeId) return;
+    await runImproveByResumeId(improveTargetResumeId, improvingResumeName || 'CV', language);
+  };
+
   const content = (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -243,6 +288,17 @@ export function JobSeekerResumesPage() {
                       Chỉnh sửa nội dung
                     </Button>
                   </Link>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleImproveResume(resume)}
+                    disabled={improvingResumeId === Number(resume.id ?? resume.resumeId)}
+                    className="gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {improvingResumeId === Number(resume.id ?? resume.resumeId) ? 'Đang cải thiện...' : 'Improve CV'}
+                  </Button>
 
                   {resume.extracted_text && (
                     <Link to={`/tools/tao-cv/builder?edit=${resume.id}`}>
@@ -348,6 +404,136 @@ export function JobSeekerResumesPage() {
                 </select>
               </div>
               <CVPreview data={previewData} language={previewLanguage} onDataChange={() => {}} />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={improveOpen} onOpenChange={setImproveOpen}>
+        <DialogContent className="max-w-3xl p-6" onClose={() => setImproveOpen(false)}>
+          {improveResult ? (
+            <div className="space-y-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Kết quả Improve CV</h2>
+                  <p className="text-sm text-gray-600 mt-1">{improvingResumeName}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Ngôn ngữ</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={improveLanguage === 'vi' ? 'default' : 'outline'}
+                      onClick={() => handleChangeImproveLanguage('vi')}
+                      disabled={improvingResumeId !== null}
+                    >
+                      Tiếng Việt
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={improveLanguage === 'en' ? 'default' : 'outline'}
+                      onClick={() => handleChangeImproveLanguage('en')}
+                      disabled={improvingResumeId !== null}
+                    >
+                      English
+                    </Button>
+                  </div>
+                  <select
+                    value={improveLanguage}
+                    onChange={(e) => handleChangeImproveLanguage(e.target.value as ImproveLanguage)}
+                    disabled={improvingResumeId !== null}
+                    className="rounded-md border border-gray-300 px-2 py-1 text-sm"
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-gray-200 p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Overall Score</p>
+                  <p className="text-2xl font-bold text-primary mt-1">{improveResult.overallScore}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Extracted Skills</p>
+                  <p className="text-sm text-gray-800 mt-1">{improveResult.extractedSkills?.length ?? 0} kỹ năng</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-sm font-medium text-gray-900 mb-2">Tổng quan</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{improveResult.overviewFeedback || 'Chưa có nhận xét tổng quan.'}</p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-sm font-medium text-gray-900 mb-2">Summary đề xuất</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{improveResult.improvedSummary || 'Không có summary đề xuất.'}</p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4 space-y-2">
+                <p className="text-sm font-medium text-gray-900">Action Items</p>
+                {improveResult.actionItems?.length ? (
+                  <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                    {improveResult.actionItems.map((item, idx) => (
+                      <li key={`${item}-${idx}`}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-600">Không có gợi ý hành động cụ thể.</p>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+                <p className="text-sm font-medium text-gray-900">Đánh giá theo mục</p>
+                {improveResult.sections?.length ? (
+                  improveResult.sections.map((section, idx) => (
+                    <div key={`${section.section}-${idx}`} className="rounded-md border border-gray-100 p-3 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-900">{section.section}</p>
+                        <Badge variant="outline">Score: {section.score}</Badge>
+                      </div>
+                      {section.suggestions?.length ? (
+                        <ul className="list-disc pl-5 text-sm text-gray-700 mt-2 space-y-1">
+                          {section.suggestions.map((s, sIdx) => (
+                            <li key={`${s}-${sIdx}`}>{s}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-600">Không có đánh giá theo mục.</p>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-sm font-medium text-gray-900 mb-2">Missing Keywords</p>
+                <div className="flex flex-wrap gap-2">
+                  {improveResult.missingKeywords?.length ? (
+                    improveResult.missingKeywords.map((kw, idx) => (
+                      <Badge key={`${kw}-${idx}`} variant="secondary">{kw}</Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-600">Không có từ khóa thiếu.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  disabled={improvingResumeId !== null}
+                  onClick={async () => {
+                    if (!improveTargetResumeId) return;
+                    await runImproveByResumeId(improveTargetResumeId, improvingResumeName || 'CV', improveLanguage);
+                  }}
+                >
+                  {improvingResumeId !== null ? 'Đang chạy...' : 'Chạy lại'}
+                </Button>
+                <Button onClick={() => setImproveOpen(false)}>Đóng</Button>
+              </div>
             </div>
           ) : null}
         </DialogContent>

@@ -7,6 +7,16 @@ export interface AdminDashboardStats {
   pendingApprovals: number;
 }
 
+export interface AdminUserItem {
+  userId: number;
+  email: string;
+  fullName: string;
+  phone?: string | null;
+  role?: string | null;
+  isVerified?: boolean | null;
+  createdAt?: string | null;
+}
+
 /** GET /admin/stats – dashboard counts for admin */
 export async function getAdminStats(): Promise<AdminDashboardStats> {
   const res = await apiClient.get('/admin/stats');
@@ -18,4 +28,10 @@ export async function getAdminStats(): Promise<AdminDashboardStats> {
     activeUsers: Number(data?.activeUsers ?? 0),
     pendingApprovals: Number(data?.pendingApprovals ?? 0),
   };
+}
+
+export async function getAdminUsers(): Promise<AdminUserItem[]> {
+  const res = await apiClient.get('/admin/users');
+  const raw = (res as { data?: AdminUserItem[] })?.data ?? res;
+  return Array.isArray(raw) ? raw : [];
 }
