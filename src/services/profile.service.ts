@@ -34,6 +34,8 @@ export async function updateProfile(
     return mockProfile.mockUpdateProfile(String(profileIdOrUserId), data);
   }
   const profileId = typeof profileIdOrUserId === 'number' ? profileIdOrUserId : undefined;
+  const socials = (data as { socials?: { platform: string; url: string; logo_url?: string }[] }).socials;
+
   const payload = {
     fullName: data.fullName ?? (data as { fullName?: string }).fullName,
     phone: data.phone ?? undefined,
@@ -41,6 +43,7 @@ export async function updateProfile(
     bio: data.bio ?? (data as { summary?: string }).summary ?? undefined,
     address: data.address ?? undefined,
     dob: data.dob ?? undefined,
+    ...(socials != null ? { socials } : {}),
   };
   if (profileId == null && typeof profileIdOrUserId === 'string') {
     const profile = await getProfile(profileIdOrUserId);

@@ -20,6 +20,14 @@ export interface Company {
   website?: string;
   company_size?: string;
   address?: string;
+  name_user_contact?: string;
+  tutorial_apply?: string;
+  socials?: {
+    id: number;
+    platform: string;
+    url: string;
+    logoUrl?: string;
+  }[];
   industry_id?: string;
   industry_ids?: string[];
   industries?: Industry[];
@@ -42,4 +50,7 @@ export interface CreateCompanyRequest {
   company_size?: string;
   address?: string;
   industry_ids?: string[];
+  name_user_contact?: string;
+  tutorial_apply?: string;
+  thumbnail_image_urls?: string[];
 }
