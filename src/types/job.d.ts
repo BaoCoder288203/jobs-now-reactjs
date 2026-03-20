@@ -67,6 +67,21 @@ export interface Job {
   isExpired?: boolean;
   note?: string;
 
+  applicationLanguage?: string;
+  genderRequirement?: string;
+  minAge?: number;
+  maxAge?: number;
+
+  contactPersonName?: string;
+  contactTutorial?: string;
+  companyAddress?: string;
+  companySocials?: {
+    id: number;
+    platform: string;
+    url: string;
+    logoUrl?: string;
+  }[];
+
   company?: Company;
   category?: JobCategory;
 }

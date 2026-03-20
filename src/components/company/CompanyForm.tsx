@@ -11,6 +11,8 @@ import { useDeleteLogo, useDeleteBanner, useDeleteCompanyImage } from '@/modules
 import { ImageUploadMultiple } from '@/components/ui/image-upload';
 import type { Company, CreateCompanyRequest } from '@/types';
 import { toast } from 'sonner';
+import { SocialLinksEditor } from '@/components/social/SocialLinksEditor';
+import type { SocialLinkFormRow } from '@/constants/socialPlatforms';
 
 interface CompanyFormProps {
   open: boolean;
@@ -35,13 +37,17 @@ export function CompanyForm({
     company_size: '',
     address: '',
     industry_ids: [],
+    name_user_contact: '',
+    tutorial_apply: '',
   });
+  const [socialLinks, setSocialLinks] = useState<SocialLinkFormRow[]>([
+    { platform: 'FACEBOOK', url: '', logo_url: '' },
+  ]);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>('');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [thumbnailFiles, setThumbnailFiles] = useState<File[]>([]);
-  const [thumbnailPreviews, setThumbnailPreviews] = useState<string[]>([]);
+  const [newThumbnailUrls, setNewThumbnailUrls] = useState<string[]>([]);
   const [industries, setIndustries] = useState<{ id: string; name: string }[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
   const [industrySearch, setIndustrySearch] = useState('');
@@ -67,10 +73,21 @@ export function CompanyForm({
         company_size: initialData.company_size || '',
         address: initialData.address || '',
         industry_ids: initialData.industry_ids ?? (initialData.industry_id ? [initialData.industry_id] : []),
+        name_user_contact: initialData.name_user_contact ?? '',
+        tutorial_apply: initialData.tutorial_apply ?? '',
       });
+      setSocialLinks(
+        initialData.socials?.length ?
+          initialData.socials.map((s) => ({
+            platform: s.platform,
+            url: s.url,
+            logo_url: s.logoUrl ?? '',
+          }))
+        : [{ platform: 'FACEBOOK', url: '', logo_url: '' }],
+      );
       setLogoPreview(initialData.logo_url || '');
       setBannerPreview(initialData.banner_url || '');
-      setThumbnailPreviews([]);
+      setNewThumbnailUrls([]);
       setDeletedImageIds([]);
     } else {
       setFormData({
@@ -81,15 +98,18 @@ export function CompanyForm({
         company_size: '',
         address: '',
         industry_ids: [],
+        name_user_contact: '',
+        tutorial_apply: '',
       });
+      setSocialLinks([{ platform: 'FACEBOOK', url: '', logo_url: '' }]);
       setLogoPreview('');
       setBannerPreview('');
-      setThumbnailPreviews([]);
+      setNewThumbnailUrls([]);
       setDeletedImageIds([]);
     }
     setLogoFile(null);
     setBannerFile(null);
-    setThumbnailFiles([]);
+    setNewThumbnailUrls([]);
     setIndustrySearch('');
     setIndustryDropdownOpen(false);
   }, [initialData, open]);
@@ -99,11 +119,22 @@ export function CompanyForm({
 
     // Prepare FormData
     const data = new FormData();
-    
-    data.append(
-      'company',
-      new Blob([JSON.stringify(formData)], { type: 'application/json' }),
-    );
+
+    const socialsPayload = socialLinks
+      .filter((s) => s.url.trim())
+      .map((s) => ({
+        platform: s.platform,
+        url: s.url.trim(),
+        logo_url: s.logo_url?.trim() || undefined,
+      }));
+
+    const companyPayload = {
+      ...formData,
+      socials: socialsPayload,
+      ...(newThumbnailUrls.length > 0 ? { thumbnail_image_urls: newThumbnailUrls } : {}),
+    };
+
+    data.append('company', new Blob([JSON.stringify(companyPayload)], { type: 'application/json' }));
 
     if (initialData?.id) {
       data.append('companyId', initialData.id);
@@ -116,10 +147,6 @@ export function CompanyForm({
     if (bannerFile) {
       data.append('bannerFile', bannerFile);
     }
-    thumbnailFiles.forEach((file) => {
-      data.append('thumbnailFiles', file);
-    });
-
     // Submit
     await onSubmit(data, initialData?.id);
 
@@ -214,26 +241,6 @@ export function CompanyForm({
     }
   };
 
-  const handleAddThumbnails = async (files: File[]) => {
-    const existingCount =
-      (initialData?.images?.length ?? 0) - deletedImageIds.length + thumbnailFiles.length;
-    const toAdd = files.slice(0, MAX_THUMBNAILS - existingCount);
-    if (toAdd.length === 0) return;
-    const newPreviews = await Promise.all(
-      toAdd.map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () =>
-              resolve(typeof reader.result === 'string' ? reader.result : '');
-            reader.readAsDataURL(file);
-          })
-      )
-    );
-    setThumbnailFiles((prev) => [...prev, ...toAdd]);
-    setThumbnailPreviews((prev) => [...prev, ...newPreviews]);
-  };
-
   const handleRemoveExistingThumbnail = async (imageId: number) => {
     try {
       await deleteImageMutation.mutateAsync(imageId);
@@ -244,8 +251,7 @@ export function CompanyForm({
   };
 
   const handleRemoveNewThumbnail = (index: number) => {
-    setThumbnailFiles((prev) => prev.filter((_, i) => i !== index));
-    setThumbnailPreviews((prev) => prev.filter((_, i) => i !== index));
+    setNewThumbnailUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleReset = () => {
@@ -257,13 +263,15 @@ export function CompanyForm({
       company_size: '',
       address: '',
       industry_ids: [],
+      name_user_contact: '',
+      tutorial_apply: '',
     });
+    setSocialLinks([{ platform: 'FACEBOOK', url: '', logo_url: '' }]);
     setLogoPreview('');
     setLogoFile(null);
     setBannerPreview('');
     setBannerFile(null);
-    setThumbnailFiles([]);
-    setThumbnailPreviews([]);
+    setNewThumbnailUrls([]);
     setDeletedImageIds([]);
   };
 
@@ -373,6 +381,29 @@ export function CompanyForm({
                 placeholder="Nhập địa chỉ công ty"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="name_user_contact">Người liên hệ (hiển thị trên tin tuyển dụng)</Label>
+              <Input
+                id="name_user_contact"
+                value={formData.name_user_contact ?? ''}
+                onChange={(e) => handleChange('name_user_contact', e.target.value)}
+                placeholder="Họ tên người liên hệ"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tutorial_apply">Hướng dẫn ứng tuyển</Label>
+              <Textarea
+                id="tutorial_apply"
+                value={formData.tutorial_apply ?? ''}
+                onChange={(e) => handleChange('tutorial_apply', e.target.value)}
+                rows={3}
+                placeholder="VD: Nộp hồ sơ qua email, ghi rõ vị trí ứng tuyển..."
+              />
+            </div>
+
+            <SocialLinksEditor value={socialLinks} onChange={setSocialLinks} disabled={isLoading} />
 
             {/* Industries: search input + dropdown + tags */}
             <div className="space-y-2">
@@ -509,8 +540,10 @@ export function CompanyForm({
               existingImages={(initialData?.images ?? [])
                 .filter((img) => !deletedImageIds.includes(img.imageId))
                 .map((img) => ({ id: img.imageId, url: img.imageUrl }))}
-              newPreviews={thumbnailPreviews}
-              onAdd={handleAddThumbnails}
+              newImageUrls={newThumbnailUrls}
+              onUploadedUrls={(urls) =>
+                setNewThumbnailUrls((prev) => [...prev, ...urls])
+              }
               onRemoveExisting={handleRemoveExistingThumbnail}
               onRemoveNew={handleRemoveNewThumbnail}
               maxCount={MAX_THUMBNAILS}

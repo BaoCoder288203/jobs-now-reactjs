@@ -14,6 +14,8 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { RichTextContent } from '@/components/ui/RichTextContent';
 import { Edit2, X, Plus } from 'lucide-react';
 import type { ProfileSkill } from '@/types';
+import { SocialLinksEditor } from '@/components/social/SocialLinksEditor';
+import type { SocialLinkFormRow } from '@/constants/socialPlatforms';
 
 export function JobSeekerProfilePage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -38,6 +40,9 @@ export function JobSeekerProfilePage() {
   });
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newSkill, setNewSkill] = useState({ skillId: '', level: 'beginner' });
+  const [socialLinks, setSocialLinks] = useState<SocialLinkFormRow[]>([
+    { platform: 'FACEBOOK', url: '', logo_url: '' },
+  ]);
 
   // Initialize form data when profile loads (support BE fields: title, bio)
   useEffect(() => {
@@ -51,17 +56,34 @@ export function JobSeekerProfilePage() {
         date_of_birth: profile.date_of_birth ?? profile.dob ?? '',
         gender: profile.gender ?? ''
       });
+      setSocialLinks(
+        profile.socials?.length ?
+          profile.socials.map((s) => ({
+            platform: s.platform,
+            url: s.url,
+            logo_url: s.logoUrl ?? '',
+          }))
+        : [{ platform: 'FACEBOOK', url: '', logo_url: '' }],
+      );
     }
   }, [profile]);
 
   const handleSave = async () => {
     try {
+      const socialsPayload = socialLinks
+        .filter((s) => s.url.trim())
+        .map((s) => ({
+          platform: s.platform,
+          url: s.url.trim(),
+          logo_url: s.logo_url?.trim() || undefined,
+        }));
       await updateProfile.mutateAsync({
         userId,
         data: {
           ...formData,
-          years_experience: parseInt(formData.years_experience) || 0
-        }
+          years_experience: parseInt(formData.years_experience) || 0,
+          socials: socialsPayload,
+        },
       });
       setIsEditing(false);
     } catch (error) {
@@ -198,6 +220,12 @@ export function JobSeekerProfilePage() {
                 </div>
               </div>
 
+              <SocialLinksEditor
+                value={socialLinks}
+                onChange={setSocialLinks}
+                disabled={updateProfile.isPending}
+              />
+
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={updateProfile.isPending}>
                   {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
@@ -247,6 +275,26 @@ export function JobSeekerProfilePage() {
                   <p className="mt-1">{profile?.date_of_birth || 'Not set'}</p>
                 </div>
               </div>
+
+              {profile?.socials && profile.socials.length > 0 && (
+                <div className="pt-2 border-t border-gray-100">
+                  <Label className="text-sm text-gray-500">Mạng xã hội</Label>
+                  <ul className="mt-2 space-y-2">
+                    {profile.socials.map((s) => (
+                      <li key={s.id ?? `${s.platform}-${s.url}`}>
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sky-600 hover:underline text-sm break-all"
+                        >
+                          {s.platform}: {s.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </CardContent>
