@@ -99,6 +99,12 @@ export interface JobSeekerProfile {
   created_at?: string;
   updated_at?: string;
   user?: User;
+  socials?: {
+    id?: number;
+    platform: string;
+    url: string;
+    logoUrl?: string;
+  }[];
 }
 
 export interface Resume {

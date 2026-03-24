@@ -25,10 +25,18 @@ export async function getProfileByProfileId(profileId: number): Promise<JobSeeke
   return unwrap<JobSeekerProfile>(res);
 }
 
-/** Update profile (bio, title, fullName, phone, address, dob) */
+/** Update profile (bio, title, fullName, phone, address, dob, socials) */
 export async function updateProfile(
   profileId: number,
-  data: { fullName?: string; phone?: string; title?: string; bio?: string; address?: string; dob?: string }
+  data: {
+    fullName?: string;
+    phone?: string;
+    title?: string;
+    bio?: string;
+    address?: string;
+    dob?: string;
+    socials?: { platform: string; url: string; logo_url?: string }[];
+  }
 ): Promise<void> {
   await apiClient.put(`/profile/${profileId}`, data);
 }

@@ -43,6 +43,19 @@ interface JobDTO {
   categoryName?: string;
   jobSkills?: JobSkillDTOItem[];
   majors?: MajorDTOItem[];
+  applicationLanguage?: string;
+  genderRequirement?: string;
+  minAge?: number;
+  maxAge?: number;
+  contactPersonName?: string;
+  contactTutorial?: string;
+  companyAddress?: string;
+  companySocials?: {
+    id?: number;
+    platform?: string;
+    url?: string;
+    logoUrl?: string;
+  }[];
 }
 
 function mapJobDTOToJob(dto: JobDTO): Job {
@@ -82,6 +95,15 @@ function mapJobDTOToJob(dto: JobDTO): Job {
             owner_user_id: '',
             created_at: '',
             updated_at: '',
+            address: dto.companyAddress,
+            name_user_contact: dto.contactPersonName,
+            tutorial_apply: dto.contactTutorial,
+            socials: dto.companySocials?.map((s) => ({
+              id: s.id ?? 0,
+              platform: s.platform ?? '',
+              url: s.url ?? '',
+              logoUrl: s.logoUrl,
+            })),
           }
         : undefined,
     jobSkills: dto.jobSkills?.map((js) => ({
@@ -93,7 +115,33 @@ function mapJobDTOToJob(dto: JobDTO): Job {
       level: js.level,
     })),
     majors: dto.majors?.map((m) => ({ majorId: m.majorId ?? 0, name: m.name ?? '' })),
+    applicationLanguage: dto.applicationLanguage,
+    genderRequirement: dto.genderRequirement,
+    minAge: dto.minAge,
+    maxAge: dto.maxAge,
+    contactPersonName: dto.contactPersonName,
+    contactTutorial: dto.contactTutorial,
+    companyAddress: dto.companyAddress,
+    companySocials: dto.companySocials?.map((s) => ({
+      id: s.id ?? 0,
+      platform: s.platform ?? '',
+      url: s.url ?? '',
+      logoUrl: s.logoUrl,
+    })),
   };
+}
+
+export async function getRelatedJobs(jobId: string, limit = 8): Promise<Job[]> {
+  if (USE_MOCK) {
+    const all = await getJobs({});
+    return (all.items ?? []).filter((j) => j.id !== jobId).slice(0, limit);
+  }
+  const res = (await apiClient.get(`/job/${jobId}/related`, { params: { limit } })) as {
+    data?: JobDTO[];
+  };
+  const list = (res.data ?? res) as JobDTO[] | JobDTO;
+  const arr = Array.isArray(list) ? list : list ? [list] : [];
+  return arr.map(mapJobDTOToJob);
 }
 
 export async function getJobs(params?: JobListParams): Promise<PaginatedResponse<Job>> {
@@ -214,6 +262,10 @@ export async function createJob(data: Partial<Job>): Promise<Job> {
     majorIds: (data as { majorIds?: number[] }).majorIds ?? [],
     thumbnailUrl: data.thumbnail_url ?? undefined,
     isActive: false,
+    applicationLanguage: (data as { applicationLanguage?: string }).applicationLanguage?.toUpperCase(),
+    genderRequirement: (data as { genderRequirement?: string }).genderRequirement?.toUpperCase(),
+    minAge: (data as { minAge?: number }).minAge,
+    maxAge: (data as { maxAge?: number }).maxAge,
   };
   await apiClient.post('/job/create', body);
   return { ...data, id: 'new', created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as Job;
@@ -246,6 +298,10 @@ export async function updateJob(jobId: string, data: Partial<Job>): Promise<Job>
     majorIds: (data as { majorIds?: number[] }).majorIds,
     isActive: data.status === 'open',
     thumbnailUrl: data.thumbnail_url ?? undefined,
+    applicationLanguage: (data as { applicationLanguage?: string }).applicationLanguage?.toUpperCase(),
+    genderRequirement: (data as { genderRequirement?: string }).genderRequirement?.toUpperCase(),
+    minAge: (data as { minAge?: number }).minAge,
+    maxAge: (data as { maxAge?: number }).maxAge,
   };
   await apiClient.put(`/job/${jobId}`, body);
   return getJobDetail(jobId);

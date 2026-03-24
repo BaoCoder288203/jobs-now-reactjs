@@ -2,10 +2,13 @@ import * as React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { uploadImageToS3 } from '@/services/upload.service';
+import { toast } from 'sonner';
 
 export interface ImageUploadSingleProps {
+  /** Public image URL (e.g. S3) or legacy data URL */
   value?: string;
-  onChange: (dataUrl: string) => void;
+  onChange: (imageUrl: string) => void;
   onClear: () => void;
   label?: string;
   accept?: string;
@@ -22,17 +25,21 @@ export function ImageUploadSingle({
   previewClassName,
   id = 'image-upload-single',
 }: ImageUploadSingleProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploading, setUploading] = React.useState(false);
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        onChange(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImageToS3(file);
+      onChange(url);
+    } catch (err: unknown) {
+      toast.error((err as { message?: string })?.message || 'Không thể tải ảnh lên');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -43,7 +50,9 @@ export function ImageUploadSingle({
         type="file"
         accept={accept}
         onChange={handleChange}
+        disabled={uploading}
       />
+      {uploading && <p className="text-sm text-muted-foreground">Đang tải lên...</p>}
       {value && (
         <div className="mt-2 relative group inline-block">
           <img
@@ -75,8 +84,9 @@ export interface ExistingImageItem {
 
 export interface ImageUploadMultipleProps {
   existingImages: ExistingImageItem[];
-  newPreviews: string[];
-  onAdd: (files: File[]) => void;
+  /** New URLs from S3 uploads (pending save) */
+  newImageUrls: string[];
+  onUploadedUrls: (urls: string[]) => void;
   onRemoveExisting: (id: number) => void;
   onRemoveNew: (index: number) => void;
   maxCount: number;
@@ -88,8 +98,8 @@ export interface ImageUploadMultipleProps {
 
 export function ImageUploadMultiple({
   existingImages,
-  newPreviews,
-  onAdd,
+  newImageUrls,
+  onUploadedUrls,
   onRemoveExisting,
   onRemoveNew,
   maxCount,
@@ -98,15 +108,24 @@ export function ImageUploadMultiple({
   previewClassName,
   id = 'image-upload-multiple',
 }: ImageUploadMultipleProps) {
-  const currentCount = existingImages.length + newPreviews.length;
-  const disabled = currentCount >= maxCount;
+  const [uploading, setUploading] = React.useState(false);
+  const currentCount = existingImages.length + newImageUrls.length;
+  const disabled = currentCount >= maxCount || uploading;
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = '';
     const toAdd = files.slice(0, maxCount - currentCount);
     if (toAdd.length === 0) return;
-    onAdd(toAdd);
-    e.target.value = '';
+    setUploading(true);
+    try {
+      const urls = await Promise.all(toAdd.map((f) => uploadImageToS3(f)));
+      onUploadedUrls(urls);
+    } catch (err: unknown) {
+      toast.error((err as { message?: string })?.message || 'Không thể tải ảnh lên');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const items: { type: 'existing'; id: number; src: string }[] = existingImages.map((img) => ({
@@ -114,12 +133,11 @@ export function ImageUploadMultiple({
     id: img.id,
     src: img.url,
   }));
-  const newItems: { type: 'new'; index: number; src: string }[] = newPreviews.map((src, index) => ({
+  const newItems: { type: 'new'; index: number; src: string }[] = newImageUrls.map((src, index) => ({
     type: 'new',
     index,
     src,
   }));
-  const allItems = [...items, ...newItems];
 
   return (
     <div className="space-y-2">
@@ -134,7 +152,8 @@ export function ImageUploadMultiple({
         onChange={handleChange}
         disabled={disabled}
       />
-      {allItems.length > 0 && (
+      {uploading && <p className="text-sm text-muted-foreground">Đang tải lên...</p>}
+      {items.length + newItems.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {items.map((item) => (
             <div key={`existing-${item.id}`} className="relative group">
