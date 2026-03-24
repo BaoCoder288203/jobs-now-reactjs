@@ -12,11 +12,11 @@ export const jobKeys = {
   detail: (id: string) => [...jobKeys.details(), id] as const
 };
 
-export function useJobs(params?: JobListParams) {
+export function useJobs(params?: JobListParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: jobKeys.list(params),
     queryFn: () => jobService.getJobs(params),
-    enabled: true
+    enabled: options?.enabled !== false
   });
 }
 
@@ -25,6 +25,14 @@ export function useJobDetail(jobId: string, options?: { enabled?: boolean }) {
     queryKey: jobKeys.detail(jobId),
     queryFn: () => jobService.getJobDetail(jobId),
     enabled: options?.enabled !== false && !!jobId
+  });
+}
+
+export function useRelatedJobs(jobId: string | undefined, limit = 8) {
+  return useQuery({
+    queryKey: [...jobKeys.details(), jobId ?? '', 'related', limit] as const,
+    queryFn: () => jobService.getRelatedJobs(jobId!, limit),
+    enabled: !!jobId
   });
 }
 

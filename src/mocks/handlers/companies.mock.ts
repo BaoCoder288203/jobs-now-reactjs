@@ -133,13 +133,16 @@ export async function mockCreateMyCompany(formData: FormData): Promise<Company> 
       newCompany.banner_url = await fileToDataUrl(bannerFile as File);
     }
 
-    const thumbnailFilesList = formData.getAll('thumbnailFiles');
-    if (thumbnailFilesList.length > 0) {
-      newCompany.thumbnail_images = await Promise.all(
-        thumbnailFilesList
-          .filter((f): f is File => f instanceof File)
-          .map((f) => fileToDataUrl(f))
-      );
+    const urlsFromJson: string[] = Array.isArray(companyData.thumbnail_image_urls)
+      ? companyData.thumbnail_image_urls.filter((u: unknown): u is string => typeof u === 'string')
+      : [];
+    if (urlsFromJson.length > 0) {
+      newCompany.thumbnail_images = urlsFromJson;
+      newCompany.images = urlsFromJson.map((url, i) => ({
+        imageId: Date.now() + i,
+        imageUrl: url,
+        type: 'OTHER',
+      }));
     }
 
     mockCompanies.push(newCompany);
@@ -215,17 +218,19 @@ export async function mockUpdateMyCompany(formData: FormData): Promise<Company> 
       updatedCompany.banner_url = await fileToDataUrl(bannerFile as File);
     }
 
-    const thumbnailFilesList = formData.getAll('thumbnailFiles');
-    if (thumbnailFilesList.length > 0) {
-      const newThumbnailUrls = await Promise.all(
-        thumbnailFilesList
-          .filter((f): f is File => f instanceof File)
-          .map((f) => fileToDataUrl(f))
-      );
-      updatedCompany.thumbnail_images = [
-        ...(existingCompany.thumbnail_images ?? []),
-        ...newThumbnailUrls,
-      ];
+    const urlsFromJson: string[] = Array.isArray(companyData.thumbnail_image_urls)
+      ? companyData.thumbnail_image_urls.filter((u: unknown): u is string => typeof u === 'string')
+      : [];
+    if (urlsFromJson.length > 0) {
+      const nextThumbs = [...(existingCompany.thumbnail_images ?? []), ...urlsFromJson];
+      updatedCompany.thumbnail_images = nextThumbs;
+      const baseId = Date.now();
+      const newImageRows = urlsFromJson.map((url, i) => ({
+        imageId: baseId + i,
+        imageUrl: url,
+        type: 'OTHER',
+      }));
+      updatedCompany.images = [...(existingCompany.images ?? []), ...newImageRows];
     }
 
     mockCompanies[companyIndex] = updatedCompany;

@@ -26,6 +26,9 @@ interface CompanyDTO {
   email?: string;
   phone?: string;
   images?: { imageId?: number; imageUrl?: string; type?: string }[];
+  nameUserContact?: string;
+  tutorialApply?: string;
+  socials?: { id?: number; platform?: string; url?: string; logoUrl?: string }[];
 }
 
 function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
@@ -58,6 +61,14 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
       imageId: img.imageId!,
       imageUrl: img.imageUrl ?? '',
       type: img.type,
+    })),
+    name_user_contact: dto.nameUserContact,
+    tutorial_apply: dto.tutorialApply,
+    socials: dto.socials?.map((s) => ({
+      id: s.id ?? 0,
+      platform: s.platform ?? '',
+      url: s.url ?? '',
+      logoUrl: s.logoUrl,
     })),
   };
 }
@@ -138,14 +149,6 @@ export async function updateMyCompany(formData: FormData): Promise<Company> {
 
   const companyId = formData.get('companyId');
   if (!companyId) throw new Error('Company ID is required for update');
-
-  const companyBlob = formData.get('company');
-  if (companyBlob instanceof Blob) {
-    const text = await companyBlob.text();
-    console.log('[updateMyCompany] company JSON:', text);
-  }
-  console.log('[updateMyCompany] companyId:', companyId, 'URL:', `/company/update/${companyId}`);
-
 
   await apiClient.put(`/company/update/${companyId}`, formData);
 

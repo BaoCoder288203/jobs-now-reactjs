@@ -4,6 +4,7 @@ import { MapPin } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { cn } from '@/lib/utils';
+import { extractBenefitItemsFromHtml } from '@/lib/htmlUtils';
 
 interface JobCardProps {
   job: Job;
@@ -13,7 +14,7 @@ interface JobCardProps {
 export function JobCard({ job, className }: JobCardProps) {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const { openLoginModal } = useAuthModal();
-  console.log(job);
+
   const formatSalary = () => {
     if (!job.salary_min && !job.salary_max) return 'Mức lương không tiết lộ';
     if (!job.salary_min || !job.salary_max) return 'Mức lương không tiết lộ';
@@ -21,6 +22,11 @@ export function JobCard({ job, className }: JobCardProps) {
   };
 
   const hasThumb = !!job.thumbnail_url;
+
+  const benefitItems =
+    typeof job.benefits === 'string' ? extractBenefitItemsFromHtml(job.benefits) : [];
+  const benefitChips = benefitItems.slice(0, 4);
+  const benefitMore = benefitItems.length > 4 ? benefitItems.length - 4 : 0;
 
   return (
     <Link to={`/jobs/${job.id}`} className={cn('block h-full', className)}>
@@ -131,13 +137,9 @@ export function JobCard({ job, className }: JobCardProps) {
           </div>
         )}
 
-        {/* Benefits - dưới địa chỉ */}
-        {job.benefits && (
+        {benefitChips.length > 0 && (
           <div className="relative z-10 mt-2 flex flex-wrap gap-1.5 justify-center">
-            {(typeof job.benefits === 'string'
-              ? job.benefits.split(/[,;]/).map((b) => b.trim()).filter(Boolean).slice(0, 4)
-              : []
-            ).map((b: string, i: number) => (
+            {benefitChips.map((b, i) => (
               <span
                 key={i}
                 className={cn(
@@ -150,19 +152,16 @@ export function JobCard({ job, className }: JobCardProps) {
                 {b}
               </span>
             ))}
-            {typeof job.benefits === 'string' && (() => {
-              const parts = job.benefits.split(/[,;]/).map((b) => b.trim()).filter(Boolean);
-              return parts.length > 4 ? (
-                <span
-                  className={cn(
-                    'text-xs px-2 py-0.5',
-                    hasThumb ? 'text-white/70' : 'text-gray-500'
-                  )}
-                >
-                  +{parts.length - 4}
-                </span>
-              ) : null;
-            })()}
+            {benefitMore > 0 && (
+              <span
+                className={cn(
+                  'text-xs px-2 py-0.5',
+                  hasThumb ? 'text-white/70' : 'text-gray-500'
+                )}
+              >
+                +{benefitMore}
+              </span>
+            )}
           </div>
         )}
       </article>

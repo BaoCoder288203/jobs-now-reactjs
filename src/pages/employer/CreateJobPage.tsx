@@ -9,12 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
+import { TiptapEditor } from '@/components/ui/TiptapEditor';
+import { htmlToPlainText, escapeHtml, plainTextToTipTapHtml } from '@/lib/htmlUtils';
 import { useJobDetail, useCreateJob, useUpdateJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, AlertCircle, ChevronDown, X } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronDown, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobCategories } from '@/services/category.service';
 import type { JobCategoryDTO } from '@/services/category.service';
@@ -25,16 +26,39 @@ import type { Job, Skill } from '@/types';
 import { ImageUploadSingle } from '@/components/ui/image-upload';
 import { getEducationLevelLabel, buildEducationMajorLine } from '@/constants/jobEnums';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 const EDUCATION_LEVELS = ['ANY', 'HIGH_SCHOOL', 'VOCATIONAL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'OTHER'] as const;
+
+function sanitizeJobThumbnailUrl(url: string | undefined | null): string {
+  const u = (url ?? '').trim();
+  if (!u) return '';
+  if (u.startsWith('data:')) return '';
+  return u;
+}
 const JOB_TYPES = ['full_time', 'part_time', 'contract', 'internship', 'freelance'] as const;
 const YEARS_OPTIONS = ['0', '1', '2', '3', '1-3', '3-5', '5+'] as const;
+const APP_LANGS = ['VIETNAMESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'CHINESE', 'ANY'] as const;
+const GENDERS = ['MALE', 'FEMALE', 'ANY'] as const;
 
-const jobSchema = z.object({
+const EDU_MAJOR_TEMPLATE_RE = /^- Tốt nghiệp .+ trở lên chuyên ngành .+\.\s*$/;
+
+function RequiredStar() {
+  return <span className="text-red-500" aria-hidden>*</span>;
+}
+
+const jobSchema = z
+  .object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
-  description: z.string().min(50, 'Description must be at least 50 characters'),
-  requirements: z.string().min(1, 'Requirements are required'),
-  benefits: z.string().min(1, 'Benefits are required'),
+  description: z
+    .string()
+    .refine((s) => htmlToPlainText(s).length >= 50, 'Description must be at least 50 characters'),
+  requirements: z
+    .string()
+    .refine((s) => htmlToPlainText(s).trim().length >= 1, 'Requirements are required'),
+  benefits: z
+    .string()
+    .refine((s) => htmlToPlainText(s).trim().length >= 1, 'Benefits are required'),
   salary_min: z.number().min(0).optional(),
   salary_max: z.number().min(0).optional(),
   location: z.string().min(1, 'Location is required'),
@@ -51,7 +75,51 @@ const jobSchema = z.object({
   majorIds: z.array(z.number()).optional(),
   status: z.enum(['open', 'closed']),
   thumbnail_url: z.string().optional(),
-});
+  applicationLanguage: z.enum(APP_LANGS).optional(),
+  genderRequirement: z.enum(GENDERS).optional(),
+  minAge: z.string().optional(),
+  maxAge: z.string().optional(),
+})
+  .superRefine((data, ctx) => {
+    const min = data.minAge?.trim() ? parseInt(data.minAge, 10) : undefined;
+    const max = data.maxAge?.trim() ? parseInt(data.maxAge, 10) : undefined;
+    if (min != null && (Number.isNaN(min) || min < 16 || min > 99)) {
+      ctx.addIssue({ code: 'custom', path: ['minAge'], message: 'Tuổi từ 16–99' });
+    }
+    if (max != null && (Number.isNaN(max) || max < 16 || max > 99)) {
+      ctx.addIssue({ code: 'custom', path: ['maxAge'], message: 'Tuổi từ 16–99' });
+    }
+    if (min != null && max != null && !Number.isNaN(min) && !Number.isNaN(max) && min > max) {
+      ctx.addIssue({ code: 'custom', path: ['maxAge'], message: 'Tuổi tối đa phải ≥ tuổi tối thiểu' });
+    }
+    const thumb = data.thumbnail_url?.trim();
+    if (thumb?.startsWith('data:')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['thumbnail_url'],
+        message: 'Ảnh thumbnail phải là URL từ server (tải ảnh lên lại, không dùng base64).',
+      });
+    }
+    const js = data.jobSkills ?? [];
+    const seenSkill = new Set<number>();
+    js.forEach((row, i) => {
+      if (!row.skillId || row.skillId <= 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['jobSkills', i, 'skillId'],
+          message: 'Chọn kỹ năng',
+        });
+      } else if (seenSkill.has(row.skillId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['jobSkills', i, 'skillId'],
+          message: 'Kỹ năng bị trùng',
+        });
+      } else {
+        seenSkill.add(row.skillId);
+      }
+    });
+  });
 
 type JobFormData = z.infer<typeof jobSchema>;
 
@@ -76,11 +144,20 @@ export function CreateJobPage() {
   const [majorSearch, setMajorSearch] = useState('');
   const [majorDropdownOpen, setMajorDropdownOpen] = useState(false);
   const majorDropdownRef = useRef<HTMLDivElement>(null);
+  const [skillPickerOpenIndex, setSkillPickerOpenIndex] = useState<number | null>(null);
+  const [skillPickerSearch, setSkillPickerSearch] = useState('');
+  const skillPickerContainerRef = useRef<HTMLDivElement>(null);
+  const legacyDataThumbnailToastShown = useRef<string | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (majorDropdownRef.current && !majorDropdownRef.current.contains(e.target as Node)) {
+      const t = e.target as Node;
+      if (majorDropdownRef.current && !majorDropdownRef.current.contains(t)) {
         setMajorDropdownOpen(false);
+      }
+      if (skillPickerContainerRef.current && !skillPickerContainerRef.current.contains(t)) {
+        setSkillPickerOpenIndex(null);
+        setSkillPickerSearch('');
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -98,6 +175,11 @@ export function CreateJobPage() {
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
+      title: '',
+      description: '',
+      requirements: '',
+      benefits: '',
+      location: '',
       job_type: 'full_time',
       status: 'closed',
       educationLevel: 'BACHELOR',
@@ -106,6 +188,10 @@ export function CreateJobPage() {
       jobSkills: [],
       majorIds: [],
       thumbnail_url: '',
+      applicationLanguage: 'ANY',
+      genderRequirement: 'ANY',
+      minAge: '',
+      maxAge: '',
     },
   });
 
@@ -117,11 +203,12 @@ export function CreateJobPage() {
 
   useEffect(() => {
     if (isEditMode && job) {
+      const hadLegacyDataThumbnail = (job.thumbnail_url ?? '').trim().startsWith('data:');
       reset({
         title: job.title,
-        description: job.description || '',
-        requirements: job.requirements || '',
-        benefits: job.benefits || '',
+        description: plainTextToTipTapHtml(job.description || ''),
+        requirements: plainTextToTipTapHtml(job.requirements || ''),
+        benefits: plainTextToTipTapHtml(job.benefits || ''),
         salary_min: job.salary_min,
         salary_max: job.salary_max,
         location: job.location || '',
@@ -137,22 +224,62 @@ export function CreateJobPage() {
         })) ?? [],
         majorIds: job.majors?.map((m) => m.majorId) ?? [],
         status: job.status as 'open' | 'closed',
-        thumbnail_url: job.thumbnail_url || '',
+        thumbnail_url: sanitizeJobThumbnailUrl(job.thumbnail_url),
+        applicationLanguage: (job.applicationLanguage as JobFormData['applicationLanguage']) ?? 'ANY',
+        genderRequirement: (job.genderRequirement as JobFormData['genderRequirement']) ?? 'ANY',
+        minAge: job.minAge != null ? String(job.minAge) : '',
+        maxAge: job.maxAge != null ? String(job.maxAge) : '',
       });
+      if (
+        hadLegacyDataThumbnail &&
+        id &&
+        legacyDataThumbnailToastShown.current !== id
+      ) {
+        legacyDataThumbnailToastShown.current = id;
+        toast.info('Thumbnail cũ (base64) đã bỏ. Vui lòng tải ảnh lên lại để dùng URL từ server.');
+      }
     }
-  }, [job, isEditMode, reset]);
+  }, [job, isEditMode, reset, id]);
 
   const educationLevel = watch('educationLevel');
   const majorIds = watch('majorIds') ?? [];
 
   useEffect(() => {
     const line = buildEducationMajorLine(educationLevel ?? 'BACHELOR', majorIds, majorsOptions);
+    const lineHtml = `<p>${escapeHtml(line)}</p>`;
     const current = getValues('requirements') ?? '';
-    const lines = current.split('\n');
-    const firstLine = lines[0] ?? '';
-    const isTemplateLine = /^- Tốt nghiệp .+ trở lên chuyên ngành .+\.\s*$/.test(firstLine.trim());
-    const rest = isTemplateLine ? lines.slice(1).join('\n').trimStart() : current;
-    setValue('requirements', rest ? `${line}\n${rest}` : line);
+    const plain = htmlToPlainText(current);
+
+    if (!plain.trim()) {
+      setValue('requirements', lineHtml);
+      return;
+    }
+
+    const firstParaMatch = current.match(/^<p[^>]*>[\s\S]*?<\/p>/);
+    let firstLinePlain = '';
+    let restAfterFirstPara = '';
+
+    if (firstParaMatch) {
+      firstLinePlain = htmlToPlainText(firstParaMatch[0]).split('\n')[0]?.trim() ?? '';
+      restAfterFirstPara = current.slice(firstParaMatch.index! + firstParaMatch[0].length).trim();
+    } else {
+      const lines = plain.split('\n').map((l) => l.trim()).filter(Boolean);
+      firstLinePlain = lines[0] ?? '';
+      restAfterFirstPara = lines.slice(1).join('\n');
+    }
+
+    if (!EDU_MAJOR_TEMPLATE_RE.test(firstLinePlain)) {
+      return;
+    }
+
+    if (restAfterFirstPara) {
+      const restHtml = restAfterFirstPara.startsWith('<')
+        ? restAfterFirstPara
+        : plainTextToTipTapHtml(restAfterFirstPara);
+      setValue('requirements', `${lineHtml}${restHtml}`);
+    } else {
+      setValue('requirements', lineHtml);
+    }
   }, [educationLevel, majorIds, majorsOptions, setValue, getValues]);
 
   const onSubmit = async (data: JobFormData) => {
@@ -165,6 +292,9 @@ export function CreateJobPage() {
 
       const thumbnail_url = getValues('thumbnail_url');
 
+      const minAge = data.minAge?.trim() ? parseInt(data.minAge, 10) : undefined;
+      const maxAge = data.maxAge?.trim() ? parseInt(data.maxAge, 10) : undefined;
+
       const payload = {
         ...data,
         company_id: companyId,
@@ -174,6 +304,10 @@ export function CreateJobPage() {
         expired_at: data.deadline,
         deadline: data.deadline,
         thumbnail_url: thumbnail_url || undefined,
+        applicationLanguage: data.applicationLanguage,
+        genderRequirement: data.genderRequirement,
+        minAge,
+        maxAge,
       };
 
       if (isEditMode && id) {
@@ -191,8 +325,18 @@ export function CreateJobPage() {
 
   const addJobSkill = () => {
     const current = getValues('jobSkills') ?? [];
-    const firstSkillId = skills[0]?.skillId ? Number(skills[0].skillId) : 0;
-    setValue('jobSkills', [...current, { skillId: firstSkillId, isRequired: true, level: '' }]);
+    const used = new Set(current.map((r) => r.skillId).filter((id) => id > 0));
+    const nextSkill = skills.find((s) => !used.has(Number(s.skillId)));
+    if (!nextSkill && skills.length > 0) {
+      toast.warning('Đã thêm hết kỹ năng có trong danh sách');
+      return;
+    }
+    setValue('jobSkills', [
+      ...current,
+      { skillId: nextSkill ? Number(nextSkill.skillId) : 0, isRequired: true, level: '' },
+    ]);
+    setSkillPickerOpenIndex(current.length);
+    setSkillPickerSearch('');
   };
 
   const updateJobSkillField = (index: number, field: 'skillId' | 'isRequired' | 'level', value: unknown) => {
@@ -206,6 +350,12 @@ export function CreateJobPage() {
     const current = getValues('jobSkills') ?? [];
     const updated = current.filter((_, i) => i !== index);
     setValue('jobSkills', updated);
+    if (skillPickerOpenIndex === index) {
+      setSkillPickerOpenIndex(null);
+      setSkillPickerSearch('');
+    } else if (skillPickerOpenIndex !== null && skillPickerOpenIndex > index) {
+      setSkillPickerOpenIndex(skillPickerOpenIndex - 1);
+    }
   };
 
   if (jobLoading && isEditMode) {
@@ -263,7 +413,9 @@ export function CreateJobPage() {
             )}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Job Title *</Label>
+                <Label htmlFor="title">
+                  Job Title <RequiredStar />
+                </Label>
                 <Input
                   id="title"
                   {...register('title')}
@@ -274,40 +426,52 @@ export function CreateJobPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  {...register('description')}
-                  rows={6}
+                <Label htmlFor="description">
+                  Description <RequiredStar />
+                </Label>
+                <TiptapEditor
+                  value={watch('description') ?? ''}
+                  onChange={(html) =>
+                    setValue('description', html, { shouldValidate: true, shouldDirty: true })
+                  }
                   placeholder="Describe the job role, responsibilities..."
-                  className={errors.description ? 'border-red-500' : ''}
+                  minHeight="160px"
+                  className={errors.description ? 'border-red-500 ring-2 ring-red-500/30' : ''}
                 />
                 {errors.description && <p className="text-sm text-red-600">{errors.description.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="requirements">Requirements *</Label>
+                <Label htmlFor="requirements">
+                  Requirements <RequiredStar />
+                </Label>
                 <p className="text-xs text-gray-500">
-                  Dòng đầu tiên (yêu cầu học vấn) tự động cập nhật theo Education Level và Majors bên dưới.
+                  Đoạn đầu (yêu cầu học vấn) tự động cập nhật theo Education Level và Majors bên dưới.
                 </p>
-                <Textarea
-                  id="requirements"
-                  {...register('requirements')}
-                  rows={4}
+                <TiptapEditor
+                  value={watch('requirements') ?? ''}
+                  onChange={(html) =>
+                    setValue('requirements', html, { shouldValidate: true, shouldDirty: true })
+                  }
                   placeholder="Required skills, qualifications, education..."
-                  className={errors.requirements ? 'border-red-500' : ''}
+                  minHeight="140px"
+                  className={errors.requirements ? 'border-red-500 ring-2 ring-red-500/30' : ''}
                 />
                 {errors.requirements && <p className="text-sm text-red-600">{errors.requirements.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="benefits">Benefits *</Label>
-                <Textarea
-                  id="benefits"
-                  {...register('benefits')}
-                  rows={3}
+                <Label htmlFor="benefits">
+                  Benefits <RequiredStar />
+                </Label>
+                <TiptapEditor
+                  value={watch('benefits') ?? ''}
+                  onChange={(html) =>
+                    setValue('benefits', html, { shouldValidate: true, shouldDirty: true })
+                  }
                   placeholder="Benefits, perks..."
-                  className={errors.benefits ? 'border-red-500' : ''}
+                  minHeight="120px"
+                  className={errors.benefits ? 'border-red-500 ring-2 ring-red-500/30' : ''}
                 />
                 {errors.benefits && <p className="text-sm text-red-600">{errors.benefits.message}</p>}
               </div>
@@ -335,7 +499,9 @@ export function CreateJobPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location *</Label>
+                  <Label htmlFor="location">
+                    Location <RequiredStar />
+                  </Label>
                   <Input
                     id="location"
                     {...register('location')}
@@ -345,7 +511,9 @@ export function CreateJobPage() {
                   {errors.location && <p className="text-sm text-red-600">{errors.location.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="job_type">Job Type *</Label>
+                  <Label htmlFor="job_type">
+                    Job Type <RequiredStar />
+                  </Label>
                   <Select
                     id="job_type"
                     value={watch('job_type')}
@@ -362,7 +530,9 @@ export function CreateJobPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="yearsOfExperience">Years of Experience *</Label>
+                  <Label htmlFor="yearsOfExperience">
+                    Years of Experience <RequiredStar />
+                  </Label>
                   <Select
                     id="yearsOfExperience"
                     value={watch('yearsOfExperience')}
@@ -377,7 +547,9 @@ export function CreateJobPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="educationLevel">Education Level *</Label>
+                  <Label htmlFor="educationLevel">
+                    Education Level <RequiredStar />
+                  </Label>
                   <Select
                     id="educationLevel"
                     value={watch('educationLevel')}
@@ -390,7 +562,68 @@ export function CreateJobPage() {
                 </div>
               </div>
 
-              <div className="space-y-3 border rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="applicationLanguage">Ngôn ngữ nhận hồ sơ</Label>
+                  <Select
+                    id="applicationLanguage"
+                    value={watch('applicationLanguage') ?? 'ANY'}
+                    onChange={(e) =>
+                      setValue('applicationLanguage', e.target.value as JobFormData['applicationLanguage'])
+                    }
+                  >
+                    {APP_LANGS.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="genderRequirement">Giới tính</Label>
+                  <Select
+                    id="genderRequirement"
+                    value={watch('genderRequirement') ?? 'ANY'}
+                    onChange={(e) =>
+                      setValue('genderRequirement', e.target.value as JobFormData['genderRequirement'])
+                    }
+                  >
+                    {GENDERS.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="minAge">Tuổi tối thiểu (tuỳ chọn)</Label>
+                  <Input
+                    id="minAge"
+                    type="number"
+                    min={16}
+                    max={99}
+                    placeholder="VD: 22"
+                    {...register('minAge')}
+                    className={errors.minAge ? 'border-red-500' : ''}
+                  />
+                  {errors.minAge && <p className="text-sm text-red-600">{errors.minAge.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxAge">Tuổi tối đa (tuỳ chọn)</Label>
+                  <Input
+                    id="maxAge"
+                    type="number"
+                    min={16}
+                    max={99}
+                    placeholder="VD: 45"
+                    {...register('maxAge')}
+                    className={errors.maxAge ? 'border-red-500' : ''}
+                  />
+                  {errors.maxAge && <p className="text-sm text-red-600">{errors.maxAge.message}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-3 border rounded-lg p-4" ref={skillPickerContainerRef}>
                 <div className="flex items-center justify-between">
                   <Label className="font-semibold">Required Skills</Label>
                   <Button type="button" size="sm" onClick={addJobSkill}>
@@ -404,58 +637,138 @@ export function CreateJobPage() {
                   </p>
                 )}
 
-                {jobSkills.map((item, index) => (
+                {jobSkills.map((item, index) => {
+                  const usedElsewhere = new Set(
+                    jobSkills
+                      .map((row, i) => (i !== index ? row.skillId : 0))
+                      .filter((id) => id > 0)
+                  );
+                  const skillOptions = skills.filter((s) => {
+                    const sid = Number(s.skillId);
+                    if (sid === item.skillId) return true;
+                    return !usedElsewhere.has(sid);
+                  });
+                  const filteredSkillOptions = skillOptions.filter((s) =>
+                    (s.name ?? '').toLowerCase().includes(skillPickerSearch.toLowerCase())
+                  );
+                  const selectedSkill = skills.find((s) => Number(s.skillId) === item.skillId);
+                  return (
                   <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                    <div className="space-y-1">
+                    <div className="space-y-1 md:col-span-2 min-w-0">
                       <Label>Skill</Label>
-                      <Select
-                        value={String(item.skillId ?? '')}
-                        onChange={(e) => updateJobSkillField(index, 'skillId', Number(e.target.value))}
-                      >
-                        <option value="">-- Select skill --</option>
-                        {skills.map((s) => (
-                          <option key={s.skillId} value={s.skillId}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </Select>
+                      <div className="relative">
+                        <div
+                          className="flex min-h-11 w-full flex-wrap items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent"
+                          onClick={() => {
+                            setSkillPickerOpenIndex(index);
+                            if (skillPickerOpenIndex !== index) setSkillPickerSearch('');
+                          }}
+                        >
+                          {selectedSkill && item.skillId > 0 ?
+                            <Badge variant="outline" className="gap-1 pr-1 shrink-0">
+                              {selectedSkill.name}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateJobSkillField(index, 'skillId', 0);
+                                  setSkillPickerSearch('');
+                                }}
+                                className="rounded-full p-0.5 hover:bg-gray-200"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          : null}
+                          <input
+                            type="text"
+                            placeholder="Gõ để tìm kỹ năng..."
+                            value={skillPickerOpenIndex === index ? skillPickerSearch : ''}
+                            onChange={(e) => {
+                              setSkillPickerSearch(e.target.value);
+                              setSkillPickerOpenIndex(index);
+                            }}
+                            onFocus={() => {
+                              setSkillPickerOpenIndex(index);
+                            }}
+                            className="min-w-[120px] flex-1 border-0 bg-transparent p-0 text-sm outline-none placeholder:text-gray-400"
+                          />
+                          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+                        </div>
+                        {skillPickerOpenIndex === index && (
+                          <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                            {filteredSkillOptions.map((s) => {
+                              const sid = Number(s.skillId);
+                              const isActive = sid === item.skillId;
+                              return (
+                                <button
+                                  key={s.skillId}
+                                  type="button"
+                                  className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${
+                                    isActive ? 'bg-primary/10 font-medium' : ''
+                                  }`}
+                                  onClick={() => {
+                                    updateJobSkillField(index, 'skillId', sid);
+                                    setSkillPickerOpenIndex(null);
+                                    setSkillPickerSearch('');
+                                  }}
+                                >
+                                  {s.name}
+                                </button>
+                              );
+                            })}
+                            {filteredSkillOptions.length === 0 && (
+                              <p className="px-3 py-4 text-center text-sm text-gray-500">
+                                Không tìm thấy kỹ năng
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {errors.jobSkills?.[index]?.skillId && (
+                        <p className="text-sm text-red-600">{errors.jobSkills[index]?.skillId?.message}</p>
+                      )}
                     </div>
 
                     <div className="space-y-1">
-                      <Label>Required</Label>
-                      <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium leading-none text-gray-700">Required</span>
+                      <label className="flex h-11 cursor-pointer items-center gap-2.5">
                         <input
                           type="checkbox"
                           checked={item.isRequired ?? false}
                           onChange={(e) => updateJobSkillField(index, 'isRequired', e.target.checked)}
+                          className="h-4 w-4 shrink-0 rounded border-gray-300 accent-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:ring-offset-0"
                         />
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-gray-700 select-none">
                           {item.isRequired ? 'Required' : 'Optional'}
                         </span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1 md:col-span-1">
+                      <Label>Level</Label>
+                      <div className="flex gap-2 items-end">
+                        <Input
+                          className="min-w-0 flex-1"
+                          placeholder="e.g., Junior, Senior, B2..."
+                          value={item.level ?? ''}
+                          onChange={(e) => updateJobSkillField(index, 'level', e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => removeJobSkill(index)}
+                          aria-label="Xóa kỹ năng"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="space-y-1">
-                      <Label>Level</Label>
-                      <Input
-                        placeholder="e.g., Junior, Senior, B2..."
-                        value={item.level ?? ''}
-                        onChange={(e) => updateJobSkillField(index, 'level', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeJobSkill(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="space-y-3 border rounded-lg p-4" ref={majorDropdownRef}>
@@ -539,7 +852,9 @@ export function CreateJobPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="deadline">Deadline *</Label>
+                  <Label htmlFor="deadline">
+                    Deadline <RequiredStar />
+                  </Label>
                   <Input
                     id="deadline"
                     type="date"
@@ -582,13 +897,18 @@ export function CreateJobPage() {
                 </div>
               )}
 
-              <ImageUploadSingle
-                id="thumbnail"
-                label="Job Thumbnail"
-                value={watch('thumbnail_url')}
-                onChange={(v) => setValue('thumbnail_url', v)}
-                onClear={() => setValue('thumbnail_url', '')}
-              />
+              <div className="space-y-1">
+                <ImageUploadSingle
+                  id="thumbnail"
+                  label="Job Thumbnail"
+                  value={watch('thumbnail_url')}
+                  onChange={(v) => setValue('thumbnail_url', v, { shouldValidate: true })}
+                  onClear={() => setValue('thumbnail_url', '', { shouldValidate: true })}
+                />
+                {errors.thumbnail_url && (
+                  <p className="text-sm text-red-600">{errors.thumbnail_url.message}</p>
+                )}
+              </div>
 
               <div className="flex gap-4 pt-4">
                 <Button
