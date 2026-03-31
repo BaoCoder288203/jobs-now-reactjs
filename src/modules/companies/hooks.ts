@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Company, PaginationParams } from '@/types';
+import type { CreateCompanyReviewRequest } from '@/types/company-review';
 import * as companyService from '@/services/company.service';
 import { useAppSelector } from '@/app/hooks';
 
@@ -11,6 +12,22 @@ export const companyKeys = {
   details: () => [...companyKeys.all, 'detail'] as const,
   detail: (id: string) => [...companyKeys.details(), id] as const,
   myCompany: () => [...companyKeys.all, 'my'] as const
+};
+
+export const companyReviewKeys = {
+  all: ['company-reviews'] as const,
+  list: (companyId: string, page: number, limit: number) =>
+    [...companyReviewKeys.all, companyId, page, limit] as const,
+};
+
+export const companyFollowKeys = {
+  all: ['company-follow'] as const,
+  detail: (companyId: string) => [...companyFollowKeys.all, companyId] as const,
+};
+
+export const recruiterReviewKeys = {
+  all: ['recruiter-company-reviews'] as const,
+  list: (page: number, limit: number) => [...recruiterReviewKeys.all, page, limit] as const,
 };
 
 export function useCompanies(params?: PaginationParams) {
@@ -106,6 +123,86 @@ export function useDeleteCompanyImage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
       queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useCompanyReviews(companyId: string, page = 1, limit = 5) {
+  return useQuery({
+    queryKey: companyReviewKeys.list(companyId, page, limit),
+    queryFn: () => companyService.getCompanyReviews(companyId, page, limit),
+    enabled: !!companyId,
+  });
+}
+
+export function useCreateCompanyReview(companyId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateCompanyReviewRequest) =>
+      companyService.createCompanyReview(companyId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyReviewKeys.all });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+    },
+  });
+}
+
+export function useCompanyFollowStatus(companyId: string, enabled = true) {
+  return useQuery({
+    queryKey: companyFollowKeys.detail(companyId),
+    queryFn: () => companyService.getCompanyFollowStatus(companyId),
+    enabled: !!companyId && enabled,
+  });
+}
+
+export function useFollowCompany(companyId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => companyService.followCompany(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(companyId) });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+    },
+  });
+}
+
+export function useUnfollowCompany(companyId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => companyService.unfollowCompany(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(companyId) });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+    },
+  });
+}
+
+export function useRecruiterPendingReviews(page = 1, limit = 10) {
+  return useQuery({
+    queryKey: recruiterReviewKeys.list(page, limit),
+    queryFn: () => companyService.getRecruiterPendingReviews(page, limit),
+  });
+}
+
+export function useApproveRecruiterReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: number) => companyService.approveRecruiterReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recruiterReviewKeys.all });
+    },
+  });
+}
+
+export function useRejectRecruiterReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: number) => companyService.rejectRecruiterReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recruiterReviewKeys.all });
     },
   });
 }

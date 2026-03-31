@@ -5,6 +5,7 @@ import {
   Briefcase,
   Users,
   Building2,
+  Star,
   BarChart3,
   LogOut
 } from 'lucide-react';
@@ -25,6 +26,7 @@ const menuItems: SidebarItem[] = [
   { title: 'Việc làm', href: '/employer/jobs', icon: Briefcase },
   { title: 'Ứng tuyển', href: '/employer/applications', icon: Users },
   { title: 'Công ty', href: '/employer/company', icon: Building2 },
+  { title: 'Duyệt đánh giá', href: '/employer/reviews', icon: Star },
   { title: 'Thống kê', href: '/employer/analytics', icon: BarChart3 },
 ];
 
