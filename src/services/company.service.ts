@@ -1,4 +1,5 @@
 import type { Company, PaginatedResponse, PaginationParams } from '@/types';
+import type { CompanyReviewListResponse, CreateCompanyReviewRequest } from '@/types/company-review';
 import { USE_MOCK } from './api';
 import * as mockCompanies from '@/mocks/handlers/companies.mock';
 import { apiClient } from './api';
@@ -23,6 +24,7 @@ interface CompanyDTO {
   industries?: IndustryDTO[];
   isVerified?: boolean;
   jobPostCount?: number;
+  followerCount?: number;
   email?: string;
   phone?: string;
   images?: { imageId?: number; imageUrl?: string; type?: string }[];
@@ -53,6 +55,7 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
     industries,
     is_verified: dto.isVerified ?? false,
     create_job_count: dto.jobPostCount,
+    follower_count: dto.followerCount,
     owner_user_id: dto.ownerUserId != null ? String(dto.ownerUserId) : '',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -170,5 +173,78 @@ export async function deleteBanner(companyId: string): Promise<void> {
 export async function deleteCompanyImage(imageId: number): Promise<void> {
   if (USE_MOCK) return;
   await apiClient.delete(`/company/images/${imageId}`);
+}
+
+export async function getCompanyReviews(
+  companyId: string,
+  page = 1,
+  limit = 5
+): Promise<CompanyReviewListResponse> {
+  if (USE_MOCK) {
+    return {
+      items: [],
+      totalCount: 0,
+      averageRating: 0,
+      page,
+      limit,
+      hasNext: false,
+    };
+  }
+
+  const response = await apiClient.get(`/company/${companyId}/reviews`, {
+    params: { page, limit },
+  });
+  return (response.data ?? response) as CompanyReviewListResponse;
+}
+
+export async function createCompanyReview(
+  companyId: string,
+  payload: CreateCompanyReviewRequest
+): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.post(`/company/${companyId}/reviews`, payload);
+}
+
+export async function getRecruiterPendingReviews(page = 1, limit = 10): Promise<CompanyReviewListResponse> {
+  if (USE_MOCK) {
+    return {
+      items: [],
+      totalCount: 0,
+      averageRating: 0,
+      page,
+      limit,
+      hasNext: false,
+    };
+  }
+  const response = await apiClient.get('/company/recruiter/reviews/pending', {
+    params: { page, limit },
+  });
+  return (response.data ?? response) as CompanyReviewListResponse;
+}
+
+export async function approveRecruiterReview(reviewId: number): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put(`/company/recruiter/reviews/${reviewId}/approve`);
+}
+
+export async function rejectRecruiterReview(reviewId: number): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put(`/company/recruiter/reviews/${reviewId}/reject`);
+}
+
+export async function followCompany(companyId: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.post(`/company/${companyId}/follow`);
+}
+
+export async function unfollowCompany(companyId: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.delete(`/company/${companyId}/follow`);
+}
+
+export async function getCompanyFollowStatus(companyId: string): Promise<boolean> {
+  if (USE_MOCK) return false;
+  const response = await apiClient.get(`/company/${companyId}/follow`);
+  return Boolean((response.data ?? response) as boolean);
 }
 

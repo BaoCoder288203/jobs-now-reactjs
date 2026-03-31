@@ -27,6 +27,7 @@ import { EmployerApplicationsPage } from '@/pages/employer/ApplicationsPage';
 import { EmployerApplicationDetailPage } from '@/pages/employer/ApplicationDetailPage';
 import { CreateJobPage } from '@/pages/employer/CreateJobPage';
 import { EmployerCompanyPage } from '@/pages/employer/CompanyPage';
+import { EmployerReviewsPage } from '@/pages/employer/ReviewsPage';
 import { EmployerSettingsPage } from '@/pages/employer/SettingsPage';
 
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
@@ -110,6 +111,16 @@ export function AppRoutes() {
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerCompanyPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/reviews"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <EmployerReviewsPage />
             </RoleGuard>
           </RequireAuth>
         }

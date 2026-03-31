@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react';
 import type { ExtractedCVData } from '@/types';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface CVPreviewProps {
   data: ExtractedCVData;
@@ -129,7 +130,7 @@ export function CVPreview({ data, language = 'vi' }: CVPreviewProps) {
         .save();
     } catch (err) {
       console.error('PDF generation failed:', err);
-      alert('Tải PDF thất bại. Vui lòng thử lại.');
+      toast.error('Tải PDF thất bại. Vui lòng thử lại.');
     }
   }, [displayName]);
 

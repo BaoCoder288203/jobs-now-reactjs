@@ -179,7 +179,7 @@ export default function ChatPage() {
         );
       } catch (error) {
         console.error('File upload failed', error);
-        alert('Không thể tải tệp lên');
+        toast.error('Không thể tải tệp lên');
       } finally {
         setIsUploading(false);
         setSelectedFile(null);
