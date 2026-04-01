@@ -34,6 +34,7 @@ export interface Company {
   owner_user_id: string;
   create_job_count?: number;
   is_verified?: boolean;
+  follower_count?: number;
   created_at: string;
   updated_at: string;
 
