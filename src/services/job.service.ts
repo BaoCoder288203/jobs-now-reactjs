@@ -56,6 +56,13 @@ interface JobDTO {
     url?: string;
     logoUrl?: string;
   }[];
+  baseScore?: number;
+  boostScore?: number;
+  finalScore?: number;
+  hotTag?: string;
+  boostActive?: boolean;
+  activeBoostPlanType?: string;
+  activeBoostEndAt?: string;
 }
 
 function mapJobDTOToJob(dto: JobDTO): Job {
@@ -128,6 +135,13 @@ function mapJobDTOToJob(dto: JobDTO): Job {
       url: s.url ?? '',
       logoUrl: s.logoUrl,
     })),
+    baseScore: dto.baseScore,
+    boostScore: dto.boostScore,
+    finalScore: dto.finalScore,
+    hotTag: dto.hotTag,
+    boostActive: dto.boostActive,
+    activeBoostPlanType: dto.activeBoostPlanType,
+    activeBoostEndAt: dto.activeBoostEndAt,
   };
 }
 
@@ -149,14 +163,11 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
     return mockJobs.mockGetJobs(params);
   }
 
-  const sortByNewest = (items: Job[]) =>
-    [...items].sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
-
   if (params?.company_id) {
     const res = (await apiClient.get(`/job/company/${params.company_id}`)) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
-    const items = sortByNewest(arr.map(mapJobDTOToJob));
+    const items = arr.map(mapJobDTOToJob);
     return {
       items,
       pagination: {
@@ -183,7 +194,7 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
     })) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
-    const items = sortByNewest(arr.map(mapJobDTOToJob));
+    const items = arr.map(mapJobDTOToJob);
     return {
       items,
       pagination: {
@@ -200,7 +211,7 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   const res = (await apiClient.get('/job')) as { data?: JobDTO[] };
   const list = (res.data ?? res) as JobDTO[] | JobDTO;
   const arr = Array.isArray(list) ? list : [list];
-  const items = sortByNewest(arr.map(mapJobDTOToJob));
+  const items = arr.map(mapJobDTOToJob);
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 10;
   const start = (page - 1) * limit;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
@@ -10,13 +10,38 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CompanyForm } from '@/components/company/CompanyForm';
 import { Building2, MapPin, Users, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import { getSubscriptionStatus, type CompanySubscriptionStatus } from '@/services/subscription-plan.service';
 
 export function EmployerCompanyPage() {
   const { data: company, isLoading } = useMyCompany();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<CompanySubscriptionStatus | null>(null);
   
   const createCompany = useCreateMyCompany();
   const updateCompany = useUpdateMyCompany();
+
+  const accountStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'PENDING_PAYMENT':
+        return 'Đang chờ thanh toán';
+      case 'PAID_ACTIVE':
+        return 'Gói trả phí đang hoạt động';
+      case 'TRIAL_ACTIVE':
+        return 'Dùng thử đang hoạt động';
+      case 'EXPIRED':
+        return 'Gói đã hết hạn';
+      case 'TRIAL_EXPIRED':
+        return 'Dùng thử đã hết hạn';
+      default:
+        return 'Không xác định';
+    }
+  };
+
+  useEffect(() => {
+    getSubscriptionStatus()
+      .then((data) => setSubscriptionStatus(data || null))
+      .catch(() => setSubscriptionStatus(null));
+  }, []);
 
   const handleSubmit = async (formData: FormData, id?: string) => {
     try {
@@ -180,6 +205,22 @@ export function EmployerCompanyPage() {
               )}
             </CardContent>
           </Card>
+
+          {subscriptionStatus && (
+            <Card>
+              <CardContent className="p-6 space-y-2 text-sm text-gray-700">
+                <div className="font-semibold text-gray-900">Trạng thái gói tài khoản</div>
+                <p>Trạng thái: {accountStatusLabel(subscriptionStatus.accountStatus)}</p>
+                <p>Gói hiện tại: {subscriptionStatus.currentPlanName || 'Chưa có gói trả phí'}</p>
+                <p>Còn lại: {subscriptionStatus.remainingJobPosts} lượt đăng, {subscriptionStatus.remainingAiScans} AI scan</p>
+                <p>AI CV Builder trial: {subscriptionStatus.remainingAiCvBuilderTrials ?? 0}</p>
+                <p>Hết hạn: {subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                <div>
+                  <Link to="/employer/pricing" className="text-primary hover:underline">Quản lý và nâng cấp gói</Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </DashboardLayout>
 

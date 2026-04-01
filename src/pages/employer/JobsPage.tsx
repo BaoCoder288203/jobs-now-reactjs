@@ -7,12 +7,14 @@ import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { useMatchedCandidates, useRecalculateForJob } from '@/modules/cv/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle, Target, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle, Target, RefreshCw, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { getJobStatusBadge } from '@/utils/jobStatus';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { HotTagBadge } from '@/components/common/HotTagBadge';
+import { BoostJobModal } from '@/components/common/BoostJobModal';
 
 function MatchedCandidatesSection({ jobId }: { jobId: number }) {
   const { data: candidates, isLoading } = useMatchedCandidates(jobId);
@@ -88,6 +90,7 @@ export function EmployerJobsPage() {
   });
   const deleteJob = useDeleteJob();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [boostModalJobInfo, setBoostModalJobInfo] = useState<{ id: number; title: string } | null>(null);
 
   const companyJobs = jobsData?.items?.filter(job => job.company_id === companyId) || [];
 
@@ -161,6 +164,7 @@ export function EmployerJobsPage() {
                           {job.title}
                         </h3>
                         {getJobStatusBadge(job)}
+                        <HotTagBadge tag={(job as any).hotTag} compact />
                       </div>
 
                       {!job.isActive && job.note && (
@@ -187,6 +191,12 @@ export function EmployerJobsPage() {
                           <Users className="h-4 w-4" />
                           {getJobTypeLabel(job.job_type)}
                         </div>
+                        {job.boostActive && job.activeBoostPlanType && (
+                          <div className="flex items-center gap-1 text-amber-700 font-medium">
+                            <Zap className="h-4 w-4" />
+                            Boost {job.activeBoostPlanType} den {job.activeBoostEndAt ? new Date(job.activeBoostEndAt).toLocaleDateString('vi-VN') : 'N/A'}
+                          </div>
+                        )}
                       </div>
 
                       <p className="text-sm text-gray-600 line-clamp-2">
@@ -195,6 +205,15 @@ export function EmployerJobsPage() {
                     </div>
 
                     <div className="ml-6 flex flex-col gap-2">
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="gap-2 w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                        onClick={() => setBoostModalJobInfo({ id: Number(job.id), title: job.title })}
+                      >
+                        <Zap className="h-4 w-4" />
+                        Boost
+                      </Button>
                       <Link to={`/employer/jobs/${job.id}/edit`}>
                         <Button variant="outline" size="sm" className="gap-2 w-full">
                           <Edit2 className="h-4 w-4" />
@@ -246,6 +265,13 @@ export function EmployerJobsPage() {
           </Card>
         )}
       </div>
+
+      <BoostJobModal
+        isOpen={boostModalJobInfo !== null}
+        onClose={() => setBoostModalJobInfo(null)}
+        jobId={boostModalJobInfo?.id || null}
+        jobTitle={boostModalJobInfo?.title}
+      />
     </DashboardLayout>
   );
 }

@@ -82,6 +82,14 @@ export interface Job {
     logoUrl?: string;
   }[];
 
+  baseScore?: number;
+  boostScore?: number;
+  finalScore?: number;
+  hotTag?: string;
+  boostActive?: boolean;
+  activeBoostPlanType?: string;
+  activeBoostEndAt?: string;
+
   company?: Company;
   category?: JobCategory;
 }

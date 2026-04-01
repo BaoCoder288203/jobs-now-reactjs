@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
@@ -12,9 +13,11 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { getJobStatusBadge } from '@/utils/jobStatus';
 import { getApplicationStatusBadge } from '@/utils/applicationStatus';
+import { getSubscriptionStatus, type CompanySubscriptionStatus } from '@/services/subscription-plan.service';
 
 export function RecruiterDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<CompanySubscriptionStatus | null>(null);
 
   // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
@@ -33,6 +36,29 @@ export function RecruiterDashboardPage() {
   const companyJobs = companyJobsData?.items?.filter(job => job.company_id === companyId) || [];
 
   const isLoading = companyLoading || jobsLoading || applicationsLoading;
+
+  useEffect(() => {
+    getSubscriptionStatus()
+      .then((data) => setSubscriptionStatus(data || null))
+      .catch(() => setSubscriptionStatus(null));
+  }, []);
+
+  const accountStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'PENDING_PAYMENT':
+        return 'Đang chờ thanh toán';
+      case 'PAID_ACTIVE':
+        return 'Gói trả phí đang hoạt động';
+      case 'TRIAL_ACTIVE':
+        return 'Dùng thử đang hoạt động';
+      case 'EXPIRED':
+        return 'Gói đã hết hạn';
+      case 'TRIAL_EXPIRED':
+        return 'Dùng thử đã hết hạn';
+      default:
+        return 'Không xác định';
+    }
+  };
 
   const stats = [
     {
@@ -70,7 +96,6 @@ export function RecruiterDashboardPage() {
     );
   }
 
-  // Nếu recruiter chưa có company, hiển thị thông báo
   if (!company) {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
@@ -131,6 +156,24 @@ export function RecruiterDashboardPage() {
             );
           })}
         </div>
+
+        {subscriptionStatus && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-bold">Trạng thái tài khoản</CardTitle>
+              <Link to="/employer/pricing">
+                <Button variant="outline" size="sm">Quản lý gói</Button>
+              </Link>
+            </CardHeader>
+            <CardContent className="text-sm text-gray-700 space-y-1">
+              <p>Trạng thái: {accountStatusLabel(subscriptionStatus.accountStatus)}</p>
+              <p>Gói hiện tại: {subscriptionStatus.currentPlanName || 'Chưa có gói trả phí'}</p>
+              <p>Còn lại: {subscriptionStatus.remainingJobPosts} lượt đăng, {subscriptionStatus.remainingAiScans} AI scan</p>
+              <p>AI CV Builder trial: {subscriptionStatus.remainingAiCvBuilderTrials ?? 0}</p>
+              <p>Hết hạn: {subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Applications */}
         <Card>
