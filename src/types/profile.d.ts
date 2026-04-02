@@ -1,7 +1,6 @@
 import type { User } from './user.d';
 import type { Skill } from './skill.d';
 
-// CV section DTOs (match BE)
 export interface WorkExperienceDTO {
   id: number;
   title: string;
@@ -41,8 +40,8 @@ export interface CertificateDTO {
   sortOrder: number | null;
 }
 
-// Cấu trúc JSON lưu trong extracted_text
 export interface ExtractedCVData {
+  avatarUrl?: string;
   fullName?: string;
   title?: string;
   email?: string;
@@ -112,6 +111,7 @@ export interface Resume {
   resumeName: string;
   resumeUrl: string;
   summary?: string | null;
+  templateKey?: string;
   uploadedAt: string;
   id?: string;
   job_seeker_profile_id?: string;

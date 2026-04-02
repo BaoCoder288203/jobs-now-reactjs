@@ -13,27 +13,44 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Application } from '@/types';
 
+function toAiMatchErrorMessage(rawMessage: string) {
+  const message = rawMessage.toLowerCase();
+  if (
+    message.includes('no active candidate quota') ||
+    message.includes('out of ai matching quota') ||
+    message.includes('candidate subscription expired')
+  ) {
+    return 'Bạn chưa có lượt AI Matching khả dụng. Vui lòng vào trang Goi dich vu tai /user/pricing de mua hoac nang cap goi.';
+  }
+  return rawMessage;
+}
+
 export function JobSeekerDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
-  const profileId = user?.profileId ?? undefined;
+  const authProfileId = user?.profileId ?? undefined;
 
   const { data: recentJobs } = useJobs({ limit: 3 });
-  const { data: applicationsData } = useMyApplications(profileId, userId);
-  const { data: savedJobs } = useSavedJobs(userId);
   const { data: profile } = useProfile(userId);
-  const { data: myMatches, isLoading: matchesLoading } = useMyMatches(profileId);
+  const resolvedProfileId = profile?.profileId ?? authProfileId;
+  const { data: applicationsData } = useMyApplications(resolvedProfileId, userId);
+  const { data: savedJobs } = useSavedJobs(userId);
+  const { data: myMatches, isLoading: matchesLoading } = useMyMatches(resolvedProfileId);
   const recalculate = useRecalculateForProfile();
   const queryClient = useQueryClient();
 
   const handleRecalculate = async () => {
-    if (!profileId) return;
+    if (!resolvedProfileId) return;
     try {
-      await recalculate.mutateAsync(profileId);
-      queryClient.invalidateQueries({ queryKey: ['ai', 'my-matches', profileId] });
+      await recalculate.mutateAsync(resolvedProfileId);
+      queryClient.invalidateQueries({ queryKey: ['ai', 'my-matches', resolvedProfileId] });
       toast.success('Đã cập nhật độ phù hợp');
-    } catch {
-      toast.error('Cập nhật thất bại');
+    } catch (error: unknown) {
+      const message =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message?: string }).message)
+          : '';
+      toast.error(toAiMatchErrorMessage(message) || 'Cập nhật thất bại');
     }
   };
 
@@ -164,7 +181,7 @@ export function JobSeekerDashboardPage() {
             size="sm"
             className="gap-2"
             onClick={handleRecalculate}
-            disabled={recalculate.isPending || !profileId}
+            disabled={recalculate.isPending || !resolvedProfileId}
           >
             <RefreshCw className={`h-4 w-4 ${recalculate.isPending ? 'animate-spin' : ''}`} />
             Cập nhật
@@ -207,7 +224,7 @@ export function JobSeekerDashboardPage() {
               <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">Chưa có dữ liệu phù hợp</p>
               <p className="text-sm text-gray-500 mb-4">Nhấn "Cập nhật" để AI tính điểm phù hợp với các việc làm</p>
-              <Button size="sm" onClick={handleRecalculate} disabled={recalculate.isPending || !profileId}>
+              <Button size="sm" onClick={handleRecalculate} disabled={recalculate.isPending || !resolvedProfileId}>
                 {recalculate.isPending ? 'Đang tính...' : 'Tính ngay'}
               </Button>
             </div>

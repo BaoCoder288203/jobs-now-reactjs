@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
@@ -15,12 +15,30 @@ import * as profileCvService from '@/services/profile-cv.service';
 import { initResume } from '@/services/resume.service';
 import { apiClient } from '@/services/api';
 import { CVPreview } from './CVPreview';
+import { CVTemplatePicker } from './CVTemplatePicker';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Upload, UserCircle2 } from 'lucide-react';
 import type { ExtractedCVData } from '@/types';
+import {
+  DEFAULT_CV_TEMPLATE_KEY,
+  getCVTemplateOptionByKey,
+  normalizeCVTemplateKey,
+  recommendCVTemplate,
+  type CVTemplateKey,
+} from '@/constants/cvTemplates';
+import { setStoredCVLanguages } from '@/lib/cvLanguageStorage';
+import { setStoredCVHeadline } from '@/lib/cvHeadlineStorage';
 
 const WORK_LEVELS = ['INTERN', 'FRESHER', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'OTHER'] as const;
 const EDUCATION_LEVELS = ['HIGH_SCHOOL', 'VOCATIONAL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'OTHER'] as const;
+const SKILL_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+type SkillLevel = (typeof SKILL_LEVELS)[number];
+const DEFAULT_SKILL_LEVEL: SkillLevel = 'BEGINNER';
+
+type SelectedSkill = {
+  skillId: number;
+  level: SkillLevel;
+};
 
 type DraftWorkExp = {
   title: string;
@@ -46,6 +64,11 @@ type DraftCert = {
   title: string;
   issueDate: string;
   description: string;
+};
+
+type DraftLanguage = {
+  name: string;
+  proficiency: string;
 };
 
 const emptyWE = (): DraftWorkExp => ({
@@ -74,6 +97,11 @@ const emptyCert = (): DraftCert => ({
   description: '',
 });
 
+const emptyLanguage = (): DraftLanguage => ({
+  name: '',
+  proficiency: '',
+});
+
 interface CVCreateFormProps {
   userId: string;
 }
@@ -84,15 +112,22 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
   const { data: profile, isLoading } = useProfileWithCV(userId);
 
   const [resumeName, setResumeName] = useState('CV của tôi');
+  const [cvHeadline, setCvHeadline] = useState('');
+  const [isHeadlineTouched, setIsHeadlineTouched] = useState(false);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState<CVTemplateKey>(DEFAULT_CV_TEMPLATE_KEY);
+  const [isTemplateManuallyPicked, setIsTemplateManuallyPicked] = useState(false);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [summary, setSummary] = useState('');
   const [workExps, setWorkExps] = useState<DraftWorkExp[]>([]);
   const [educations, setEducations] = useState<DraftEdu[]>([]);
   const [projects, setProjects] = useState<DraftProject[]>([]);
   const [certificates, setCertificates] = useState<DraftCert[]>([]);
-  const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>([]);
+  const [languages, setLanguages] = useState<DraftLanguage[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(true);
   const [downloadFlowOpen, setDownloadFlowOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -101,6 +136,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
   const [highlightedIdx, setHighlightedIdx] = useState(0);
   const skillInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const { data: skillList = [] } = useQuery({
     queryKey: ['skill', 'all'],
@@ -118,18 +154,64 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
 
   const filteredSkillOptions = skillOptions.filter(
     (s) =>
-      !selectedSkillIds.includes(s.skillId) &&
+      !selectedSkills.some((item) => item.skillId === s.skillId) &&
       s.skillName.toLowerCase().includes(skillSearch.trim().toLowerCase())
   );
   const safeHighlightedIdx = Math.min(highlightedIdx, Math.max(0, filteredSkillOptions.length - 1));
 
+  const recommendedTemplateKey = recommendCVTemplate({
+    title: profile?.title,
+    workExperienceCount: workExps.filter((item) => item.title.trim()).length,
+  });
+
+  useEffect(() => {
+    if (!isTemplateManuallyPicked) {
+      setSelectedTemplateKey(normalizeCVTemplateKey(recommendedTemplateKey));
+    }
+  }, [recommendedTemplateKey, isTemplateManuallyPicked]);
+
+  useEffect(() => {
+    if (!isHeadlineTouched && !cvHeadline.trim() && profile?.title?.trim()) {
+      setCvHeadline(profile.title.trim());
+    }
+  }, [profile?.title, cvHeadline, isHeadlineTouched]);
+
+  const handleTemplateChange = (templateKey: CVTemplateKey) => {
+    setSelectedTemplateKey(normalizeCVTemplateKey(templateKey));
+    setIsTemplateManuallyPicked(true);
+  };
+
+  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file ảnh hợp lệ.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        setAvatarPreviewUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const selectedTemplateOption = getCVTemplateOptionByKey(selectedTemplateKey);
+
   const handleSelectSkill = (skillId: number) => {
-    setSelectedSkillIds((prev) => [...prev, skillId]);
+    setSelectedSkills((prev) => [...prev, { skillId, level: DEFAULT_SKILL_LEVEL }]);
     setSkillSearch('');
     setHighlightedIdx(0);
   };
   const handleRemoveSkill = (skillId: number) => {
-    setSelectedSkillIds((prev) => prev.filter((id) => id !== skillId));
+    setSelectedSkills((prev) => prev.filter((item) => item.skillId !== skillId));
+  };
+  const handleSkillLevelChange = (skillId: number, level: SkillLevel) => {
+    setSelectedSkills((prev) =>
+      prev.map((item) => (item.skillId === skillId ? { ...item, level } : item))
+    );
   };
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!skillDropdownOpen) return;
@@ -160,6 +242,9 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
   const updateCert = (idx: number, field: keyof DraftCert, value: string) => {
     setCertificates((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
   };
+  const updateLanguage = (idx: number, field: keyof DraftLanguage, value: string) => {
+    setLanguages((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
 
   const toDisplayDate = (dateValue: string) => {
     if (!dateValue) return '';
@@ -169,17 +254,23 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
   };
 
   const buildPreviewData = (): ExtractedCVData => {
-    const selectedSkills = selectedSkillIds
-      .map((id) => skillOptions.find((s) => s.skillId === id)?.skillName)
-      .filter((name): name is string => Boolean(name));
+    const preferredHeadline = cvHeadline.trim() || profile?.title?.trim() || '';
+    const skillPreviewItems = selectedSkills.reduce<{ name: string; level: string }[]>((acc, item) => {
+        const skillName = skillOptions.find((s) => s.skillId === item.skillId)?.skillName;
+        if (skillName) {
+          acc.push({ name: skillName, level: item.level });
+        }
+        return acc;
+      }, []);
 
     return {
+      avatarUrl: avatarPreviewUrl ?? undefined,
       fullName: profile?.fullName ?? '',
       email: profile?.email ?? '',
       phone: profile?.phone ?? '',
       address: profile?.address ?? '',
-      title: profile?.title ?? '',
-      headline: profile?.title ?? 'Curriculum Vitae',
+      title: preferredHeadline,
+      headline: preferredHeadline || 'Curriculum Vitae',
       summary: summary.trim(),
       work_experiences: workExps
         .filter((we) => we.title.trim())
@@ -199,7 +290,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           start_date: toDisplayDate(edu.startDate),
           end_date: toDisplayDate(edu.endDate),
         })),
-      skills: selectedSkills.map((name) => ({ name })),
+      skills: skillPreviewItems,
       projects: projects
         .filter((proj) => proj.title.trim())
         .map((proj) => ({
@@ -209,7 +300,12 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
           end_date: toDisplayDate(proj.endDate),
           duration: [toDisplayDate(proj.startDate), toDisplayDate(proj.endDate)].filter(Boolean).join(' - '),
         })),
-      languages: [],
+      languages: languages
+        .filter((lang) => lang.name.trim())
+        .map((lang) => ({
+          name: lang.name.trim(),
+          proficiency: lang.proficiency.trim(),
+        })),
       certificates: certificates
         .filter((cert) => cert.title.trim())
         .map((cert) => ({
@@ -232,8 +328,10 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
     setIsSaving(true);
     try {
       // 1. Tạo Resume → lấy resumeId
-      const resume = await initResume(userId, resumeName.trim());
+      const resume = await initResume(userId, resumeName.trim(), selectedTemplateKey);
       const resumeId = resume.resumeId;
+
+      setStoredCVHeadline(resumeId, cvHeadline);
 
       // 2. Lưu summary vào resume
       if (summary.trim()) {
@@ -296,11 +394,25 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
       }
 
       // 7. Skills
-      for (const skillId of selectedSkillIds) {
-        await profileCvService.addResumeSkill(resumeId, { skillId, level: null });
+      for (const skill of selectedSkills) {
+        await profileCvService.addResumeSkill(resumeId, {
+          skillId: skill.skillId,
+          level: skill.level,
+        });
       }
 
-      // 8. Invalidate cache + redirect
+      // 8. Languages (local-only by resumeId, not persisted to DB)
+      setStoredCVLanguages(
+        resumeId,
+        languages
+          .filter((lang) => lang.name.trim())
+          .map((lang) => ({
+            name: lang.name.trim(),
+            proficiency: lang.proficiency.trim(),
+          }))
+      );
+
+      // 9. Invalidate cache + redirect
       await queryClient.invalidateQueries({ queryKey: profileKeys.all });
       setHasSaved(true);
       toast.success('Tạo CV thành công!');
@@ -357,6 +469,78 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
             placeholder="VD: CV Frontend 2025"
             className="font-medium"
           />
+          <Label className="pt-3">Chức danh hiển thị trên CV</Label>
+          <p className="text-sm text-gray-500">Bạn có thể nhập riêng cho CV này, không phụ thuộc chức danh trong hồ sơ tài khoản.</p>
+          <Input
+            value={cvHeadline}
+            onChange={(e) => {
+              setCvHeadline(e.target.value);
+              setIsHeadlineTouched(true);
+            }}
+            placeholder="VD: Frontend Developer"
+            className="font-medium"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-primary-dark uppercase text-sm font-bold">CV TEMPLATE</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-gray-500">Nên chọn mẫu trước khi nhập nội dung để bố cục và phong cách nhất quán.</p>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs text-gray-500">Mẫu đang chọn</p>
+            <p className="text-lg font-semibold text-gray-900 mt-1">{selectedTemplateOption.name}</p>
+            <p className="text-sm text-gray-600 mt-1">{selectedTemplateOption.category}</p>
+            <p className="text-sm text-gray-600">{selectedTemplateOption.description}</p>
+            <p className="text-xs font-medium text-primary mt-2">
+              Khi bấm Lưu CV, hệ thống sẽ lưu đúng template này vào hồ sơ CV.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setTemplatePickerOpen(true)}>
+              Chọn/Đổi mẫu CV
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-primary-dark uppercase text-sm font-bold">PROFILE IMAGE</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 overflow-hidden rounded-full border border-gray-300 bg-gray-100 flex items-center justify-center">
+              {avatarPreviewUrl ? (
+                <img src={avatarPreviewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+              ) : (
+                <UserCircle2 className="h-12 w-12 text-gray-400" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">Ảnh này sẽ hiển thị trong phần hồ sơ bên trái của CV preview.</p>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" onClick={() => avatarInputRef.current?.click()}>
+                  <Upload className="h-4 w-4" />
+                  Tải ảnh lên
+                </Button>
+                {avatarPreviewUrl && (
+                  <Button type="button" variant="ghost" onClick={() => setAvatarPreviewUrl(null)}>
+                    Xóa ảnh
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -384,6 +568,7 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-gray-500">Tìm theo tên kỹ năng rồi chọn để thêm vào CV.</p>
+          <p className="text-xs text-gray-500">Kỹ năng mới thêm sẽ mặc định ở mức BEGINNER, bạn có thể đổi level riêng cho từng kỹ năng bên dưới.</p>
           <div className="relative max-w-md">
             <Input
               ref={skillInputRef}
@@ -415,21 +600,30 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
               </div>
             )}
           </div>
-          {selectedSkillIds.length > 0 && (
+          {selectedSkills.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {selectedSkillIds.map((id) => {
-                const name = skillOptions.find((s) => s.skillId === id)?.skillName ?? String(id);
+              {selectedSkills.map((skill) => {
+                const name = skillOptions.find((s) => s.skillId === skill.skillId)?.skillName ?? String(skill.skillId);
                 return (
-                  <span key={id} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm">
-                    {name}
-                    <button type="button" onClick={() => handleRemoveSkill(id)} className="hover:text-red-600">×</button>
+                  <span key={skill.skillId} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm">
+                    <span>{name}</span>
+                    <select
+                      value={skill.level}
+                      onChange={(e) => handleSkillLevelChange(skill.skillId, e.target.value as SkillLevel)}
+                      className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs"
+                    >
+                      {SKILL_LEVELS.map((level) => (
+                        <option key={level} value={level}>{level}</option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => handleRemoveSkill(skill.skillId)} className="hover:text-red-600">×</button>
                   </span>
                 );
               })}
             </div>
           )}
-          {selectedSkillIds.length === 0 && (
-            <p className="text-sm text-gray-500">Chưa có kỹ năng. Tìm kiếm ở trên để thêm.</p>
+          {selectedSkills.length === 0 && (
+            <p className="text-sm text-gray-500">Chưa có kỹ năng. Thêm kỹ năng trước, rồi chỉnh level riêng cho từng kỹ năng ở danh sách bên dưới.</p>
           )}
         </CardContent>
       </Card>
@@ -530,7 +724,6 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
         </CardContent>
       </Card>
 
-      {/* Certificates */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-primary-dark uppercase text-sm font-bold">CERTIFICATES</CardTitle>
@@ -551,6 +744,29 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
               </div>
               <Input type="date" value={cert.issueDate} onChange={(e) => updateCert(idx, 'issueDate', e.target.value)} className="w-auto" />
               <Textarea value={cert.description} onChange={(e) => updateCert(idx, 'description', e.target.value)} placeholder="Mô tả" rows={2} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-primary-dark uppercase text-sm font-bold">NGÔN NGỮ</CardTitle>
+          <Button size="sm" onClick={() => setLanguages((p) => [...p, emptyLanguage()])}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {languages.length === 0 && <p className="text-sm text-gray-500">Chưa có ngôn ngữ. Bấm + để thêm.</p>}
+          {languages.map((lang, idx) => (
+            <div key={idx} className="rounded-lg border p-4 bg-gray-50/50 space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <Input value={lang.name} onChange={(e) => updateLanguage(idx, 'name', e.target.value)} placeholder="Ngôn ngữ (VD: English)" className="font-medium" />
+                <Button variant="ghost" size="icon" onClick={() => setLanguages((p) => p.filter((_, i) => i !== idx))}>
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
+              <Input value={lang.proficiency} onChange={(e) => updateLanguage(idx, 'proficiency', e.target.value)} placeholder="Trình độ (VD: IELTS 6.5 / Intermediate)" />
             </div>
           ))}
         </CardContent>
@@ -594,9 +810,20 @@ export function CVCreateForm({ userId }: CVCreateFormProps) {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={templatePickerOpen} onOpenChange={setTemplatePickerOpen}>
+        <DialogContent className="max-w-[96vw] p-4 lg:max-w-[1320px] lg:p-6" onClose={() => setTemplatePickerOpen(false)}>
+          <CVTemplatePicker
+            selectedTemplateKey={selectedTemplateKey}
+            recommendedTemplateKey={recommendedTemplateKey}
+            onChange={handleTemplateChange}
+            onTemplateApplied={() => setTemplatePickerOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-[95vw] p-4" onClose={() => setPreviewOpen(false)}>
-          <CVPreview data={buildPreviewData()} language="vi" onDataChange={() => {}} />
+          <CVPreview data={buildPreviewData()} templateKey={selectedTemplateKey} language="vi" onDataChange={() => {}} />
         </DialogContent>
       </Dialog>
     </div>

@@ -16,6 +16,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCandidateSubscriptionStatus } from '@/services/subscription-plan.service';
 
 export function UserDropdown() {
   const { user } = useAppSelector((state) => state.auth);
@@ -23,6 +24,7 @@ export function UserDropdown() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isJobMenuOpen, setIsJobMenuOpen] = useState(false);
+  const [isVipUser, setIsVipUser] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +60,32 @@ export function UserDropdown() {
   const canAccessRecruiter = isRecruiter || isAdmin;
   const canAccessAdmin = isAdmin;
 
+  useEffect(() => {
+    let mounted = true;
+    if (!isJobSeeker || !user?.userId) {
+      setIsVipUser(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    getCandidateSubscriptionStatus()
+      .then((status) => {
+        if (mounted) {
+          setIsVipUser(Boolean(status.isProfileHighlighted));
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setIsVipUser(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [isJobSeeker, user?.userId]);
+
   if (!user) return null;
 
   return (
@@ -71,10 +99,18 @@ export function UserDropdown() {
           <img
             src={user.avatar}
             alt={user.fullName}
-            className="h-8 w-8 rounded-full object-cover"
+            className={cn(
+              "h-8 w-8 rounded-full object-cover",
+              isJobSeeker && isVipUser && "ring-2 ring-amber-400 ring-offset-1"
+            )}
           />
         ) : (
-          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+          <div
+            className={cn(
+              "h-8 w-8 rounded-full bg-primary flex items-center justify-center",
+              isJobSeeker && isVipUser && "ring-2 ring-amber-400 ring-offset-1"
+            )}
+          >
             <span className="text-sm font-medium text-gray-900">
               {user.fullName.charAt(0).toUpperCase()}
             </span>
@@ -83,6 +119,11 @@ export function UserDropdown() {
         <span className="hidden sm:inline font-medium text-gray-900">
           {user.fullName.split(' ')[0]}
         </span>
+        {isJobSeeker && isVipUser && (
+          <span className="hidden sm:inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+            VIP
+          </span>
+        )}
         <ChevronDown className={cn(
           "h-4 w-4 text-gray-600 transition-transform",
           isOpen && "transform rotate-180"
@@ -107,7 +148,10 @@ export function UserDropdown() {
                   <img
                     src={user.avatar}
                     alt={user.fullName}
-                    className="h-12 w-12 rounded-full object-cover"
+                    className={cn(
+                      "h-12 w-12 rounded-full object-cover",
+                      isJobSeeker && isVipUser && "ring-2 ring-amber-400 ring-offset-1"
+                    )}
                   />
                 ) : (
                   <span className="text-lg font-semibold text-white">
@@ -116,9 +160,16 @@ export function UserDropdown() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-gray-900 text-sm">
-                  {user.fullName}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-semibold text-gray-900 text-sm">
+                    {user.fullName}
+                  </p>
+                  {isJobSeeker && isVipUser && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                      VIP
+                    </span>
+                  )}
+                </div>
                 <p className="truncate text-xs text-gray-600">
                   {user.email || ''}
                 </p>

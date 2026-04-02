@@ -9,6 +9,10 @@ import { CVPreview } from '@/components/cv-builder/CVPreview';
 import { improveCVFromText, type ImproveCVResponse } from '@/services/ai.service';
 import { useResumes, useUploadResume, useSetDefaultResume, useDeleteResume } from '@/modules/resumes/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { DEFAULT_CV_TEMPLATE_KEY, normalizeCVTemplateKey, type CVTemplateKey } from '@/constants/cvTemplates';
+import { getStoredCVAvatar } from '@/lib/cvAvatarStorage';
+import { getStoredCVLanguages } from '@/lib/cvLanguageStorage';
+import { getStoredCVHeadline } from '@/lib/cvHeadlineStorage';
 import * as profileCvService from '@/services/profile-cv.service';
 import { FileText, Upload, Star, Trash2, Download, Edit, FileEdit, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,6 +26,7 @@ export function JobSeekerResumesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<ExtractedCVData | null>(null);
+  const [previewTemplateKey, setPreviewTemplateKey] = useState<CVTemplateKey>(DEFAULT_CV_TEMPLATE_KEY);
   const [previewLanguage, setPreviewLanguage] = useState<'vi' | 'en'>('en');
   const [improveOpen, setImproveOpen] = useState(false);
   const [improveResult, setImproveResult] = useState<ImproveCVResponse | null>(null);
@@ -29,6 +34,7 @@ export function JobSeekerResumesPage() {
   const [improveTargetResumeId, setImproveTargetResumeId] = useState<number | null>(null);
   const [improvingResumeName, setImprovingResumeName] = useState('');
   const [improveLanguage, setImproveLanguage] = useState<ImproveLanguage>('auto');
+  const [deleteConfirmResume, setDeleteConfirmResume] = useState<{ id: string; name: string } | null>(null);
 
   const { data: resumes = [], isLoading } = useResumes(userId);
   const uploadResume = useUploadResume();
@@ -68,14 +74,20 @@ export function JobSeekerResumesPage() {
   };
 
   const handleDelete = async (resumeId: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa CV này?')) return;
-
     try {
       await deleteResume.mutateAsync({ userId, resumeId });
       toast.success('Đã xóa CV');
+      setDeleteConfirmResume(null);
     } catch (error: any) {
       toast.error(error.message || 'Xóa CV thất bại');
     }
+  };
+
+  const openDeleteConfirm = (resume: { id?: string; resumeId?: number; file_name?: string; resumeName?: string }) => {
+    const resumeId = String(resume.id ?? resume.resumeId ?? '');
+    if (!resumeId) return;
+    const resumeName = resume.file_name ?? resume.resumeName ?? 'CV này';
+    setDeleteConfirmResume({ id: resumeId, name: resumeName });
   };
 
   const toDisplayDate = (dateValue?: string | null) => {
@@ -95,6 +107,7 @@ export function JobSeekerResumesPage() {
     resumeId?: number;
     file_name?: string;
     resumeName?: string;
+    templateKey?: string;
     summary?: string | null;
   }) => {
     const { resumeId, resumeName } = getResumeIdentity(resume);
@@ -112,14 +125,16 @@ export function JobSeekerResumesPage() {
         profileCvService.getCertificates(resumeId),
         profileCvService.getResumeSkills(resumeId),
       ]);
+      const manualCvHeadline = getStoredCVHeadline(resumeId);
 
       const mappedData: ExtractedCVData = {
+        avatarUrl: getStoredCVAvatar(resumeId) ?? undefined,
         fullName: profile.fullName ?? user?.fullName ?? '',
         email: profile.email ?? user?.email ?? '',
         phone: profile.phone ?? user?.phone ?? '',
         address: profile.address ?? '',
-        title: profile.title ?? '',
-        headline: profile.title ?? resumeName,
+        title: manualCvHeadline || profile.title || '',
+        headline: manualCvHeadline || profile.title || resumeName,
         summary: resume.summary ?? profile.bio ?? '',
         work_experiences: workExperiences.map((we) => ({
           company: '',
@@ -141,7 +156,7 @@ export function JobSeekerResumesPage() {
           description: project.description ?? '',
           duration: [toDisplayDate(project.startDate), toDisplayDate(project.endDate)].filter(Boolean).join(' - '),
         })),
-        languages: [],
+        languages: getStoredCVLanguages(resumeId),
         certificates: certificates.map((cert) => ({
           name: cert.title,
           issuer: cert.description ?? '',
@@ -150,6 +165,7 @@ export function JobSeekerResumesPage() {
       };
 
       setPreviewData(mappedData);
+      setPreviewTemplateKey(normalizeCVTemplateKey(resume.templateKey ?? DEFAULT_CV_TEMPLATE_KEY));
       setPreviewLanguage('en');
       setPreviewOpen(true);
     } catch (error) {
@@ -326,7 +342,7 @@ export function JobSeekerResumesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(resume.id ?? String(resume.resumeId))}
+                      onClick={() => openDeleteConfirm(resume)}
                       disabled={deleteResume.isPending}
                       className="gap-2 text-red-600 hover:text-red-700"
                     >
@@ -403,9 +419,39 @@ export function JobSeekerResumesPage() {
                   <option value="en">English</option>
                 </select>
               </div>
-              <CVPreview data={previewData} language={previewLanguage} onDataChange={() => {}} />
+              <CVPreview
+                data={previewData}
+                templateKey={previewTemplateKey}
+                language={previewLanguage}
+                onDataChange={() => {}}
+              />
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteConfirmResume)} onOpenChange={(open) => { if (!open) setDeleteConfirmResume(null); }}>
+        <DialogContent className="max-w-md p-6" onClose={() => setDeleteConfirmResume(null)}>
+          <h3 className="text-lg font-semibold text-gray-900">Xóa CV</h3>
+          <p className="mt-2 text-sm text-gray-600">
+            Bạn có chắc muốn xóa <span className="font-medium text-gray-900">{deleteConfirmResume?.name}</span>? Hành động này không thể hoàn tác.
+          </p>
+          <div className="mt-5 flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmResume(null)}
+              disabled={deleteResume.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={() => deleteConfirmResume && handleDelete(deleteConfirmResume.id)}
+              disabled={deleteResume.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteResume.isPending ? 'Đang xóa...' : 'Xóa CV'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

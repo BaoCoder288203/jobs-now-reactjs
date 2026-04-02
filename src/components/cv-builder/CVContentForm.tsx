@@ -29,12 +29,15 @@ import {
   useAddResumeSkill,
   useRemoveResumeSkill,
 } from '@/modules/profile/profile-cv.hooks';
-import { useUpdateResume, useResumes } from '@/modules/resumes/hooks';
+import { resumeKeys, useUpdateResume, useResumes } from '@/modules/resumes/hooks';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/services/api';
 import { profileKeys } from '@/modules/profile/hooks';
+import { getStoredCVAvatar, removeStoredCVAvatar, setStoredCVAvatar } from '@/lib/cvAvatarStorage';
+import { getStoredCVLanguages, setStoredCVLanguages, type CVLanguageDraft } from '@/lib/cvLanguageStorage';
+import { getStoredCVHeadline, setStoredCVHeadline } from '@/lib/cvHeadlineStorage';
 import { toast } from 'sonner';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Upload, UserCircle2 } from 'lucide-react';
 import type {
   WorkExperienceDTO,
   EducationDTO,
@@ -50,19 +53,59 @@ type CertUpdateBody = Parameters<typeof profileCvService.updateCertificate>[2];
 
 const WORK_LEVELS = ['INTERN', 'FRESHER', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'OTHER'] as const;
 const EDUCATION_LEVELS = ['HIGH_SCHOOL', 'VOCATIONAL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'OTHER'] as const;
+const SKILL_LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+type SkillLevel = (typeof SKILL_LEVELS)[number];
+const DEFAULT_SKILL_LEVEL: SkillLevel = 'BEGINNER';
+const AVATAR_MAX_WIDTH = 640;
+const AVATAR_MAX_HEIGHT = 640;
+const AVATAR_OUTPUT_QUALITY = 0.82;
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return '';
   return d.slice(0, 10);
 }
 
+function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+}
+
+async function compressAvatarDataUrl(dataUrl: string): Promise<string> {
+  const img = await loadImageFromDataUrl(dataUrl);
+  const width = img.naturalWidth || img.width;
+  const height = img.naturalHeight || img.height;
+
+  if (!width || !height) {
+    return dataUrl;
+  }
+
+  const scale = Math.min(1, AVATAR_MAX_WIDTH / width, AVATAR_MAX_HEIGHT / height);
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return dataUrl;
+  }
+
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+  const compressed = canvas.toDataURL('image/jpeg', AVATAR_OUTPUT_QUALITY);
+  return compressed.length < dataUrl.length ? compressed : dataUrl;
+}
+
 
 export interface CVContentFormProps {
   userId: string;
   header?: React.ReactNode;
-  /** Title resume (resume_name) - có thể chỉnh sửa khi có resumeId */
   resumeTitle?: string;
-  /** Khi có resumeId thì đổi title sẽ gọi API cập nhật resume_name */
   resumeId?: string;
 }
 
@@ -78,10 +121,7 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
   const numericResumeId = parseResumeId(resumeId);
 
   const [titleInput, setTitleInput] = useState(resumeTitle ?? '');
-  useEffect(() => {
-    setTitleInput(resumeTitle ?? '');
-  }, [resumeTitle]);
-
+  const [cvHeadlineInput, setCvHeadlineInput] = useState('');
 
   const { data: resumeSkills = [] } = useResumeSkills(numericResumeId);
   const addSkill = useAddResumeSkill(numericResumeId ?? 0);
@@ -104,8 +144,35 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
   const updateResume = useUpdateResume();
   const { data: resumeList = [] } = useResumes(userId);
   const currentResume = resumeList.find((r) => String(r.resumeId) === resumeId);
+  const currentResumeName = currentResume?.resumeName ?? resumeTitle ?? '';
   const [summaryDraft, setSummaryDraft] = useState('');
   const summaryValue = summaryDraft !== '' ? summaryDraft : (currentResume?.summary ?? '');
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [languagesDraft, setLanguagesDraft] = useState<CVLanguageDraft[]>([]);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const storedAvatar = getStoredCVAvatar(numericResumeId);
+    setAvatarPreviewUrl(storedAvatar ?? null);
+  }, [numericResumeId]);
+
+  useEffect(() => {
+    setTitleInput(currentResumeName || 'CV của tôi');
+  }, [currentResumeName]);
+
+  useEffect(() => {
+    setLanguagesDraft(getStoredCVLanguages(numericResumeId));
+  }, [numericResumeId]);
+
+  useEffect(() => {
+    const storedHeadline = getStoredCVHeadline(numericResumeId);
+    if (storedHeadline) {
+      setCvHeadlineInput(storedHeadline);
+      return;
+    }
+    setCvHeadlineInput(profile?.title?.trim() ?? '');
+  }, [numericResumeId, profile?.title]);
 
   const { data: workExperiences = [] } = useWorkExperiences(numericResumeId);
   const createWE = useCreateWorkExperience(numericResumeId ?? 0);
@@ -130,19 +197,105 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
   const handleSave = async () => {
     try {
       if (!resumeId) return;
+      if (numericResumeId) {
+        const missingLevelSkills = resumeSkills.filter((skill) => !(skill.level ?? '').trim());
+        for (const skill of missingLevelSkills) {
+          await removeSkill.mutateAsync(skill.skillId);
+          await addSkill.mutateAsync({ skillId: skill.skillId, level: DEFAULT_SKILL_LEVEL });
+        }
+      }
       const newTitle = titleInput?.trim() || 'CV của tôi';
       const patch: { resumeName?: string; summary?: string | null } = {};
-      if (newTitle !== resumeTitle) patch.resumeName = newTitle;
+      const persistedResumeName = currentResumeName.trim() || 'CV của tôi';
+      if (newTitle !== persistedResumeName) patch.resumeName = newTitle;
       if (summaryDraft !== '') patch.summary = summaryValue;
       if (Object.keys(patch).length > 0) {
         await updateResume.mutateAsync({ resumeId, data: patch });
         if (summaryDraft !== '') setSummaryDraft('');
       }
+      if (numericResumeId) {
+        setStoredCVHeadline(numericResumeId, cvHeadlineInput);
+        setStoredCVLanguages(
+          numericResumeId,
+          languagesDraft
+            .filter((lang) => lang.name.trim())
+            .map((lang) => ({
+              name: lang.name.trim(),
+              proficiency: (lang.proficiency ?? '').trim(),
+            }))
+        );
+      }
+      await queryClient.invalidateQueries({ queryKey: resumeKeys.all });
       await queryClient.invalidateQueries({ queryKey: profileKeys.all });
       toast.success('Đã lưu thay đổi');
     } catch {
       toast.error('Lưu thất bại. Vui lòng thử lại.');
     }
+  };
+
+  const handleUpdateSkillLevel = async (skillId: number, level: SkillLevel) => {
+    if (!numericResumeId) return;
+    const current = resumeSkills.find((s) => s.skillId === skillId);
+    const currentLevel = (current?.level ?? DEFAULT_SKILL_LEVEL) as SkillLevel;
+    if (currentLevel === level) return;
+
+    try {
+      await removeSkill.mutateAsync(skillId);
+      await addSkill.mutateAsync({ skillId, level });
+      toast.success('Đã cập nhật mức độ kỹ năng');
+    } catch {
+      toast.error('Cập nhật mức độ kỹ năng thất bại. Vui lòng thử lại.');
+    }
+  };
+
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !numericResumeId) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file ảnh hợp lệ.');
+      event.target.value = '';
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      if (typeof reader.result === 'string') {
+        try {
+          const optimizedDataUrl = await compressAvatarDataUrl(reader.result);
+          setAvatarPreviewUrl(optimizedDataUrl);
+          const saved = setStoredCVAvatar(numericResumeId, optimizedDataUrl);
+          if (saved) {
+            toast.success('Đã cập nhật ảnh riêng cho CV này');
+          } else {
+            toast.error('Ảnh đã hiển thị tạm thời nhưng không thể lưu trên trình duyệt do hết dung lượng.');
+          }
+        } catch {
+          toast.error('Không thể xử lý file ảnh. Vui lòng thử ảnh khác.');
+        }
+      } else {
+        toast.error('Không thể đọc file ảnh. Vui lòng thử lại.');
+      }
+      setIsUploadingAvatar(false);
+      event.target.value = '';
+    };
+    reader.onerror = () => {
+      toast.error('Không thể đọc file ảnh. Vui lòng thử lại.');
+      setIsUploadingAvatar(false);
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCvAvatar = () => {
+    if (!numericResumeId) return;
+    removeStoredCVAvatar(numericResumeId);
+    setAvatarPreviewUrl(null);
+    toast.success('Đã xóa ảnh riêng của CV này');
+  };
+
+  const updateLanguageDraft = (index: number, field: keyof CVLanguageDraft, value: string) => {
+    setLanguagesDraft((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
   };
 
   const isSaving = updateResume.isPending;
@@ -180,7 +333,7 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
       setHighlightedSkillIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === 'Enter' && filteredSkillOptions[safeHighlightedIndex]) {
       e.preventDefault();
-      addSkill.mutate({ skillId: filteredSkillOptions[safeHighlightedIndex].skillId, level: null });
+      addSkill.mutate({ skillId: filteredSkillOptions[safeHighlightedIndex].skillId, level: DEFAULT_SKILL_LEVEL });
       setSkillSearchQuery('');
       setHighlightedSkillIndex(0);
     } else if (e.key === 'Escape') {
@@ -214,6 +367,54 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
               className="font-medium break-words"
             />
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-gray-700">Chức danh hiển thị trên CV</Label>
+            <p className="text-sm text-gray-500">Chức danh này áp dụng riêng cho CV hiện tại.</p>
+            <Input
+              value={cvHeadlineInput}
+              onChange={(e) => setCvHeadlineInput(e.target.value)}
+              placeholder="VD: Frontend Developer"
+              className="font-medium break-words"
+            />
+          </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-primary-dark uppercase text-sm font-bold">PROFILE IMAGE</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 overflow-hidden rounded-full border border-gray-300 bg-gray-100 flex items-center justify-center">
+              {avatarPreviewUrl ? (
+                <img src={avatarPreviewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+              ) : (
+                <UserCircle2 className="h-12 w-12 text-gray-400" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">Ảnh này dùng cho CV preview và PDF sau khi tải xuống.</p>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
+              <Button type="button" variant="outline" onClick={() => avatarInputRef.current?.click()} disabled={isUploadingAvatar}>
+                <Upload className="h-4 w-4" />
+                {isUploadingAvatar ? 'Đang xử lý...' : 'Tải ảnh lên'}
+              </Button>
+              {avatarPreviewUrl && (
+                <Button type="button" variant="ghost" onClick={handleRemoveCvAvatar} disabled={isUploadingAvatar}>
+                  Xóa ảnh CV
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-primary-dark uppercase text-sm font-bold">SUMMARY</CardTitle>
@@ -235,58 +436,69 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
           <CardTitle className="text-primary-dark uppercase text-sm font-bold">SKILLS</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-xs text-gray-500">Kỹ năng mới thêm sẽ mặc định ở mức BEGINNER, bạn có thể đổi level riêng cho từng kỹ năng ngay bên dưới.</p>
           <div className="relative max-w-md">
-            <Input
-              ref={skillInputRef}
-              value={skillSearchQuery}
-              onChange={(e) => {
-                setSkillSearchQuery(e.target.value);
-                setSkillDropdownOpen(true);
-                setHighlightedSkillIndex(0);
-              }}
-              onFocus={() => setSkillDropdownOpen(true)}
-              onBlur={() => setTimeout(() => setSkillDropdownOpen(false), 150)}
-              onKeyDown={handleSkillInputKeyDown}
-              placeholder="Tìm và thêm kỹ năng..."
-              disabled={!numericResumeId || addSkill.isPending}
-            />
-            {skillDropdownOpen && numericResumeId && (
-              <div
-                className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg max-h-48 overflow-y-auto"
-                role="listbox"
-              >
-                {filteredSkillOptions.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">Không có kỹ năng phù hợp</div>
-                ) : (
-                  filteredSkillOptions.map((s, idx) => (
-                    <div
-                      key={s.skillId}
-                      role="option"
-                      aria-selected={idx === safeHighlightedIndex}
-                      className={`cursor-pointer px-3 py-2 text-sm ${idx === safeHighlightedIndex ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        addSkill.mutate({ skillId: s.skillId, level: null });
-                        setSkillSearchQuery('');
-                        setHighlightedSkillIndex(0);
-                      }}
-                      onMouseEnter={() => setHighlightedSkillIndex(idx)}
-                    >
-                      {s.skillName}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+              <Input
+                ref={skillInputRef}
+                value={skillSearchQuery}
+                onChange={(e) => {
+                  setSkillSearchQuery(e.target.value);
+                  setSkillDropdownOpen(true);
+                  setHighlightedSkillIndex(0);
+                }}
+                onFocus={() => setSkillDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setSkillDropdownOpen(false), 150)}
+                onKeyDown={handleSkillInputKeyDown}
+                placeholder="Tìm và thêm kỹ năng..."
+                disabled={!numericResumeId || addSkill.isPending}
+              />
+              {skillDropdownOpen && numericResumeId && (
+                <div
+                  className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg max-h-48 overflow-y-auto"
+                  role="listbox"
+                >
+                  {filteredSkillOptions.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Không có kỹ năng phù hợp</div>
+                  ) : (
+                    filteredSkillOptions.map((s, idx) => (
+                      <div
+                        key={s.skillId}
+                        role="option"
+                        aria-selected={idx === safeHighlightedIndex}
+                        className={`cursor-pointer px-3 py-2 text-sm ${idx === safeHighlightedIndex ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          addSkill.mutate({ skillId: s.skillId, level: DEFAULT_SKILL_LEVEL });
+                          setSkillSearchQuery('');
+                          setHighlightedSkillIndex(0);
+                        }}
+                        onMouseEnter={() => setHighlightedSkillIndex(idx)}
+                      >
+                        {s.skillName}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
           </div>
           {resumeSkills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {resumeSkills.map((s) => (
                 <span
                   key={s.skillId}
-                  className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm"
+                  className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm"
                 >
-                  {s.skillName}
+                  <span>{s.skillName}</span>
+                  <select
+                    value={(s.level ?? DEFAULT_SKILL_LEVEL) as SkillLevel}
+                    onChange={(e) => handleUpdateSkillLevel(s.skillId, e.target.value as SkillLevel)}
+                    className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs"
+                    disabled={addSkill.isPending || removeSkill.isPending}
+                  >
+                    {SKILL_LEVELS.map((level) => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     onClick={() => removeSkill.mutate(s.skillId)}
@@ -298,7 +510,7 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">Chưa thêm kỹ năng. Tìm kiếm ở trên để thêm.</p>
+            <p className="text-gray-500 text-sm">Chưa thêm kỹ năng. Thêm kỹ năng rồi chọn level riêng cho từng kỹ năng.</p>
           )}
         </CardContent>
       </Card>
@@ -449,6 +661,49 @@ export function CVContentForm({ userId, header, resumeTitle = '', resumeId }: CV
               onDelete={() => deleteCert.mutate(c.id)}
               isPending={updateCert.isPending || deleteCert.isPending}
             />
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-primary-dark uppercase text-sm font-bold">NGÔN NGỮ</CardTitle>
+          <Button
+            size="sm"
+            onClick={() => setLanguagesDraft((prev) => [...prev, { name: '', proficiency: '' }])}
+            disabled={!numericResumeId}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {languagesDraft.length === 0 && <p className="text-gray-500 text-sm">Chưa có ngôn ngữ. Bấm + để thêm.</p>}
+          {languagesDraft.map((lang, idx) => (
+            <div key={idx} className="rounded-lg border p-4 bg-gray-50/50 space-y-2">
+              <div className="flex justify-between items-start gap-2">
+                <Input
+                  value={lang.name}
+                  onChange={(e) => updateLanguageDraft(idx, 'name', e.target.value)}
+                  placeholder="Ngôn ngữ (VD: English)"
+                  className="font-medium"
+                  disabled={!numericResumeId}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLanguagesDraft((prev) => prev.filter((_, i) => i !== idx))}
+                  disabled={!numericResumeId}
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
+              <Input
+                value={lang.proficiency ?? ''}
+                onChange={(e) => updateLanguageDraft(idx, 'proficiency', e.target.value)}
+                placeholder="Trình độ (VD: Intermediate, IELTS 6.5)"
+                disabled={!numericResumeId}
+              />
+            </div>
           ))}
         </CardContent>
       </Card>

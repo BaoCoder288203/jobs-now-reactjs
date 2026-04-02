@@ -1,13 +1,26 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import type { ExtractedCVData } from '@/types';
+import type { CVTemplateKey } from '@/constants/cvTemplates';
+import { getCVTemplateOptionByKey } from '@/constants/cvTemplates';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { mixHex } from './templates/common';
+import { DarkSidebarTemplate } from './templates/DarkSidebarTemplate';
+import { AutomotiveTemplate } from './templates/AutomotiveTemplate';
+import { ServiceTemplate } from './templates/ServiceTemplate';
+import { SpecialistTemplate } from './templates/SpecialistTemplate';
+import { StudentTemplate } from './templates/StudentTemplate';
+import { SalesTemplate } from './templates/SalesTemplate';
+import { ITSoftwareTemplate } from './templates/ITSoftwareTemplate';
 
 interface CVPreviewProps {
   data: ExtractedCVData;
   onDataChange?: (data: ExtractedCVData) => void;
   language?: 'vi' | 'en';
+  templateKey?: CVTemplateKey;
+  showDownloadButton?: boolean;
+  accentColor?: string;
 }
 
 const labels = {
@@ -35,75 +48,121 @@ const labels = {
   },
 };
 
-const sectionHeaderStyle = {
-  fontSize: '11pt',
-  fontWeight: 700,
-  color: '#2563eb',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  borderBottom: '1px solid #e5e7eb',
-  paddingBottom: '4px',
-  marginBottom: '10px',
-};
-
-const PLACEHOLDER_VALUES = new Set(['n/a', 'na', 'null', 'undefined', '-', '']);
-
-function normalizeText(value?: string) {
-  const trimmed = value?.trim() ?? '';
-  if (!trimmed) return '';
-  return PLACEHOLDER_VALUES.has(trimmed.toLowerCase()) ? '' : trimmed;
-}
-
-function htmlToPlainText(value?: string) {
-  const source = value ?? '';
-  if (!source.trim()) return '';
-
-  return source
-    .replace(/<br\s*\/?>(\s*)/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/\r/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function toTimeline(duration?: string, startDate?: string, endDate?: string, presentLabel = 'Present') {
-  const normalizedDuration = normalizeText(duration);
-  if (normalizedDuration) return normalizedDuration;
-
-  const start = normalizeText(startDate);
-  const end = normalizeText(endDate);
-  if (!start && !end) return '';
-  if (start && !end) return `${start} - ${presentLabel}`;
-  if (!start && end) return end;
-  return `${start} - ${end}`;
-}
-
-function isMeaningfulCompany(value?: string) {
-  const normalized = normalizeText(value).toLowerCase();
-  if (!normalized) return false;
-  return normalized !== 'internship' && normalized !== 'current position' && normalized !== 'present';
-}
-
-export function CVPreview({ data, language = 'vi' }: CVPreviewProps) {
+export function CVPreview({
+  data,
+  language = 'vi',
+  templateKey = 'cvhay-industry-safety',
+  showDownloadButton = true,
+  accentColor,
+}: CVPreviewProps) {
   const cvRef = useRef<HTMLDivElement>(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const l = labels[language];
+  const templateOption = getCVTemplateOptionByKey(templateKey);
+  const family = templateOption.family;
+  
+  const basePalette = family === 'dark-sidebar'
+    ? {
+        accent: '#f3af3e',
+        accentSoft: '#fdf4e1',
+        title: '#111827',
+        text: '#1f2937',
+        muted: '#6b7280',
+        chipBg: '#fff6e9',
+        chipBorder: '#f6c26b',
+        sidebarBg: '#2f3f49',
+        sidebarText: '#e5e7eb',
+      }
+    : family === 'automotive'
+      ? {
+          accent: '#2a69d1',
+          accentSoft: '#ebf3ff',
+          title: '#0f172a',
+          text: '#1f2937',
+          muted: '#64748b',
+          chipBg: '#eff6ff',
+          chipBorder: '#93c5fd',
+          sidebarBg: '#f8fbff',
+          sidebarText: '#1e3a8a',
+        }
+      : family === 'service'
+        ? {
+            accent: '#0e4f73',
+            accentSoft: '#e8f4fa',
+            title: '#0f172a',
+            text: '#1f2937',
+            muted: '#475569',
+            chipBg: '#e6f5ff',
+            chipBorder: '#7dd3fc',
+            sidebarBg: '#f0f9ff',
+            sidebarText: '#0c4a6e',
+          }
+        : family === 'student'
+        ? {
+            accent: '#0d9488',
+            accentSoft: '#f0fdfa',
+            title: '#111827',
+            text: '#374151',
+            muted: '#6b7280',
+            chipBg: '#ccfbf1',
+            chipBorder: '#5eead4',
+            sidebarBg: '#fafaf9',
+            sidebarText: '#1c1917',
+          }
+        : family === 'sales'
+        ? {
+            accent: '#dc2626',
+            accentSoft: '#fef2f2',
+            title: '#171717',
+            text: '#404040',
+            muted: '#737373',
+            chipBg: '#f5f5f5',
+            chipBorder: '#e5e5e5',
+            sidebarBg: '#ffffff',
+            sidebarText: '#171717',
+          }
+        : family === 'it-software'
+        ? {
+            accent: '#0ea5e9',
+            accentSoft: '#eef6ff',
+            title: '#0f172a',
+            text: '#1e293b',
+            muted: '#475569',
+            chipBg: '#e0f2fe',
+            chipBorder: '#bae6fd',
+            sidebarBg: '#0f172a',
+            sidebarText: '#e2e8f0',
+          }
+        : {
+            accent: '#b45309',
+            accentSoft: '#fff7e6',
+            title: '#1f2937',
+            text: '#374151',
+            muted: '#6b7280',
+            chipBg: '#fffbeb',
+            chipBorder: '#fcd34d',
+            sidebarBg: '#fffbeb',
+            sidebarText: '#92400e',
+          };
+
+  const palette = accentColor
+    ? {
+        ...basePalette,
+        accent: accentColor,
+        accentSoft: mixHex(accentColor, '#ffffff', 0.87),
+        chipBg: mixHex(accentColor, '#ffffff', 0.9),
+        chipBorder: mixHex(accentColor, '#ffffff', 0.7),
+        sidebarBg: family === 'dark-sidebar' || family === 'it-software'
+          ? mixHex(accentColor, '#111827', 0.72)
+          : basePalette.sidebarBg,
+      }
+    : basePalette;
+
   const displayName = data.fullName?.trim() || data.headline || 'Curriculum Vitae';
-  const displayTitle = data.title?.trim() || (data.fullName ? data.headline : '');
-  const summaryText = htmlToPlainText(data.summary);
-  const contactParts = [data.email, data.phone, data.address].filter(
-    (value): value is string => Boolean(value && value.trim())
-  );
-  const uniqueSkills = (data.skills ?? []).filter((skill, index, list) => {
-    const normalizedName = normalizeText(skill.name).toLowerCase();
-    if (!normalizedName) return false;
-    return list.findIndex((item) => normalizeText(item.name).toLowerCase() === normalizedName) === index;
-  });
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [data.avatarUrl]);
 
   const handleDownloadPDF = useCallback(async () => {
     if (!cvRef.current) return;
@@ -120,8 +179,15 @@ export function CVPreview({ data, language = 'vi' }: CVPreviewProps) {
             scale: 2,
             useCORS: true,
             logging: false,
+            backgroundColor: '#ffffff',
             onclone: (clonedDoc: Document) => {
               clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => el.remove());
+              const clonedRoot = clonedDoc.querySelector('[data-cv-root="true"]') as HTMLElement | null;
+              if (clonedRoot) {
+                clonedRoot.style.boxShadow = 'none';
+                clonedRoot.style.border = '1px solid #e5e7eb';
+                clonedRoot.style.margin = '0';
+              }
             },
           },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -134,182 +200,62 @@ export function CVPreview({ data, language = 'vi' }: CVPreviewProps) {
     }
   }, [displayName]);
 
+  const templateProps = {
+    data,
+    palette,
+    l,
+    avatarLoadFailed,
+    setAvatarLoadFailed
+  };
+
+  const fontFamilyMap = {
+     'specialist': "'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif",
+     'service': "'Georgia', serif, 'Times New Roman'",
+     'automotive': "'Roboto', 'Segoe UI', 'Helvetica Neue', sans-serif",
+     'dark-sidebar': "'Arial', 'Segoe UI', sans-serif",
+     'student': "'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif",
+     'sales': "'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif",
+     'it-software': "'Segoe UI', Roboto, 'Helvetica Neue', sans-serif"
+  };
+
+  const selectedFont = fontFamilyMap[family] || "'Arial', sans-serif";
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-center gap-3">
-        <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          {l.downloadPdf}
-        </Button>
-      </div>
+      {showDownloadButton && (
+        <div className="flex justify-center gap-3">
+          <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            {l.downloadPdf}
+          </Button>
+        </div>
+      )}
 
       <div className="flex justify-center overflow-x-auto">
         <div
           ref={cvRef}
+          data-cv-root="true"
           style={{
             width: '210mm',
             minHeight: '297mm',
-            padding: '20mm 18mm',
+            padding: '0',
             background: '#fff',
-            fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif",
-            fontSize: '10pt',
-            lineHeight: '1.5',
-            color: '#1a1a1a',
+            fontFamily: selectedFont,
+            fontSize: '10.5pt',
+            lineHeight: '1.65',
+            color: palette.text,
             boxSizing: 'border-box',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 18px 38px rgba(15, 23, 42, 0.18)',
           }}
-          className="shadow-2xl border border-gray-200"
         >
-          <div style={{ borderBottom: '3px solid #2563eb', paddingBottom: '14px', marginBottom: '16px' }}>
-            <h1 style={{ fontSize: '22pt', fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.02em' }}>
-              {displayName}
-            </h1>
-            {displayTitle && (
-              <p style={{ fontSize: '11pt', color: '#1f2937', marginTop: '4px', marginBottom: 0, fontWeight: 600 }}>
-                {displayTitle}
-              </p>
-            )}
-            {contactParts.length > 0 && (
-              <p style={{ fontSize: '9.5pt', color: '#6b7280', marginTop: '6px', marginBottom: 0 }}>
-                {contactParts.join(' | ')}
-              </p>
-            )}
-            {summaryText && (
-              <p style={{ fontSize: '10pt', color: '#4b5563', marginTop: '8px', lineHeight: '1.6' }}>
-                {summaryText}
-              </p>
-            )}
-          </div>
-
-          {data.work_experiences && data.work_experiences.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={sectionHeaderStyle}>{l.experience}</h2>
-              {data.work_experiences.map((exp, i) => (
-                <div key={i} style={{ marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: '10.5pt', color: '#111827' }}>{normalizeText(exp.position)}</span>
-                      {isMeaningfulCompany(exp.company) && (
-                        <span style={{ color: '#6b7280' }}> — {exp.company}</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '9pt', color: '#9ca3af', whiteSpace: 'nowrap', marginLeft: '12px' }}>
-                      {toTimeline(exp.duration, exp.start_date, exp.end_date, l.present)}
-                    </span>
-                  </div>
-                  {normalizeText(htmlToPlainText(exp.description)) && (
-                    <ul style={{ margin: '4px 0 0 0', paddingLeft: '18px', color: '#374151' }}>
-                      {htmlToPlainText(exp.description)
-                        .split('\n')
-                        .map((line) => line.trim())
-                        .filter(Boolean)
-                        .map((line, j) => (
-                        <li key={j} style={{ marginBottom: '2px' }}>{line.replace(/^[•\-–]\s*/, '')}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {data.educations && data.educations.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={sectionHeaderStyle}>{l.education}</h2>
-              {data.educations.map((edu, i) => (
-                <div key={i} style={{ marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <div>
-                      <span style={{ fontWeight: 600, color: '#111827' }}>{normalizeText(edu.school)}</span>
-                      {normalizeText(edu.degree) && <span style={{ color: '#6b7280' }}> — {edu.degree}</span>}
-                      {normalizeText(edu.major) && <span style={{ color: '#6b7280' }}> ({edu.major})</span>}
-                    </div>
-                    <span style={{ fontSize: '9pt', color: '#9ca3af', whiteSpace: 'nowrap', marginLeft: '12px' }}>
-                      {toTimeline(edu.duration, edu.start_date, edu.end_date, l.present)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {uniqueSkills.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={sectionHeaderStyle}>{l.skills}</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {uniqueSkills.map((skill, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      display: 'inline-block', padding: '3px 10px', backgroundColor: '#eff6ff',
-                      color: '#1d4ed8', borderRadius: '4px', fontSize: '9pt', fontWeight: 500,
-                      border: '1px solid #bfdbfe',
-                    }}
-                  >
-                    {normalizeText(skill.name)}{normalizeText(skill.level) ? ` (${skill.level})` : ''}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {data.projects && data.projects.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={sectionHeaderStyle}>{l.projects}</h2>
-              {data.projects.map((prj, i) => (
-                <div key={i} style={{ marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 600, color: '#111827' }}>{normalizeText(prj.name)}</span>
-                  {normalizeText(prj.duration) && (
-                    <span style={{ fontSize: '9pt', color: '#9ca3af', marginLeft: '8px' }}>{prj.duration}</span>
-                  )}
-                  {normalizeText(htmlToPlainText(prj.description)) && (
-                    <p style={{ color: '#374151', marginTop: '2px' }}>{htmlToPlainText(prj.description)}</p>
-                  )}
-                  {prj.technologies && prj.technologies.length > 0 && (
-                    <p style={{ color: '#6b7280', fontSize: '9pt', marginTop: '2px' }}>
-                      {l.technology}: {prj.technologies.join(', ')}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {data.certificates && data.certificates.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <h2 style={sectionHeaderStyle}>{l.certificates}</h2>
-              <ul style={{ margin: 0, paddingLeft: '18px', color: '#374151' }}>
-                {data.certificates.map((cert, i) => (
-                  <li key={i} style={{ marginBottom: '2px' }}>
-                    {typeof cert === 'string'
-                      ? cert
-                      : [
-                          normalizeText((cert as { name?: string }).name),
-                          normalizeText((cert as { issuer?: string }).issuer),
-                          normalizeText((cert as { issue_date?: string }).issue_date),
-                        ]
-                          .filter(Boolean)
-                          .join(' — ')}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {data.languages && data.languages.length > 0 && (
-            <div>
-              <h2 style={sectionHeaderStyle}>{l.languages}</h2>
-              <div style={{ display: 'flex', gap: '16px', color: '#374151' }}>
-                {data.languages.map((lang, i) => (
-                  <span key={i}>
-                    {typeof lang === 'string' ? lang : (lang as { name?: string; proficiency?: string }).name ?? ''}
-                    {typeof lang !== 'string' && (lang as { proficiency?: string }).proficiency
-                      ? ` (${(lang as { proficiency?: string }).proficiency})`
-                      : ''}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {family === 'dark-sidebar' && <DarkSidebarTemplate {...templateProps} />}
+          {family === 'automotive' && <AutomotiveTemplate {...templateProps} />}
+          {family === 'service' && <ServiceTemplate {...templateProps} />}
+          {family === 'specialist' && <SpecialistTemplate {...templateProps} />}
+          {family === 'student' && <StudentTemplate {...templateProps} />}
+          {family === 'sales' && <SalesTemplate {...templateProps} />}
+          {family === 'it-software' && <ITSoftwareTemplate {...templateProps} />}
         </div>
       </div>
     </div>

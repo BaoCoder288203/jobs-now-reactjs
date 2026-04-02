@@ -55,6 +55,18 @@ import facebookShareIcon from '@/assets/icons-socials/facebook.svg';
 import linkedinShareIcon from '@/assets/icons-socials/linkedin.svg';
 import type { JobMatchResponse } from '@/services/ai.service';
 
+function toAiMatchErrorMessage(rawMessage: string) {
+  const message = rawMessage.toLowerCase();
+  if (
+    message.includes('no active candidate quota') ||
+    message.includes('out of ai matching quota') ||
+    message.includes('candidate subscription expired')
+  ) {
+    return 'Bạn chưa có lượt AI Matching khả dụng. Vui lòng vào trang Goi dich vu de mua hoac nang cap goi.';
+  }
+  return rawMessage;
+}
+
 function SummaryRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: React.ReactNode }) {
   return (
     <div className="flex gap-3 items-start">
@@ -734,13 +746,23 @@ export function JobDetailPage() {
                         className="w-full gap-2"
                         onClick={async () => {
                           try {
+                            const resolvedResumeId = Number(
+                              selectedResumeId || defaultResume?.id || (defaultResume as { resumeId?: number } | undefined)?.resumeId
+                            );
                             const data = await calculateMatch.mutateAsync({
                               jobId: Number(id),
                               profileId,
+                              ...(Number.isFinite(resolvedResumeId) && resolvedResumeId > 0
+                                ? { resumeId: resolvedResumeId }
+                                : {}),
                             });
                             setMatchResult(data);
-                          } catch {
-                            toast.error('Kiểm tra độ phù hợp thất bại');
+                          } catch (error: unknown) {
+                            const message =
+                              error && typeof error === 'object' && 'message' in error
+                                ? String((error as { message?: string }).message)
+                                : '';
+                            toast.error(toAiMatchErrorMessage(message) || 'Kiểm tra độ phù hợp thất bại');
                           }
                         }}
                         disabled={calculateMatch.isPending}

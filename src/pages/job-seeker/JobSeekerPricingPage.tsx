@@ -50,7 +50,6 @@ const JobSeekerPricingPage = () => {
     );
   }
 
-  // Expecting only 1 PRO plan as per user request
   const proPlan = plans[0];
 
   return (
@@ -121,15 +120,15 @@ const JobSeekerPricingPage = () => {
               <div className="p-5 flex items-center justify-between rounded-2xl bg-cyan-50 border border-cyan-100">
                 <div className="flex items-center gap-3">
                   <Sparkles className="h-6 w-6 text-cyan-600" />
-                  <span className="font-medium text-cyan-800">Hồ sơ nổi bật</span>
+                  <span className="font-medium text-cyan-800">Nhận diện VIP hồ sơ</span>
                 </div>
                 <div className={`text-sm font-bold px-3 py-1 rounded-md ${status.isProfileHighlighted ? 'bg-cyan-500 text-white shadow-sm' : 'bg-slate-200 text-slate-500'}`}>
-                  {status.isProfileHighlighted ? 'ĐÃ KÍCH HOẠT' : 'CHƯA BẬT'}
+                  {status.isProfileHighlighted ? 'ĐÃ BẬT' : 'CHƯA BẬT'}
                 </div>
               </div>
             </div>
             <p className="mt-4 text-xs text-slate-500">
-              Hồ sơ nổi bật đã được kích hoạt ở mức dữ liệu gói; giao diện hiển thị ưu tiên cho nhà tuyển dụng đang được hoàn thiện.
+              Gói PRO chỉ thêm nhận diện VIP (tag/viền) khi hiển thị hồ sơ, không can thiệp điểm match hay thay đổi thứ hạng ứng viên.
             </p>
           </div>
         </Card>
@@ -173,7 +172,7 @@ const JobSeekerPricingPage = () => {
                 {proPlan.isProfileHighlighted && (
                   <li className="flex gap-3">
                     <CheckCircle className="w-6 h-6 text-cyan-500 shrink-0" />
-                    <span className="text-slate-700"><b>Làm nổi bật hồ sơ</b> trong danh sách tìm kiếm của HR</span>
+                    <span className="text-slate-700"><b>Tag/viền nhận diện VIP</b> trên hồ sơ để tăng độ tin cậy thương hiệu cá nhân</span>
                   </li>
                 )}
                 {!!proPlan.useAiCvBuilder && (

@@ -20,8 +20,8 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, data }: { userId: string; data: Partial<JobSeekerProfile> }) =>
-      profileService.updateProfile(userId, {
+    mutationFn: ({ userId, profileId, data }: { userId: string; profileId?: number; data: Partial<JobSeekerProfile> }) =>
+      profileService.updateProfile(profileId ?? userId, {
         ...data,
         phone: data.phone ?? undefined,
         fullName: data.fullName ?? undefined,

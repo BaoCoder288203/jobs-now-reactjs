@@ -4,11 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/app/hooks";
-import { Camera, Mail, Phone, User as UserIcon, MapPin, Calendar } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Camera, Mail, Phone, User as UserIcon, MapPin, Calendar, Crown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useProfile, useUpdateProfile } from "@/modules/profile/hooks";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { uploadProfileAvatar } from "@/services/profile-cv.service";
+import { getCandidateSubscriptionStatus } from "@/services/subscription-plan.service";
+import type { ApiError } from "@/types";
 
 export default function UserInfoPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -16,24 +20,40 @@ export default function UserInfoPage() {
 
   const { data: profile } = useProfile(userId);
   const updateProfile = useUpdateProfile();
+  const queryClient = useQueryClient();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const authFullName = user?.fullName || null;
   const email = user?.email || null;
   const authPhone = user?.phone || null;
-  const avatar = user?.avatar || null;
+  const avatar = profile?.avatarUrl || user?.avatar || null;
   const role = user?.role || null;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isVipUser, setIsVipUser] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
   const [address, setAddress] = useState("");
   const [dob, setDob] = useState("");
 
+  const avatarUpload = useMutation({
+    mutationFn: async (file: File) => {
+      if (!profile?.profileId) {
+        throw new Error("Không tìm thấy hồ sơ để cập nhật ảnh đại diện.");
+      }
+      await uploadProfileAvatar(profile.profileId, file);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+      toast.success("Đã cập nhật ảnh đại diện");
+    },
+  });
+
   useEffect(() => {
-    setFullName(authFullName ?? "");
-    setPhone(authPhone ?? "");
-  }, [authFullName, authPhone]);
+    setFullName(profile?.fullName ?? authFullName ?? "");
+    setPhone(profile?.phone ?? authPhone ?? "");
+  }, [profile?.fullName, profile?.phone, authFullName, authPhone]);
 
   useEffect(() => {
     if (profile) {
@@ -43,11 +63,37 @@ export default function UserInfoPage() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    let mounted = true;
+    if (role !== "ROLE_JOBSEEKER") {
+      setIsVipUser(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    getCandidateSubscriptionStatus()
+      .then((status) => {
+        if (mounted) {
+          setIsVipUser(Boolean(status.isProfileHighlighted));
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setIsVipUser(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [role]);
+
   if (!user) return null;
 
   const handleCancel = () => {
-    setFullName(authFullName || "");
-    setPhone(authPhone || "");
+    setFullName(profile?.fullName ?? authFullName ?? "");
+    setPhone(profile?.phone ?? authPhone ?? "");
     setBio(profile?.bio ?? "");
     setAddress(profile?.address ?? "");
     setDob(profile?.dob ? profile.dob.slice(0, 10) : "");
@@ -55,9 +101,15 @@ export default function UserInfoPage() {
   };
 
   const handleSave = async () => {
+    if (!profile?.profileId) {
+      toast.error("Không tìm thấy hồ sơ để lưu thông tin.");
+      return;
+    }
+
     try {
       await updateProfile.mutateAsync({
         userId,
+        profileId: profile.profileId,
         data: {
           fullName: fullName.trim(),
           phone: phone.trim(),
@@ -68,8 +120,32 @@ export default function UserInfoPage() {
       });
       toast.success("Đã lưu thông tin");
       setIsEditing(false);
-    } catch {
-      toast.error("Lưu thất bại. Vui lòng thử lại.");
+    } catch (error) {
+      const message = (error as ApiError | Error)?.message || "Lưu thất bại. Vui lòng thử lại.";
+      toast.error(message);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn file ảnh hợp lệ.");
+      return;
+    }
+
+    try {
+      await avatarUpload.mutateAsync(file);
+    } catch (error) {
+      const message = (error as ApiError | Error)?.message || "Cập nhật ảnh đại diện thất bại.";
+      toast.error(message);
     }
   };
 
@@ -98,6 +174,12 @@ export default function UserInfoPage() {
           <p className="text-gray-600">
             Quản lý thông tin cá nhân và tài khoản của bạn
           </p>
+          {isVipUser && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
+              <Crown className="h-4 w-4" />
+              Tài khoản VIP
+            </div>
+          )}
         </div>
 
         {/* Profile Card */}
@@ -106,7 +188,14 @@ export default function UserInfoPage() {
             <div className="space-y-6">
               {/* Avatar Section */}
               <div className="group relative inline-block">
-                <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-gray-200">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarFileChange}
+                />
+                <div className={`relative h-32 w-32 overflow-hidden rounded-full border-4 ${isVipUser ? "border-amber-300 shadow-[0_0_0_4px_rgba(251,191,36,0.18)]" : "border-gray-200"}`}>
                   {avatar ? (
                     <img
                       src={avatar}
@@ -119,11 +208,14 @@ export default function UserInfoPage() {
                     </div>
                   )}
                 </div>
+                {isVipUser && (
+                  <div className="absolute -right-1 -top-1 rounded-full border border-amber-300 bg-amber-100 p-1.5 text-amber-700 shadow-sm">
+                    <Crown className="h-4 w-4" />
+                  </div>
+                )}
                 <div
                   className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-gray-300 bg-opacity-50 opacity-0 transition-opacity duration-200 group-hover:opacity-90"
-                  onClick={() => {
-                    console.log("Avatar upload clicked");
-                  }}
+                  onClick={handleAvatarClick}
                 >
                   <Camera className="h-8 w-8 text-white" />
                 </div>
@@ -147,7 +239,7 @@ export default function UserInfoPage() {
                   ) : (
                     <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3">
                       <UserIcon className="h-5 w-5 text-gray-400" />
-                      <span className="text-gray-900">{authFullName || "—"}</span>
+                      <span className="text-gray-900">{profile?.fullName || authFullName || "—"}</span>
                     </div>
                   )}
                 </div>
@@ -177,7 +269,7 @@ export default function UserInfoPage() {
                   ) : (
                     <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3">
                       <Phone className="h-5 w-5 text-gray-400" />
-                      <span className="text-gray-900">{authPhone || "—"}</span>
+                      <span className="text-gray-900">{profile?.phone || authPhone || "—"}</span>
                     </div>
                   )}
                 </div>

@@ -206,9 +206,9 @@ export function EmployerJobsPage() {
 
                     <div className="ml-6 flex flex-col gap-2">
                       <Button 
-                        variant="default" 
+                        variant="outline" 
                         size="sm" 
-                        className="gap-2 w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                        className="gap-2 w-full"
                         onClick={() => setBoostModalJobInfo({ id: Number(job.id), title: job.title })}
                       >
                         <Zap className="h-4 w-4" />

@@ -52,9 +52,14 @@ export function useUpdateResumeName() {
 }
 
 export function useUpdateResume() {
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ resumeId, data }: { resumeId: string; data: { resumeName?: string; summary?: string | null } }) =>
+    mutationFn: ({ resumeId, data }: { resumeId: string; data: { resumeName?: string; summary?: string | null; templateKey?: string } }) =>
       resumeService.updateResume(resumeId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: resumeKeys.all });
+    }
   });
 }
 
