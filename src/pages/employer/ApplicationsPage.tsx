@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +20,8 @@ import {
 export function EmployerApplicationsPage() {
   // const { user } = useAppSelector((state) => state.auth);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
+  const [interviewApplicationId, setInterviewApplicationId] = useState<string | null>(null);
 
   // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
@@ -35,15 +39,31 @@ export function EmployerApplicationsPage() {
     return app.status === statusFilter;
   });
 
-  const handleStatusChange = async (applicationId: string, newStatus: string) => {
+  const handleStatusChange = async (
+    applicationId: string,
+    newStatus: string,
+    interviewDetailsHtml?: string
+  ) => {
     try {
       await updateStatus.mutateAsync({
         applicationId,
-        status: newStatus
+        status: newStatus,
+        interviewDetailsHtml,
       });
+      toast.success('Đã cập nhật trạng thái');
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast.error('Không thể cập nhật trạng thái');
     }
+  };
+
+  const onRowStatusChange = (applicationId: string, newStatus: string) => {
+    if (newStatus === 'interviewing') {
+      setInterviewApplicationId(applicationId);
+      setInterviewModalOpen(true);
+      return;
+    }
+    void handleStatusChange(applicationId, newStatus);
   };
 
   if (isLoading) {
@@ -162,7 +182,7 @@ export function EmployerApplicationsPage() {
                         value={application.status}
                         onChange={(e) => {
                           const newStatus = e.target.value;
-                          handleStatusChange(application.id, newStatus);
+                          onRowStatusChange(application.id, newStatus);
                         }}
                         disabled={updateStatus.isPending}
                         className="w-full"
@@ -198,6 +218,21 @@ export function EmployerApplicationsPage() {
           </Card>
         )}
       </div>
+
+      <InterviewStatusModal
+        open={interviewModalOpen}
+        onOpenChange={(open) => {
+          setInterviewModalOpen(open);
+          if (!open) setInterviewApplicationId(null);
+        }}
+        isSubmitting={updateStatus.isPending}
+        onConfirm={async (html) => {
+          if (!interviewApplicationId) return;
+          await handleStatusChange(interviewApplicationId, 'interviewing', html);
+          setInterviewModalOpen(false);
+          setInterviewApplicationId(null);
+        }}
+      />
     </DashboardLayout>
   );
 }

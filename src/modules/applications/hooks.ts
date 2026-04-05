@@ -72,11 +72,13 @@ export function useUpdateApplicationStatus() {
   return useMutation({
     mutationFn: ({
       applicationId,
-      status
+      status,
+      interviewDetailsHtml,
     }: {
       applicationId: string;
       status: string;
-    }) => applicationService.updateApplicationStatus(applicationId, status),
+      interviewDetailsHtml?: string;
+    }) => applicationService.updateApplicationStatus(applicationId, status, interviewDetailsHtml),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: applicationKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: applicationKeys.job(data.job_id) });

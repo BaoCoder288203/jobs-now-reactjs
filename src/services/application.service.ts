@@ -6,6 +6,7 @@ import { apiClient } from './api';
 interface ApplicationDetailDTO {
   applicationId?: number;
   status?: string;
+  interviewDetailsHtml?: string;
   appliedAt?: string;
   job?: { jobId?: number; title?: string; companyId?: number; companyName?: string; companyLogo?: string; location?: string; [k: string]: unknown };
   jobSeekerProfile?: { profileId?: number; userId?: number; fullName?: string; email?: string; avatarUrl?: string; [k: string]: unknown };
@@ -23,6 +24,7 @@ function mapApplicationDetailToApplication(dto: ApplicationDetailDTO): Applicati
     user_id: String(profile?.userId ?? ''),
     resume_id: String(resume?.resumeId ?? ''),
     status: (dto.status ?? 'PENDING').toLowerCase(),
+    interview_details_html: dto.interviewDetailsHtml,
     created_at: dto.appliedAt ?? new Date().toISOString(),
     job: job
       ? {
@@ -116,14 +118,18 @@ export async function getJobApplications(jobId: string): Promise<Application[]> 
 
 export async function updateApplicationStatus(
   applicationId: string,
-  status: string
+  status: string,
+  interviewDetailsHtml?: string
 ): Promise<Application> {
   if (USE_MOCK) {
     return mockApps.mockUpdateApplicationStatus(applicationId, status);
   }
 
-  await apiClient.put(`/application/${applicationId}/status`, null, {
-    params: { status: status.toUpperCase() },
+  await apiClient.put(`/application/${applicationId}/status`, {
+    status: status.toUpperCase(),
+    ...(status.toLowerCase() === 'interviewing' && interviewDetailsHtml ?
+      { interviewDetailsHtml }
+    : {}),
   });
   return getApplicationDetail(applicationId);
 }
