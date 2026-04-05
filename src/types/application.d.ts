@@ -10,6 +10,8 @@ export interface Application {
   cover_letter?: string;
   /** PENDING | REVIEWING | SHORTLISTED | INTERVIEWING | REJECTED | HIRED (from BE) */
   status: string;
+  /** HTML từ recruiter khi chuyển sang phỏng vấn */
+  interview_details_html?: string;
   created_at: string;
   
   job?: Job;

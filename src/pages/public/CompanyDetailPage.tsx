@@ -22,6 +22,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { ArrowLeft, Globe, Briefcase, MapPin, Building2, MessageCircle, Star, Heart } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import * as chatService from '@/services/chat.service';
 import type { CompanyReview, CreateCompanyReviewRequest } from '@/types/company-review';
 
@@ -32,6 +33,7 @@ export function CompanyDetailPage() {
   const { data: company, isLoading } = useCompanyDetail(id!);
   const { data: jobsData, isLoading: jobsLoading } = useJobs({ company_id: id, limit: 100 });
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { openLoginModal } = useAuthModal();
   const [reviewPage, setReviewPage] = useState(1);
   const [allReviews, setAllReviews] = useState<CompanyReview[]>([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -58,6 +60,23 @@ export function CompanyDetailPage() {
     setReviewPage(1);
     setAllReviews([]);
   }, [id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !id) return;
+    const key = `follow-company-pending:${id}`;
+    if (sessionStorage.getItem(key) !== '1') return;
+    sessionStorage.removeItem(key);
+    void (async () => {
+      try {
+        await followMutation.mutateAsync();
+        toast.success('Đã theo dõi công ty');
+      } catch (e: unknown) {
+        const msg = e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : '';
+        toast.error(msg || 'Không thể theo dõi công ty');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when auth completes after login from Follow
+  }, [isAuthenticated, id]);
 
   useEffect(() => {
     if (!reviewsData) return;
@@ -108,7 +127,7 @@ export function CompanyDetailPage() {
 
   const handleSendMessage = async () => {
     if (!isAuthenticated || !user) {
-      navigate('/login');
+      openLoginModal('job_seeker');
       return;
     }
     
@@ -182,7 +201,8 @@ export function CompanyDetailPage() {
 
   const handleToggleFollow = async () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      if (id) sessionStorage.setItem(`follow-company-pending:${id}`, '1');
+      openLoginModal('job_seeker');
       return;
     }
 
