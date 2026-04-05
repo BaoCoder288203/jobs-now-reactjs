@@ -23,6 +23,7 @@ export const companyReviewKeys = {
 export const companyFollowKeys = {
   all: ['company-follow'] as const,
   detail: (companyId: string) => [...companyFollowKeys.all, companyId] as const,
+  followers: (companyId: string, page: number) => [...companyFollowKeys.all, 'followers', companyId, page] as const,
 };
 
 export const recruiterReviewKeys = {
@@ -164,6 +165,7 @@ export function useFollowCompany(companyId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(companyId) });
       queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.all });
     },
   });
 }
@@ -176,7 +178,16 @@ export function useUnfollowCompany(companyId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(companyId) });
       queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.all });
     },
+  });
+}
+
+export function useCompanyFollowers(companyId: string | undefined, page = 0, size = 20) {
+  return useQuery({
+    queryKey: companyFollowKeys.followers(companyId ?? '', page),
+    queryFn: () => companyService.getCompanyFollowers(companyId!, page, size),
+    enabled: !!companyId,
   });
 }
 

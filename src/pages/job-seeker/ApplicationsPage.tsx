@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Briefcase, Calendar, MapPin, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Application } from '@/types';
+import { RichTextContent } from '@/components/ui/RichTextContent';
 
 export function JobSeekerApplicationsPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -85,6 +86,15 @@ export function JobSeekerApplicationsPage() {
                         <p className="text-sm text-gray-600 line-clamp-2">
                           {application.cover_letter}
                         </p>
+                      </div>
+                    )}
+
+                    {application.status === 'interviewing' && application.interview_details_html && (
+                      <div className="mt-4 p-3 bg-sky-50 border border-sky-100 rounded-lg">
+                        <p className="text-sm font-medium text-sky-900 mb-2">Lịch / thông tin phỏng vấn</p>
+                        <div className="prose prose-sm max-w-none text-gray-800">
+                          <RichTextContent html={application.interview_details_html} />
+                        </div>
                       </div>
                     )}
                   </div>

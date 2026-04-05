@@ -54,6 +54,7 @@ import { formatRegionLabelFromLocation } from '@/lib/locationUtils';
 import facebookShareIcon from '@/assets/icons-socials/facebook.svg';
 import linkedinShareIcon from '@/assets/icons-socials/linkedin.svg';
 import type { JobMatchResponse } from '@/services/ai.service';
+import { RelatedJobCard } from '@/components/jobs/RelatedJobCard';
 
 function toAiMatchErrorMessage(rawMessage: string) {
   const message = rawMessage.toLowerCase();
@@ -789,16 +790,7 @@ export function JobDetailPage() {
                       <p className="text-sm text-gray-500">Chưa có tin cùng ngành tuyển dụng.</p>
                     : <ul className="space-y-3">
                         {relatedJobs.map((j) => (
-                          <li key={j.id}>
-                            <Link
-                              to={`/jobs/${j.id}`}
-                              className="block rounded-lg border border-gray-100 bg-white p-3 hover:border-sky-200 hover:bg-sky-50/50 transition-colors"
-                            >
-                              <p className="font-medium text-gray-900 line-clamp-2 text-sm">{j.title}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">{j.company?.name}</p>
-                              {j.location && <p className="text-xs text-gray-400 mt-0.5">{j.location}</p>}
-                            </Link>
-                          </li>
+                          <RelatedJobCard key={j.id} job={j} />
                         ))}
                       </ul>
                     }

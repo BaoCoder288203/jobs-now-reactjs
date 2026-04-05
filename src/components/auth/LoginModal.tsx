@@ -41,7 +41,10 @@ const registerJobSeekerSchema = z.object({
 
 const registerCompanySchema = z.object({
   email: z.string().email('Email không hợp lệ'),
-  phone: z.string().regex(/^[0-9]{10,11}$/, 'Số điện thoại phải 10-11 số').optional().or(z.literal('')),
+  phone: z
+    .string()
+    .min(1, 'Vui lòng nhập số điện thoại')
+    .regex(/^[0-9]{10,11}$/, 'Số điện thoại phải 10-11 số'),
   companyName: z.string().min(1, 'Tên công ty là bắt buộc'),
   website: z.string().optional(),
   description: z.string().optional(),
@@ -94,6 +97,15 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
 
   const registerCompanyForm = useForm<RegisterCompanyFormData>({
     resolver: zodResolver(registerCompanySchema),
+    defaultValues: {
+      email: '',
+      phone: '',
+      companyName: '',
+      website: '',
+      description: '',
+      password: '',
+      confirmPassword: '',
+    },
   });
 
   const loginForm = useForm<LoginFormData>({
@@ -201,7 +213,7 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
       await dispatch(registerAsync({
         email: data.email,
         password: data.password,
-        phone: data.phone || undefined,
+        phone: data.phone,
         roleName: 'ROLE_COMPANY',
         companyName: data.companyName,
         website: data.website,
@@ -553,7 +565,9 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
               <form onSubmit={registerCompanyForm.handleSubmit(handleRegisterCompany)} className="flex-1 flex flex-col">
                 <div className="flex-1 space-y-4">
                   <div className="space-y-2">
-                    <Label>Tên công ty *</Label>
+                    <Label>
+                      Tên công ty <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
                     <Input placeholder="Nhập tên công ty" {...registerCompanyForm.register('companyName')}
                       className={registerCompanyForm.formState.errors.companyName ? 'border-red-500' : ''} />
                     {registerCompanyForm.formState.errors.companyName && (
@@ -561,12 +575,24 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Email</Label>
+                    <Label>
+                      Email <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
                     <Input type="email" {...registerCompanyForm.register('email')} readOnly />
                   </div>
                   <div className="space-y-2">
-                    <Label>Số điện thoại</Label>
-                    <Input type="tel" placeholder="VD: 0901234567" {...registerCompanyForm.register('phone')} />
+                    <Label>
+                      Số điện thoại <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
+                    <Input
+                      type="tel"
+                      placeholder="VD: 0901234567"
+                      {...registerCompanyForm.register('phone')}
+                      className={registerCompanyForm.formState.errors.phone ? 'border-red-500' : ''}
+                    />
+                    {registerCompanyForm.formState.errors.phone && (
+                      <p className="text-sm text-red-600">{registerCompanyForm.formState.errors.phone.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Website</Label>
@@ -581,7 +607,9 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                     <Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Mật khẩu *</Label>
+                    <Label>
+                      Mật khẩu <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
                     <Input type="password" placeholder="6-20 ký tự, gồm chữ hoa, thường và số"
                       {...registerCompanyForm.register('password')}
                       className={registerCompanyForm.formState.errors.password ? 'border-red-500' : ''} />
@@ -590,7 +618,9 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Xác nhận mật khẩu *</Label>
+                    <Label>
+                      Xác nhận mật khẩu <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
                     <Input type="password" placeholder="Nhập lại mật khẩu"
                       {...registerCompanyForm.register('confirmPassword')}
                       className={registerCompanyForm.formState.errors.confirmPassword ? 'border-red-500' : ''} />
