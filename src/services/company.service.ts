@@ -284,3 +284,37 @@ export async function getCompanyFollowers(
   };
 }
 
+export interface FollowedCompanyItem {
+  companyId: number;
+  companyName: string;
+  logoUrl?: string;
+  address?: string;
+  companySize?: string;
+  jobPostCount?: number;
+  followerCount?: number;
+  followedAt?: string;
+}
+
+export interface FollowedCompaniesPage {
+  content: FollowedCompanyItem[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export async function getMyFollowedCompanies(page = 0, size = 20): Promise<FollowedCompaniesPage> {
+  if (USE_MOCK) {
+    return { content: [], totalElements: 0, totalPages: 0, number: 0, size };
+  }
+  const res = await apiClient.get('/company/my-followed', { params: { page, size } }) as { data?: FollowedCompaniesPage };
+  const raw = (res.data ?? res) as FollowedCompaniesPage;
+  return {
+    content: raw.content ?? [],
+    totalElements: raw.totalElements ?? 0,
+    totalPages: raw.totalPages ?? 0,
+    number: raw.number ?? page,
+    size: raw.size ?? size,
+  };
+}
+

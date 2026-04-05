@@ -78,10 +78,10 @@ export function EmployerApplicationDetailPage() {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
         <div className="text-center py-12">
-          <p className="text-gray-600">Application not found</p>
+          <p className="text-gray-600">Không tìm thấy đơn ứng tuyển</p>
           <Link to="/employer/applications">
             <Button variant="outline" className="mt-4">
-              Back to Applications
+              Quay lại
             </Button>
           </Link>
         </div>
@@ -96,13 +96,13 @@ export function EmployerApplicationDetailPage() {
           <Link to="/employer/applications">
             <Button variant="ghost" size="sm" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Quay lại
             </Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Application Details</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Chi tiết đơn ứng tuyển</h1>
             <p className="text-gray-600 mt-1">
-              Review application for {application.job?.title}
+              Xem xét đơn ứng tuyển cho vị trí {application.job?.title}
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function EmployerApplicationDetailPage() {
             {/* Job Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Job Information</CardTitle>
+                <CardTitle>Thông tin việc làm</CardTitle>
               </CardHeader>
               <CardContent>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -134,7 +134,7 @@ export function EmployerApplicationDetailPage() {
             {/* Candidate Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Candidate Information</CardTitle>
+                <CardTitle>Thông tin ứng viên</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -164,7 +164,7 @@ export function EmployerApplicationDetailPage() {
                       className="inline-flex items-center gap-2 text-primary hover:underline"
                     >
                       <Download className="h-4 w-4" />
-                      Download Resume: {application.resume.file_name}
+                      Tải CV: {application.resume.file_name}
                     </a>
                   </div>
                 )}
@@ -175,7 +175,7 @@ export function EmployerApplicationDetailPage() {
             {application.cover_letter && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Cover Letter</CardTitle>
+                  <CardTitle>Thư xin việc</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-700 whitespace-pre-wrap">
@@ -191,12 +191,12 @@ export function EmployerApplicationDetailPage() {
             {/* Status */}
             <Card>
               <CardHeader>
-                <CardTitle>Application Status</CardTitle>
+                <CardTitle>Trạng thái đơn</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Current Status
+                    Trạng thái hiện tại
                   </label>
                   <Select
                     value={application.status}
@@ -216,10 +216,10 @@ export function EmployerApplicationDetailPage() {
                   <div className="text-sm text-gray-600">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="h-4 w-4" />
-                      <span>Applied on</span>
+                      <span>Ngày ứng tuyển</span>
                     </div>
                     <p className="font-medium text-gray-900">
-                      {new Date(application.created_at).toLocaleDateString('en-US', {
+                      {new Date(application.created_at).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
@@ -231,7 +231,11 @@ export function EmployerApplicationDetailPage() {
                   <div className="pt-4 border-t border-gray-200">
                     <p className="text-sm font-medium text-gray-700 mb-2">Nội dung đã gửi ứng viên</p>
                     <div className="prose prose-sm max-w-none text-gray-700 border rounded-lg p-3 bg-gray-50">
-                      <RichTextContent html={application.interview_details_html} />
+                      <RichTextContent html={application.interview_details_html
+                        .replace(/\{\{name\}\}/g, application.user?.fullName ?? 'Ứng viên')
+                        .replace(/\{\{jobTitle\}\}/g, application.job?.title ?? '')
+                        .replace(/\{\{companyName\}\}/g, application.job?.company?.name ?? '')
+                      } />
                     </div>
                   </div>
                 )}
@@ -241,12 +245,12 @@ export function EmployerApplicationDetailPage() {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle>Thao tác nhanh</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Link to={`/jobs/${application.job_id}`}>
                   <Button variant="outline" className="w-full mb-2">
-                    View Job Posting
+                    Xem tin tuyển dụng
                   </Button>
                 </Link>
                 <Button
@@ -261,7 +265,7 @@ export function EmployerApplicationDetailPage() {
                 {application.user?.email && (
                   <a href={`mailto:${application.user.email}`}>
                     <Button variant="outline" className="w-full">
-                      Send Email
+                      Gửi email
                     </Button>
                   </a>
                 )}
@@ -271,7 +275,7 @@ export function EmployerApplicationDetailPage() {
             {matchResult && (
               <Card className="border-blue-200">
                 <CardHeader>
-                  <CardTitle className="text-base">AI Match Analysis</CardTitle>
+                  <CardTitle className="text-base">Phân tích AI</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <JobMatchResultCard result={matchResult} />

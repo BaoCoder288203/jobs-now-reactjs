@@ -48,9 +48,9 @@ export function ITSoftwareTemplate({ data, palette, l, avatarLoadFailed, setAvat
     return list.findIndex((item) => normalizeText(item.name).toLowerCase() === normalizedName) === index;
   });
 
-  const renderSectionHeader = (title: string, icon: string) => (
+    const renderSectionHeader = (title: string, icon?: string) => (
       <h2 style={sectionHeaderStyle}>
-      <span style={{ color: iconColor, fontFamily: 'monospace' }}>{icon}</span> {title}
+      {icon ? <span style={{ color: iconColor, fontFamily: 'monospace' }}>{icon}</span> : null} {title}
       </h2>
   );
 
@@ -140,7 +140,7 @@ export function ITSoftwareTemplate({ data, palette, l, avatarLoadFailed, setAvat
   const renderCertificates = () => (
      data.certificates && data.certificates.length > 0 ? (
         <div style={{ marginBottom: '28px' }}>
-    {renderSectionHeader(l.certificates, 'crt')}
+    {renderSectionHeader(l.certificates)}
         <ul style={{ margin: 0, paddingLeft: '0', listStyleType: 'none', color: palette.text }}>
                 {data.certificates.map((cert, i) => {
                     const parsed = parseCertificate(cert as CertificateLike);

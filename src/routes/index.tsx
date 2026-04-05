@@ -17,6 +17,7 @@ import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
 import { JobSeekerResumesPage } from '@/pages/job-seeker/ResumesPage';
 import { ResumeEditPage } from '@/pages/job-seeker/ResumeEditPage';
 import { JobSeekerApplicationsPage } from '@/pages/job-seeker/ApplicationsPage';
+import { JobSeekerFollowedCompaniesPage } from '@/pages/job-seeker/FollowedCompaniesPage';
 import { JobSeekerSavedJobsPage } from '@/pages/job-seeker/SavedJobsPage';
 import { JobSeekerSettingsPage } from '@/pages/job-seeker/SettingsPage';
 import JobSeekerPricingPage from '@/pages/job-seeker/JobSeekerPricingPage';
@@ -310,6 +311,14 @@ export function AppRoutes() {
           element={
             <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerSavedJobsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="followed-companies"
+          element={
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <JobSeekerFollowedCompaniesPage />
             </RoleGuard>
           }
         />

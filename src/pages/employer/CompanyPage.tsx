@@ -251,22 +251,6 @@ export function EmployerCompanyPage() {
               )}
             </CardContent>
           </Card>
-
-          {subscriptionStatus && (
-            <Card>
-              <CardContent className="p-6 space-y-2 text-sm text-gray-700">
-                <div className="font-semibold text-gray-900">Trạng thái gói tài khoản</div>
-                <p>Trạng thái: {accountStatusLabel(subscriptionStatus.accountStatus)}</p>
-                <p>Gói hiện tại: {subscriptionStatus.currentPlanName || 'Chưa có gói trả phí'}</p>
-                <p>Còn lại: {subscriptionStatus.remainingJobPosts} lượt đăng, {subscriptionStatus.remainingAiScans} AI scan</p>
-                <p>AI CV Builder trial: {subscriptionStatus.remainingAiCvBuilderTrials ?? 0}</p>
-                <p>Hết hạn: {subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                <div>
-                  <Link to="/employer/pricing" className="text-primary hover:underline">Quản lý và nâng cấp gói</Link>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </DashboardLayout>
 

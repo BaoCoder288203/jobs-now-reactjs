@@ -24,6 +24,7 @@ export const companyFollowKeys = {
   all: ['company-follow'] as const,
   detail: (companyId: string) => [...companyFollowKeys.all, companyId] as const,
   followers: (companyId: string, page: number) => [...companyFollowKeys.all, 'followers', companyId, page] as const,
+  myFollowed: (page: number) => [...companyFollowKeys.all, 'my-followed', page] as const,
 };
 
 export const recruiterReviewKeys = {
@@ -170,14 +171,19 @@ export function useFollowCompany(companyId: string) {
   });
 }
 
-export function useUnfollowCompany(companyId: string) {
+export function useUnfollowCompany(defaultCompanyId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => companyService.unfollowCompany(companyId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(companyId) });
-      queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+    mutationFn: (companyIdToUnfollow?: string) => {
+      const targetId = companyIdToUnfollow ?? defaultCompanyId;
+      if (!targetId) throw new Error('Company ID is required');
+      return companyService.unfollowCompany(targetId);
+    },
+    onSuccess: (_, variables) => {
+      const targetId = variables ?? defaultCompanyId ?? '';
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(targetId) });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(targetId) });
       queryClient.invalidateQueries({ queryKey: companyFollowKeys.all });
     },
   });
@@ -188,6 +194,13 @@ export function useCompanyFollowers(companyId: string | undefined, page = 0, siz
     queryKey: companyFollowKeys.followers(companyId ?? '', page),
     queryFn: () => companyService.getCompanyFollowers(companyId!, page, size),
     enabled: !!companyId,
+  });
+}
+
+export function useMyFollowedCompanies(page = 0, size = 20) {
+  return useQuery({
+    queryKey: companyFollowKeys.myFollowed(page),
+    queryFn: () => companyService.getMyFollowedCompanies(page, size),
   });
 }
 
