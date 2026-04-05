@@ -108,7 +108,7 @@ export async function mockSetDefaultResume(
 
 export async function mockUpdateResume(
   resumeId: string,
-  data: { resumeName?: string; summary?: string | null }
+  data: { resumeName?: string; summary?: string | null; templateKey?: string }
 ): Promise<Resume> {
   await delay(300);
   const r = mockResumes.find((x) => x.id === resumeId || String(x.resumeId) === resumeId);
@@ -118,6 +118,7 @@ export async function mockUpdateResume(
     r.resumeName = data.resumeName;
   }
   if (data.summary !== undefined) r.summary = data.summary;
+  if (data.templateKey !== undefined) r.templateKey = data.templateKey;
   return r;
 }
 

@@ -3,18 +3,17 @@ import { USE_MOCK } from './api';
 import * as mockResume from '@/mocks/handlers/resume.mock';
 import { apiClient } from './api';
 
-/** Unwrap BE BaseResponse { code, message, data } */
 function unwrap<T>(res: unknown): T {
   const obj = res as { data?: T };
   return (obj?.data ?? res) as T;
 }
 
-/** BE returns ResumeDTO[]: resumeId, resumeName, resumeUrl, summary, uploadedAt, isPrimary. Map to FE Resume. */
 function mapResumeFromBE(item: {
   resumeId: number;
   resumeName: string;
   resumeUrl: string;
   summary?: string | null;
+  templateKey?: string | null;
   uploadedAt: string;
   isPrimary?: boolean;
 }): Resume {
@@ -23,6 +22,7 @@ function mapResumeFromBE(item: {
     resumeName: item.resumeName,
     resumeUrl: item.resumeUrl,
     summary: item.summary ?? null,
+    templateKey: item.templateKey ?? undefined,
     uploadedAt: item.uploadedAt,
     id: String(item.resumeId),
     file_name: item.resumeName,
@@ -40,7 +40,7 @@ export async function getResumes(userId: string): Promise<Resume[]> {
   const profile = unwrap<{ profileId: number }>(profileRes);
   if (!profile?.profileId) return [];
   const listRes = await apiClient.get(`/resume/profile/${profile.profileId}`);
-  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; uploadedAt: string; isPrimary?: boolean }[]>(listRes);
+  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean }[]>(listRes);
   if (!Array.isArray(list)) return [];
   return list.map(mapResumeFromBE);
 }
@@ -80,13 +80,13 @@ export async function setDefaultResume(userId: string, resumeId: string): Promis
 
 export async function updateResume(
   resumeId: string,
-  data: { resumeName?: string; summary?: string | null }
+  data: { resumeName?: string; summary?: string | null; templateKey?: string }
 ): Promise<Resume> {
   if (USE_MOCK) {
     return mockResume.mockUpdateResume(resumeId, data);
   }
   const res = await apiClient.put(`/resume/${resumeId}`, data);
-  const dto = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; uploadedAt: string; isPrimary?: boolean }>(res);
+  const dto = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean }>(res);
   return mapResumeFromBE(dto);
 }
 
@@ -97,12 +97,12 @@ export async function deleteResume(userId: string, resumeId: string): Promise<vo
   await apiClient.delete(`/resume/delete/${resumeId}`);
 }
 
-/** Tạo resume không cần file (dùng cho luồng create-from-builder) */
-export async function initResume(userId: string, resumeName: string): Promise<Resume> {
+export async function initResume(userId: string, resumeName: string, templateKey?: string): Promise<Resume> {
   const profileRes = await apiClient.get(`/profile/user/${userId}`);
   const profile = unwrap<{ profileId: number }>(profileRes);
   if (!profile?.profileId) throw new Error('Profile not found');
-  const res = await apiClient.post(`/resume/init/${profile.profileId}`, { resumeName });
-  const data = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; uploadedAt: string; isPrimary?: boolean }>(res);
+  const payload = templateKey ? { resumeName, templateKey } : { resumeName };
+  const res = await apiClient.post(`/resume/init/${profile.profileId}`, payload);
+  const data = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean }>(res);
   return mapResumeFromBE(data);
 }

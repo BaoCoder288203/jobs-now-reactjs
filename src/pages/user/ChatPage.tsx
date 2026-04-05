@@ -278,7 +278,7 @@ export default function ChatPage() {
         >
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-blue-600" />
+              <MessageCircle className="w-5 h-5 text-primary" />
               Tin nhắn
             </h2>
             <div className="relative">
@@ -288,7 +288,7 @@ export default function ChatPage() {
                 placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border-0 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : filteredConversations.length === 0 ? (
               <div className="text-center py-12 text-gray-500 text-sm">Chưa có cuộc trò chuyện nào</div>
@@ -306,7 +306,7 @@ export default function ChatPage() {
                   key={conv.conversationId}
                   onClick={() => selectConversation(conv)}
                   className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${selectedConv?.conversationId === conv.conversationId
-                      ? 'bg-blue-50 border-l-4 border-blue-600'
+                      ? 'bg-primary/10 border-l-4 border-primary'
                       : 'hover:bg-gray-50 border-l-4 border-transparent'
                     }`}
                 >
@@ -318,7 +318,7 @@ export default function ChatPage() {
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
+                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-lg">
                         {conv.otherUserName?.charAt(0)?.toUpperCase()}
                       </div>
                     )}
@@ -372,7 +372,7 @@ export default function ChatPage() {
                 {selectedConv.otherUserAvatar ? (
                   <img src={selectedConv.otherUserAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
                     {selectedConv.otherUserName?.charAt(0)?.toUpperCase()}
                   </div>
                 )}
@@ -393,15 +393,15 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ background: '#f0f2f5' }}>
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-white">
                 {messages.map((msg) => {
                   const isMine = msg.senderId === userId;
                   return (
                     <div key={msg.messageId} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                       <div
                         className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${isMine
-                          ? 'bg-blue-500 text-white rounded-br-md'
-                            : 'bg-white text-gray-800 shadow-sm rounded-bl-md'
+                          ? 'bg-primary text-white rounded-br-md'
+                            : 'bg-gray-100 text-gray-900 rounded-bl-md'
                           }`}
                       >
                         {msg.messageType === 'IMAGE' && msg.attachment ? (
@@ -416,7 +416,7 @@ export default function ChatPage() {
                             href={msg.attachment.filePath}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`flex items-center gap-2 p-3 mt-1 rounded-lg border hover:bg-black/5 hover:opacity-90 transition-colors ${isMine ? 'bg-blue-400/40 border-blue-300 text-white' : 'bg-gray-50 border-gray-200 text-blue-600'}`}
+                            className={`flex items-center gap-2 p-3 mt-1 rounded-lg border hover:bg-black/5 hover:opacity-90 transition-colors ${isMine ? 'bg-primary/30 border-primary/40 text-white' : 'bg-gray-50 border-gray-200 text-primary'}`}
                           >
                             <div className="p-2 bg-white/20 rounded-md">
                               <FileText className="w-5 h-5 shrink-0" />
@@ -427,7 +427,7 @@ export default function ChatPage() {
                         ) : (
                           <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                         )}
-                        <p className={`text-[10px] mt-1 ${isMine ? 'text-blue-50/90' : 'text-gray-400'}`}>
+                        <p className={`text-[10px] mt-1 ${isMine ? 'text-white/80' : 'text-gray-400'}`}>
                           {formatTime(msg.sentAt)}
                         </p>
                       </div>
@@ -472,7 +472,7 @@ export default function ChatPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="w-full flex items-center gap-2">
                   <input
                     id="chat-file-input"
                     type="file"
@@ -514,13 +514,13 @@ export default function ChatPage() {
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={isUploading ? "Đang tải tệp lên..." : "Nhập tin nhắn..."}
-                    className="flex-1 px-4 py-2.5 rounded-full bg-gray-100 border-0 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-gray-100 border-0 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                     disabled={isUploading}
                   />
                   <button
                     onClick={handleSend}
                     disabled={(!newMessage.trim() && !selectedFile) || isUploading}
-                    className="p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="mr-16 p-2.5 rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {isUploading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

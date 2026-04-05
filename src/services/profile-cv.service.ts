@@ -7,25 +7,21 @@ import type {
 } from '@/types';
 import { apiClient } from './api';
 
-/** Unwrap BE BaseResponse { code, message, data } */
 function unwrap<T>(res: unknown): T {
   const obj = res as { data?: T };
   return (obj?.data ?? res) as T;
 }
 
-/** Get full profile by user id (includes workExperiences, educations, projects, certificates, skills, resumes) */
 export async function getProfileByUserId(userId: string): Promise<JobSeekerProfile> {
   const res = await apiClient.get(`/profile/user/${userId}`);
   return unwrap<JobSeekerProfile>(res);
 }
 
-/** Get profile by profileId */
 export async function getProfileByProfileId(profileId: number): Promise<JobSeekerProfile> {
   const res = await apiClient.get(`/profile/${profileId}`);
   return unwrap<JobSeekerProfile>(res);
 }
 
-/** Update profile (bio, title, fullName, phone, address, dob, socials) */
 export async function updateProfile(
   profileId: number,
   data: {
@@ -41,7 +37,16 @@ export async function updateProfile(
   await apiClient.put(`/profile/${profileId}`, data);
 }
 
-// ---------- Work Experiences (theo resume) ----------
+export async function uploadProfileAvatar(profileId: number, avatarFile: File): Promise<void> {
+  const formData = new FormData();
+  formData.append('avatarFile', avatarFile);
+  await apiClient.post(`/profile/${profileId}/avatar`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
 export async function getWorkExperiences(resumeId: number): Promise<WorkExperienceDTO[]> {
   const res = await apiClient.get(`/resume/${resumeId}/work-experiences`);
   return unwrap<WorkExperienceDTO[]>(res);
@@ -82,7 +87,6 @@ export async function deleteWorkExperience(resumeId: number, id: number): Promis
   await apiClient.delete(`/resume/${resumeId}/work-experiences/${id}`);
 }
 
-// ---------- Educations (theo resume) ----------
 export async function getEducations(resumeId: number): Promise<EducationDTO[]> {
   const res = await apiClient.get(`/resume/${resumeId}/educations`);
   return unwrap<EducationDTO[]>(res);
@@ -125,7 +129,6 @@ export async function deleteEducation(resumeId: number, id: number): Promise<voi
   await apiClient.delete(`/resume/${resumeId}/educations/${id}`);
 }
 
-// ---------- Projects (theo resume) ----------
 export async function getProjects(resumeId: number): Promise<ProjectDTO[]> {
   const res = await apiClient.get(`/resume/${resumeId}/projects`);
   return unwrap<ProjectDTO[]>(res);
@@ -164,7 +167,6 @@ export async function deleteProject(resumeId: number, id: number): Promise<void>
   await apiClient.delete(`/resume/${resumeId}/projects/${id}`);
 }
 
-// ---------- Certificates (theo resume) ----------
 export async function getCertificates(resumeId: number): Promise<CertificateDTO[]> {
   const res = await apiClient.get(`/resume/${resumeId}/certificates`);
   return unwrap<CertificateDTO[]>(res);
@@ -201,7 +203,6 @@ export async function deleteCertificate(resumeId: number, id: number): Promise<v
   await apiClient.delete(`/resume/${resumeId}/certificates/${id}`);
 }
 
-// ---------- Resume Skills ----------
 export interface ResumeSkillDTO {
   skillId: number;
   skillName: string;

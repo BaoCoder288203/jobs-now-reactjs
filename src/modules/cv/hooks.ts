@@ -42,3 +42,15 @@ export function useMatchedCandidates(jobId: number | undefined) {
     enabled: !!jobId,
   });
 }
+
+export function useRecalculateForProfile() {
+  return useMutation({
+    mutationFn: (profileId: number) => aiService.recalculateForProfile(profileId),
+  });
+}
+
+export function useRecalculateForJob() {
+  return useMutation({
+    mutationFn: (jobId: number) => aiService.recalculateForJob(jobId),
+  });
+}

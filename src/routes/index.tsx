@@ -19,6 +19,7 @@ import { ResumeEditPage } from '@/pages/job-seeker/ResumeEditPage';
 import { JobSeekerApplicationsPage } from '@/pages/job-seeker/ApplicationsPage';
 import { JobSeekerSavedJobsPage } from '@/pages/job-seeker/SavedJobsPage';
 import { JobSeekerSettingsPage } from '@/pages/job-seeker/SettingsPage';
+import JobSeekerPricingPage from '@/pages/job-seeker/JobSeekerPricingPage';
 
 // Recruiter/Employer Pages
 import { RecruiterDashboardPage } from '@/pages/employer/DashboardPage';
@@ -29,6 +30,8 @@ import { CreateJobPage } from '@/pages/employer/CreateJobPage';
 import { EmployerCompanyPage } from '@/pages/employer/CompanyPage';
 import { EmployerReviewsPage } from '@/pages/employer/ReviewsPage';
 import { EmployerSettingsPage } from '@/pages/employer/SettingsPage';
+import PricingPage from '@/pages/employer/PricingPage';
+import PaymentResultPage from '@/pages/public/PaymentResultPage';
 
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
@@ -63,6 +66,7 @@ export function AppRoutes() {
       {/* Tools (placeholder) */}
       <Route path="/tools/tinh-luong-gross-net" element={<ToolsPlaceholderPage />} />
       <Route path="/tools/phong-van" element={<ToolsPlaceholderPage />} />
+      <Route path="/payment-result" element={<PaymentResultPage />} />
 
       {/* Recruiter/Employer Routes */}
       <Route
@@ -151,6 +155,16 @@ export function AppRoutes() {
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerApplicationDetailPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/pricing"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <PricingPage />
             </RoleGuard>
           </RequireAuth>
         }
@@ -280,6 +294,14 @@ export function AppRoutes() {
           element={
             <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <ResumeEditPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="pricing"
+          element={
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <JobSeekerPricingPage />
             </RoleGuard>
           }
         />

@@ -6,11 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { useApplicationDetail, useUpdateApplicationStatus } from '@/modules/applications/hooks';
+import { useCalculateJobMatch } from '@/modules/cv/hooks';
+import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target } from 'lucide-react';
 import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
 import { RichTextContent } from '@/components/ui/RichTextContent';
 import { toast } from 'sonner';
+import type { JobMatchResponse } from '@/services/ai.service';
 
 export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +21,25 @@ export function EmployerApplicationDetailPage() {
 
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();
+  const calculateMatch = useCalculateJobMatch();
+  const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
+
+  const handleCheckMatch = async () => {
+    if (!application) return;
+    const jobId = Number(application.job_id);
+    const profileId = application.user?.profileId ?? undefined;
+    const resumeId = application.resume_id ? Number(application.resume_id) : undefined;
+    if (!jobId || (!profileId && !resumeId)) {
+      toast.error('Không đủ dữ liệu để kiểm tra');
+      return;
+    }
+    try {
+      const data = await calculateMatch.mutateAsync({ jobId, profileId: profileId ?? undefined, resumeId });
+      setMatchResult(data);
+    } catch {
+      toast.error('Kiểm tra thất bại');
+    }
+  };
 
   const handleStatusChange = async (newStatus: string, interviewDetailsHtml?: string) => {
     if (!id) return;
@@ -227,6 +249,15 @@ export function EmployerApplicationDetailPage() {
                     View Job Posting
                   </Button>
                 </Link>
+                <Button
+                  variant="outline"
+                  className="w-full mb-2 gap-2"
+                  onClick={handleCheckMatch}
+                  disabled={calculateMatch.isPending}
+                >
+                  <Target className="h-4 w-4" />
+                  {calculateMatch.isPending ? 'Đang phân tích...' : 'Kiểm tra độ phù hợp AI'}
+                </Button>
                 {application.user?.email && (
                   <a href={`mailto:${application.user.email}`}>
                     <Button variant="outline" className="w-full">
@@ -236,6 +267,17 @@ export function EmployerApplicationDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {matchResult && (
+              <Card className="border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-base">AI Match Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <JobMatchResultCard result={matchResult} />
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { Button } from '@/components/ui/button';
-import { useSetDefaultResume } from '@/modules/resumes/hooks';
+import { useResumes, useSetDefaultResume } from '@/modules/resumes/hooks';
 import { ArrowLeft } from 'lucide-react';
 import { CVContentForm } from '@/components/cv-builder/CVContentForm';
 
@@ -10,10 +10,13 @@ export function ResumeEditPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const resumeId = searchParams.get('id') ?? undefined;
-  const resumeName = (location.state as { resumeName?: string })?.resumeName as string | undefined;
+  const resumeNameFromState = (location.state as { resumeName?: string })?.resumeName as string | undefined;
 
   const { user } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
+  const { data: resumes = [] } = useResumes(userId);
+  const resumeNameFromQuery = resumes.find((item) => String(item.resumeId) === resumeId)?.resumeName;
+  const displayResumeName = resumeNameFromQuery ?? resumeNameFromState;
 
   const setDefaultResume = useSetDefaultResume();
   const handleSetDefaultAndBack = () => {
@@ -28,7 +31,7 @@ export function ResumeEditPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">
-          {resumeName ? `Chỉnh sửa nội dung: ${resumeName}` : 'Chỉnh sửa nội dung CV'}
+          {displayResumeName ? `Chỉnh sửa nội dung: ${displayResumeName}` : 'Chỉnh sửa nội dung CV'}
         </h1>
       </div>
       {resumeId && (
@@ -49,7 +52,7 @@ export function ResumeEditPage() {
       <CVContentForm
         userId={userId}
         header={header}
-        resumeTitle={resumeName ?? 'CV của tôi'}
+        resumeTitle={displayResumeName ?? 'CV của tôi'}
         resumeId={resumeId}
       />
     </div>

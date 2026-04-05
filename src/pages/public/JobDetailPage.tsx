@@ -7,6 +7,8 @@ import { useCompanyDetail } from '@/modules/companies/hooks';
 import { useApplyJob, useMyApplications } from '@/modules/applications/hooks';
 import { useSaveJob, useUnsaveJob, useSavedJobs } from '@/modules/savedJobs/hooks';
 import { useResumes } from '@/modules/resumes/hooks';
+import { useCalculateJobMatch } from '@/modules/cv/hooks';
+import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +26,7 @@ import {
   BookmarkCheck,
   Send,
   Briefcase,
+  Target,
   Hash,
   GraduationCap,
   UserCircle,
@@ -50,7 +53,20 @@ import { RichTextContent } from '@/components/ui/RichTextContent';
 import { formatRegionLabelFromLocation } from '@/lib/locationUtils';
 import facebookShareIcon from '@/assets/icons-socials/facebook.svg';
 import linkedinShareIcon from '@/assets/icons-socials/linkedin.svg';
+import type { JobMatchResponse } from '@/services/ai.service';
 import { RelatedJobCard } from '@/components/jobs/RelatedJobCard';
+
+function toAiMatchErrorMessage(rawMessage: string) {
+  const message = rawMessage.toLowerCase();
+  if (
+    message.includes('no active candidate quota') ||
+    message.includes('out of ai matching quota') ||
+    message.includes('candidate subscription expired')
+  ) {
+    return 'Bạn chưa có lượt AI Matching khả dụng. Vui lòng vào trang Goi dich vu de mua hoac nang cap goi.';
+  }
+  return rawMessage;
+}
 
 function SummaryRow({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: React.ReactNode }) {
   return (
@@ -88,10 +104,12 @@ export function JobDetailPage() {
   const applyJob = useApplyJob();
   const saveJob = useSaveJob();
   const unsaveJob = useUnsaveJob();
+  const calculateMatch = useCalculateJobMatch();
 
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   const [coverLetter, setCoverLetter] = useState('');
+  const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
   const companyJobsScrollRef = useRef<HTMLDivElement>(null);
 
   const hasApplied = myApplications.some((app) => app.job_id === id);
@@ -721,6 +739,50 @@ export function JobDetailPage() {
 
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-4">
+                {profileId && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={async () => {
+                          try {
+                            const resolvedResumeId = Number(
+                              selectedResumeId || defaultResume?.id || (defaultResume as { resumeId?: number } | undefined)?.resumeId
+                            );
+                            const data = await calculateMatch.mutateAsync({
+                              jobId: Number(id),
+                              profileId,
+                              ...(Number.isFinite(resolvedResumeId) && resolvedResumeId > 0
+                                ? { resumeId: resolvedResumeId }
+                                : {}),
+                            });
+                            setMatchResult(data);
+                          } catch (error: unknown) {
+                            const message =
+                              error && typeof error === 'object' && 'message' in error
+                                ? String((error as { message?: string }).message)
+                                : '';
+                            toast.error(toAiMatchErrorMessage(message) || 'Kiểm tra độ phù hợp thất bại');
+                          }
+                        }}
+                        disabled={calculateMatch.isPending}
+                      >
+                        <Target className="h-4 w-4" />
+                        {calculateMatch.isPending ? 'Đang phân tích...' : 'Kiểm tra độ phù hợp'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {matchResult && (
+                  <Card className="border-blue-200 bg-blue-50/30">
+                    <CardContent className="p-6">
+                      <JobMatchResultCard result={matchResult} compact />
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="font-semibold text-gray-900 mb-3">Việc làm liên quan</h3>
