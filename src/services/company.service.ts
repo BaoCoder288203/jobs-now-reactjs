@@ -248,3 +248,39 @@ export async function getCompanyFollowStatus(companyId: string): Promise<boolean
   return Boolean((response.data ?? response) as boolean);
 }
 
+export interface CompanyFollowerItem {
+  userId: number;
+  fullName: string;
+  avatarUrl?: string | null;
+  followedAt?: string;
+}
+
+export interface CompanyFollowersPage {
+  content: CompanyFollowerItem[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export async function getCompanyFollowers(
+  companyId: string,
+  page = 0,
+  size = 20
+): Promise<CompanyFollowersPage> {
+  if (USE_MOCK) {
+    return { content: [], totalElements: 0, totalPages: 0, number: 0, size };
+  }
+  const res = (await apiClient.get(`/company/${companyId}/followers`, {
+    params: { page, size },
+  })) as { data?: CompanyFollowersPage };
+  const raw = (res.data ?? res) as CompanyFollowersPage;
+  return {
+    content: raw.content ?? [],
+    totalElements: raw.totalElements ?? 0,
+    totalPages: raw.totalPages ?? 0,
+    number: raw.number ?? page,
+    size: raw.size ?? size,
+  };
+}
+

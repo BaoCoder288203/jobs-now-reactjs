@@ -10,13 +10,15 @@ import { useCalculateJobMatch } from '@/modules/cv/hooks';
 import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target } from 'lucide-react';
+import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
+import { RichTextContent } from '@/components/ui/RichTextContent';
 import { toast } from 'sonner';
 import type { JobMatchResponse } from '@/services/ai.service';
 
 export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
-  // const { user } = useAppSelector((state) => state.auth);
-  
+  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
+
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();
   const calculateMatch = useCalculateJobMatch();
@@ -39,16 +41,27 @@ export function EmployerApplicationDetailPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string, interviewDetailsHtml?: string) => {
     if (!id) return;
     try {
       await updateStatus.mutateAsync({
         applicationId: id,
-        status: newStatus
+        status: newStatus,
+        interviewDetailsHtml,
       });
+      toast.success('Đã cập nhật trạng thái');
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast.error('Không thể cập nhật trạng thái');
     }
+  };
+
+  const onSelectStatus = (newStatus: string) => {
+    if (newStatus === 'interviewing') {
+      setInterviewModalOpen(true);
+      return;
+    }
+    void handleStatusChange(newStatus);
   };
 
   if (isLoading) {
@@ -187,7 +200,7 @@ export function EmployerApplicationDetailPage() {
                   </label>
                   <Select
                     value={application.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
+                    onChange={(e) => onSelectStatus(e.target.value)}
                     disabled={updateStatus.isPending}
                   >
                     <option value="pending">Đang chờ</option>
@@ -214,6 +227,14 @@ export function EmployerApplicationDetailPage() {
                     </p>
                   </div>
                 </div>
+                {application.status === 'interviewing' && application.interview_details_html && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Nội dung đã gửi ứng viên</p>
+                    <div className="prose prose-sm max-w-none text-gray-700 border rounded-lg p-3 bg-gray-50">
+                      <RichTextContent html={application.interview_details_html} />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -260,6 +281,16 @@ export function EmployerApplicationDetailPage() {
           </div>
         </div>
       </div>
+
+      <InterviewStatusModal
+        open={interviewModalOpen}
+        onOpenChange={setInterviewModalOpen}
+        isSubmitting={updateStatus.isPending}
+        onConfirm={async (html) => {
+          await handleStatusChange('interviewing', html);
+          setInterviewModalOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }

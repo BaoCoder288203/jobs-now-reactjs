@@ -5,7 +5,7 @@ import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useMyCompany, useCreateMyCompany, useUpdateMyCompany } from '@/modules/companies/hooks';
+import { useMyCompany, useCreateMyCompany, useUpdateMyCompany, useCompanyFollowers } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CompanyForm } from '@/components/company/CompanyForm';
 import { Building2, MapPin, Users, Globe } from 'lucide-react';
@@ -16,6 +16,7 @@ export function EmployerCompanyPage() {
   const { data: company, isLoading } = useMyCompany();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<CompanySubscriptionStatus | null>(null);
+  const { data: followersPage } = useCompanyFollowers(company?.id, 0, 24);
   
   const createCompany = useCreateMyCompany();
   const updateCompany = useUpdateMyCompany();
@@ -202,6 +203,51 @@ export function EmployerCompanyPage() {
                     )}
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {subscriptionStatus && (
+            <Card>
+              <CardContent className="p-6 space-y-2 text-sm text-gray-700">
+                <div className="font-semibold text-gray-900">Trạng thái gói tài khoản</div>
+                <p>Trạng thái: {accountStatusLabel(subscriptionStatus.accountStatus)}</p>
+                <p>Gói hiện tại: {subscriptionStatus.currentPlanName || 'Chưa có gói trả phí'}</p>
+                <p>Còn lại: {subscriptionStatus.remainingJobPosts} lượt đăng, {subscriptionStatus.remainingAiScans} AI scan</p>
+                <p>AI CV Builder trial: {subscriptionStatus.remainingAiCvBuilderTrials ?? 0}</p>
+                <p>Hết hạn: {subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                <div>
+                  <Link to="/employer/pricing" className="text-primary hover:underline">Quản lý và nâng cấp gói</Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Người theo dõi công ty</h2>
+              {!followersPage?.content?.length ?
+                <p className="text-sm text-gray-500">Chưa có ai theo dõi công ty.</p>
+              : <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {followersPage.content.map((f) => (
+                    <li key={f.userId} className="flex flex-col items-center text-center gap-2">
+                      <div className="h-14 w-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border border-gray-200">
+                        {f.avatarUrl ?
+                          <img src={f.avatarUrl} alt="" className="h-full w-full object-cover" />
+                        : <span className="text-lg font-semibold text-gray-400">
+                            {(f.fullName ?? '?').charAt(0).toUpperCase()}
+                          </span>
+                        }
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 line-clamp-2">{f.fullName ?? '—'}</p>
+                    </li>
+                  ))}
+                </ul>
+              }
+              {followersPage && followersPage.totalElements > (followersPage.content?.length ?? 0) && (
+                <p className="text-xs text-gray-500 mt-3">
+                  Hiển thị {followersPage.content.length} / {followersPage.totalElements} người theo dõi.
+                </p>
               )}
             </CardContent>
           </Card>
