@@ -104,3 +104,97 @@
 .rich-text-content h1 {
   font-size: 1.5rem;
 }
+
+/* Bảng — đồng bộ với Tiptap */
+.rich-text-content .tableWrapper {
+  overflow-x: auto;
+  margin: 0.75em 0;
+  max-width: 100%;
+}
+
+.rich-text-content table.rich-table,
+.rich-text-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.rich-text-content th,
+.rich-text-content td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em 0.65em;
+  vertical-align: top;
+}
+
+.rich-text-content th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Ảnh trong bài */
+.rich-text-content img.rich-inline-image,
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.75em 0;
+}
+
+/* Nút CTA */
+.rich-text-content .rich-cta {
+  margin: 1em 0;
+}
+
+.rich-text-content .rich-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55em 1.25em;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #fff !important;
+  text-decoration: none !important;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rich-text-content .rich-cta__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+}
+
+/* Link mạng xã hội (toolbar chèn class) */
+.rich-text-content a.rich-link-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.2em 0.65em;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none !important;
+  border: 1px solid transparent;
+}
+
+.rich-text-content a.rich-link-linkedin {
+  background: #0a66c2;
+  color: #fff !important;
+}
+
+.rich-text-content a.rich-link-twitter {
+  background: #0f1419;
+  color: #fff !important;
+}
+
+.rich-text-content a.rich-link-facebook {
+  background: #1877f2;
+  color: #fff !important;
+}
+
+.rich-text-content a.rich-link-telegram {
+  background: #229ed9;
+  color: #fff !important;
+}

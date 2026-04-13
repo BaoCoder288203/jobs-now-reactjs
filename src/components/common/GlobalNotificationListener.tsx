@@ -30,9 +30,9 @@ export function GlobalNotificationListener() {
 
         notifSub = subscribeToNotifications(user.userId, (notif: any) => {
           if (notif.type === 'CHAT') {
-            if (!location.pathname.startsWith('/chat')) {
+            if (!location.pathname.startsWith('/user/chat')) {
               toast(
-                <div className="flex flex-col gap-1 cursor-pointer" onClick={() => navigate('/chat')}>
+                <div className="flex flex-col gap-1 cursor-pointer" onClick={() => navigate('/user/chat')}>
                   <p className="font-semibold text-sm">Tin nhắn mới từ {notif.senderName || 'Ai đó'}</p>
                   <p className="text-sm text-gray-600 line-clamp-1">{notif.content}</p>
                 </div>,

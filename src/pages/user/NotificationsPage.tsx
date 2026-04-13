@@ -106,7 +106,7 @@ export function NotificationsPage() {
                     className={cn("flex items-start justify-between gap-3", n.type === 'CHAT' ? "cursor-pointer" : "")}
                     onClick={() => {
                       if (n.type === 'CHAT') {
-                        navigate('/chat', { state: { openConversationId: n.conversationId } });
+                        navigate('/user/chat', { state: { openConversationId: n.conversationId } });
                       }
                     }}
                   >

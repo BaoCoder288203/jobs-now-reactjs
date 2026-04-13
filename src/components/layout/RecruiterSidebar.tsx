@@ -5,9 +5,9 @@ import {
   Briefcase,
   Users,
   Building2,
-  Star,
   BarChart3,
-  LogOut
+  LogOut,
+  Newspaper
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const menuItems: SidebarItem[] = [
   { title: 'Việc làm', href: '/employer/jobs', icon: Briefcase },
   { title: 'Đơn ứng tuyển', href: '/employer/applications', icon: Users },
   { title: 'Công ty', href: '/employer/company', icon: Building2 },
-  { title: 'Duyệt đánh giá', href: '/employer/reviews', icon: Star },
+  { title: 'Bài viết', href: '/employer/posts', icon: Newspaper },
   { title: 'Thống kê', href: '/employer/analytics', icon: BarChart3 },
 ];
 

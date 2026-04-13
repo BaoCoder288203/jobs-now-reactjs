@@ -295,7 +295,8 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     try {
       setError(null);
       setIsLoading(true);
-      const result = await dispatch(googleLoginAsync(idToken)).unwrap();
+      const roleName = mode === 'employer' ? 'ROLE_COMPANY' : 'ROLE_JOBSEEKER';
+      const result = await dispatch(googleLoginAsync({ idToken, roleName })).unwrap();
       onOpenChange(false);
       if (result.role === 'ROLE_JOBSEEKER') {
         navigate('/user/dashboard', { replace: true });
