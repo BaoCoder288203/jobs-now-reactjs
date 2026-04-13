@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import {
@@ -20,7 +20,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowLeft, Globe, Briefcase, MapPin, Building2, MessageCircle, Star, Heart } from 'lucide-react';
+import {
+  ArrowLeft,
+  Globe,
+  Briefcase,
+  MapPin,
+  Building2,
+  MessageCircle,
+  Star,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import * as chatService from '@/services/chat.service';
@@ -38,6 +49,8 @@ export function CompanyDetailPage() {
   const [allReviews, setAllReviews] = useState<CompanyReview[]>([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'reviews'>('overview');
+  const imagesCarouselRef = useRef<HTMLDivElement>(null);
+  const jobsCarouselRef = useRef<HTMLDivElement>(null);
   const [reviewForm, setReviewForm] = useState<CreateCompanyReviewRequest>({
     rating: 5,
     title: '',
@@ -143,7 +156,7 @@ export function CompanyDetailPage() {
       }
       
       await chatService.createConversation(user.userId, Number(company.owner_user_id));
-      navigate('/chat');
+      navigate('/user/chat');
     } catch (error) {
       console.error('Failed to start conversation', error);
       toast.error('Không thể tạo cuộc trò chuyện lúc này.');
@@ -208,7 +221,7 @@ export function CompanyDetailPage() {
 
     try {
       if (isFollowing) {
-        await unfollowMutation.mutateAsync();
+        await unfollowMutation.mutateAsync(undefined);
         toast.success('Đã bỏ theo dõi công ty');
       } else {
         await followMutation.mutateAsync();
@@ -217,6 +230,15 @@ export function CompanyDetailPage() {
     } catch (error: any) {
       toast.error(error?.message || 'Không thể cập nhật trạng thái theo dõi');
     }
+  };
+
+  const handleHorizontalScroll = (ref: React.RefObject<HTMLDivElement | null>, direction: 'prev' | 'next') => {
+    if (!ref.current) return;
+    const scrollAmount = Math.max(ref.current.clientWidth * 0.85, 260);
+    ref.current.scrollBy({
+      left: direction === 'next' ? scrollAmount : -scrollAmount,
+      behavior: 'smooth',
+    });
   };
 
   return (
@@ -388,12 +410,34 @@ export function CompanyDetailPage() {
               {hasImages && (
                 <Card>
                   <CardContent className="p-6 md:p-8">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Hình ảnh công ty</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h2 className="text-xl font-bold text-gray-900">Hình ảnh công ty</h2>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => handleHorizontalScroll(imagesCarouselRef, 'prev')}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => handleHorizontalScroll(imagesCarouselRef, 'next')}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div ref={imagesCarouselRef} className="flex gap-4 overflow-x-auto pb-2">
                       {company.thumbnail_images!.map((url, index) => (
                         <div
                           key={index}
-                          className="aspect-video rounded-lg overflow-hidden bg-gray-100"
+                          className="aspect-video w-[280px] shrink-0 overflow-hidden rounded-lg bg-gray-100 md:w-[320px]"
                         >
                           <img
                             src={url}
@@ -410,25 +454,46 @@ export function CompanyDetailPage() {
               {/* 4. Job Openings */}
               <Card>
                 <CardContent className="p-6 md:p-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    Việc làm đang tuyển
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="text-xl font-bold text-gray-900">
+                      Việc làm đang tuyển
+                      {companyJobs.length > 0 && (
+                        <span className="text-primary ml-2 font-normal">({companyJobs.length} vị trí)</span>
+                      )}
+                    </h2>
                     {companyJobs.length > 0 && (
-                      <span className="text-primary font-normal ml-2">
-                        ({companyJobs.length} vị trí)
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => handleHorizontalScroll(jobsCarouselRef, 'prev')}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9"
+                          onClick={() => handleHorizontalScroll(jobsCarouselRef, 'next')}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
-                  </h2>
+                  </div>
                   {jobsLoading ? (
                     <div className="flex justify-center py-12">
                       <LoadingSpinner />
                     </div>
                   ) : companyJobs.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div ref={jobsCarouselRef} className="flex gap-4 overflow-x-auto pb-2">
                       {companyJobs.map((job) => (
-                        <JobCard
-                          key={job.id}
-                          job={{ ...job, company: job.company ?? company }}
-                        />
+                        <div key={job.id} className="w-[320px] shrink-0 md:w-[360px]">
+                          <JobCard job={{ ...job, company: job.company ?? company }} />
+                        </div>
                       ))}
                     </div>
                   ) : (

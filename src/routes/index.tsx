@@ -11,6 +11,9 @@ import { ToolsPlaceholderPage } from '@/pages/public/ToolsPlaceholderPage';
 import { CVToolsLandingPage } from '@/pages/public/CVToolsLandingPage';
 import { CVBuilderPage } from '@/pages/public/CVBuilderPage';
 import { CVImprovePage } from '@/pages/public/CVImprovePage';
+import { HandbookHubPage } from '@/pages/public/HandbookHubPage';
+import { HandbookCategoryPage } from '@/pages/public/HandbookCategoryPage';
+import { HandbookPostDetailPage } from '@/pages/public/HandbookPostDetailPage';
 
 // Job Seeker Pages
 import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
@@ -29,10 +32,11 @@ import { EmployerApplicationsPage } from '@/pages/employer/ApplicationsPage';
 import { EmployerApplicationDetailPage } from '@/pages/employer/ApplicationDetailPage';
 import { CreateJobPage } from '@/pages/employer/CreateJobPage';
 import { EmployerCompanyPage } from '@/pages/employer/CompanyPage';
-import { EmployerReviewsPage } from '@/pages/employer/ReviewsPage';
 import { EmployerSettingsPage } from '@/pages/employer/SettingsPage';
 import PricingPage from '@/pages/employer/PricingPage';
 import PaymentResultPage from '@/pages/public/PaymentResultPage';
+import { CompanyPostsPage } from '@/pages/employer/CompanyPostsPage';
+import { CompanyPostEditPage } from '@/pages/employer/CompanyPostEditPage';
 
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
@@ -42,6 +46,8 @@ import { AdminSkillsPage } from '@/pages/admin/SkillsPage';
 import { AdminIndustriesPage } from '@/pages/admin/IndustriesPage';
 import { AdminCategoriesPage } from '@/pages/admin/CategoriesPage';
 import { AdminMajorsPage } from '@/pages/admin/MajorsPage';
+import { AdminReviewsPage } from '@/pages/admin/ReviewsPage';
+import { AdminCompanyPostsPage } from '@/pages/admin/CompanyPostsPage';
 
 import UserPage from '@/pages/user/UserPage';
 import UserInfoPage from '@/pages/user/UserInfoPage';
@@ -58,6 +64,10 @@ export function AppRoutes() {
       <Route path="/jobs/:id" element={<JobDetailPage />} />
       <Route path="/companies" element={<CompanyListingPage />} />
       <Route path="/companies/:id" element={<CompanyDetailPage />} />
+
+      <Route path="/cam-nang-viec-lam" element={<HandbookHubPage />} />
+      <Route path="/cam-nang-viec-lam/bai-viet/:slug" element={<HandbookPostDetailPage />} />
+      <Route path="/cam-nang-viec-lam/:categorySlug" element={<HandbookCategoryPage />} />
 
       {/* Tools (CV landing + builder) */}
       <Route path="/tools/tao-cv/builder" element={<CVBuilderPage />} />
@@ -121,11 +131,21 @@ export function AppRoutes() {
         }
       />
       <Route
-        path="/employer/reviews"
+        path="/employer/posts"
         element={
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_COMPANY']}>
-              <EmployerReviewsPage />
+              <CompanyPostsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/posts/:id"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <CompanyPostEditPage />
             </RoleGuard>
           </RequireAuth>
         }
@@ -252,6 +272,26 @@ export function AppRoutes() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/admin/reviews"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminReviewsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/company-posts"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminCompanyPostsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
 
       {/* User Routes (Common for all authenticated users) */}
       <Route
@@ -323,6 +363,7 @@ export function AppRoutes() {
           }
         />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="chat" element={<ChatPage />} />
         {/* Settings - all authenticated roles (Job Seeker, Recruiter, Admin) */}
         <Route path="settings" element={<JobSeekerSettingsPage />} />
       </Route>
@@ -339,15 +380,8 @@ export function AppRoutes() {
         }
       />
 
-      {/* Chat Page */}
-      <Route
-        path="/chat"
-        element={
-          <RequireAuth>
-            <ChatPage />
-          </RequireAuth>
-        }
-      />
+      {/* Chat redirect to user area */}
+      <Route path="/chat" element={<Navigate to="/user/chat" replace />} />
 
       {/* Redirect old routes to new structure */}
       <Route path="/recruiter/dashboard" element={<Navigate to="/employer/dashboard" replace />} />

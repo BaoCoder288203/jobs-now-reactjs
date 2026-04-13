@@ -27,9 +27,9 @@ export const companyFollowKeys = {
   myFollowed: (page: number) => [...companyFollowKeys.all, 'my-followed', page] as const,
 };
 
-export const recruiterReviewKeys = {
-  all: ['recruiter-company-reviews'] as const,
-  list: (page: number, limit: number) => [...recruiterReviewKeys.all, page, limit] as const,
+export const adminReviewKeys = {
+  all: ['admin-company-reviews'] as const,
+  list: (page: number, limit: number) => [...adminReviewKeys.all, page, limit] as const,
 };
 
 export function useCompanies(params?: PaginationParams) {
@@ -204,29 +204,29 @@ export function useMyFollowedCompanies(page = 0, size = 20) {
   });
 }
 
-export function useRecruiterPendingReviews(page = 1, limit = 10) {
+export function useAdminPendingReviews(page = 1, limit = 10) {
   return useQuery({
-    queryKey: recruiterReviewKeys.list(page, limit),
-    queryFn: () => companyService.getRecruiterPendingReviews(page, limit),
+    queryKey: adminReviewKeys.list(page, limit),
+    queryFn: () => companyService.getAdminPendingReviews(page, limit),
   });
 }
 
-export function useApproveRecruiterReview() {
+export function useApproveAdminReview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (reviewId: number) => companyService.approveRecruiterReview(reviewId),
+    mutationFn: (reviewId: number) => companyService.approveAdminReview(reviewId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: recruiterReviewKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
     },
   });
 }
 
-export function useRejectRecruiterReview() {
+export function useRejectAdminReview() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (reviewId: number) => companyService.rejectRecruiterReview(reviewId),
+    mutationFn: (reviewId: number) => companyService.rejectAdminReview(reviewId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: recruiterReviewKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
     },
   });
 }

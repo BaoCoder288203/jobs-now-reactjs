@@ -92,7 +92,7 @@ export function NotificationDropdown({
               onClick={() => {
                 onClose();
                 if (n.type === 'CHAT') {
-                  navigate('/chat', { state: { openConversationId: n.conversationId } });
+                  navigate('/user/chat', { state: { openConversationId: n.conversationId } });
                 } else {
                   navigate('/user/notifications');
                 }

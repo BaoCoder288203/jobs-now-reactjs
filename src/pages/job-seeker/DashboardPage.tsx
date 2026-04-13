@@ -163,7 +163,7 @@ export function JobSeekerDashboardPage() {
               <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-4">Chưa có đơn ứng tuyển nào</p>
               <Link to="/jobs">
-                <Button>Duyệt việc làm</Button>
+                <Button>Tìm việc làm</Button>
               </Link>
             </div>
           )}

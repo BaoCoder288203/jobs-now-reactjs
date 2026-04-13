@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Layers, Edit2, Trash2 } from 'lucide-react';
 import { getMajors, createMajor, updateMajor, deleteMajor, type MajorDTO } from '@/services/major.service';
 
 export function AdminMajorsPage() {
@@ -62,7 +63,7 @@ export function AdminMajorsPage() {
 
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Quản lý chuyên ngành (Major)</CardTitle>
@@ -83,49 +84,51 @@ export function AdminMajorsPage() {
               <div className="flex justify-center py-8">
                 <LoadingSpinner size="lg" />
               </div>
+            ) : majors.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Layers className="mb-4 h-12 w-12 text-gray-400" />
+                  <p className="text-gray-600">Chưa có chuyên ngành nào</p>
+                </CardContent>
+              </Card>
             ) : (
-              <div className="space-y-2">
-                {majors.length === 0 ? (
-                  <p className="text-sm text-gray-500">Chưa có chuyên ngành nào.</p>
-                ) : (
-                  majors.map((m) => (
-                    <div
-                      key={m.majorId}
-                      className="flex items-center justify-between rounded border px-3 py-2 gap-3"
-                    >
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {majors.map((m) => (
+                  <Card key={m.majorId} className="transition-shadow hover:shadow-lg">
+                    <CardContent className="p-4">
                       {editingId === m.majorId ? (
-                        <div className="flex-1 flex gap-2">
+                        <div className="space-y-3">
                           <Input
                             value={editingName}
                             onChange={(e) => setEditingName(e.target.value)}
+                            placeholder="Tên chuyên ngành"
                           />
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handleUpdate}
-                            disabled={!editingName.trim()}
-                          >
-                            Lưu
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={cancelEdit}
-                          >
-                            Hủy
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button type="button" size="sm" onClick={handleUpdate} disabled={!editingName.trim()}>
+                              Lưu
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" onClick={cancelEdit}>
+                              Hủy
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <>
-                          <span className="flex-1">{m.name}</span>
+                          <div className="mb-3 flex items-center justify-between">
+                            <div className="min-w-0 flex items-center gap-2">
+                              <Layers className="h-5 w-5 shrink-0 text-accent" />
+                              <h3 className="truncate font-semibold text-gray-900">{m.name}</h3>
+                            </div>
+                          </div>
                           <div className="flex gap-2">
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
+                              className="flex-1 gap-2"
                               onClick={() => startEdit(m)}
                             >
+                              <Edit2 className="h-3 w-3" />
                               Sửa
                             </Button>
                             <Button
@@ -133,15 +136,16 @@ export function AdminMajorsPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleDelete(m.majorId)}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              Xóa
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </>
                       )}
-                    </div>
-                  ))
-                )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </CardContent>

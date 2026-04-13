@@ -6,9 +6,11 @@ interface RequireAuthProps {
 }
 
 export function RequireAuth({ children }: RequireAuthProps) {
-  const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, isLoading, token, user } = useAppSelector((state) => state.auth);
 
-  if (isLoading) {
+  const isHydratingAuth = Boolean(token) && !user;
+
+  if (isLoading || isHydratingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>

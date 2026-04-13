@@ -72,11 +72,12 @@ export async function sendLoginOtp(email: string): Promise<void> {
   }
 }
 
-export async function googleLogin(idToken: string): Promise<AuthResponse> {
+export async function googleLogin(idToken: string, roleName: string): Promise<AuthResponse> {
   localStorage.removeItem('token');
 
   const response: BaseResponse<AuthResponse> = await apiClient.post('/auth/google-login', {
-    idToken
+    idToken,
+    roleName,
   });
 
   if (response.code !== 200 || !response.data) {

@@ -353,7 +353,6 @@ export function JobDetailPage() {
                           {job.company?.name}
                         </Link>
                       </div>
-                      {job.location && <p className="text-sm text-gray-600">{job.location}</p>}
                     </div>
                     {job.company?.logo_url && (
                       <img
@@ -803,7 +802,7 @@ export function JobDetailPage() {
       </div>
 
       {/* Fixed action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+      <div className="sticky bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
         <div className="container mx-auto max-w-5xl px-4 py-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {(job.company?.logo_url || companyDetail?.logo_url) && (

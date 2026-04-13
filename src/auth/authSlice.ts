@@ -52,9 +52,9 @@ export const loginAsync = createAsyncThunk(
 
 export const googleLoginAsync = createAsyncThunk(
   'auth/googleLogin',
-  async (idToken: string, { rejectWithValue }) => {
+  async ({ idToken, roleName }: { idToken: string; roleName: string }, { rejectWithValue }) => {
     try {
-      const result = await authService.googleLogin(idToken);
+      const result = await authService.googleLogin(idToken, roleName);
       return result;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Đăng nhập Google thất bại');

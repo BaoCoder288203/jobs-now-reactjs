@@ -5,10 +5,12 @@ import {
   Users,
   Building2,
   Briefcase,
+  Star,
   Layers,
   Sparkles,
   MessageCircle,
-  LogOut
+  LogOut,
+  Newspaper
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,8 @@ const menuItems: SidebarItem[] = [
   { title: 'Người dùng', href: '/admin/users', icon: Users },
   { title: 'Công ty', href: '/admin/companies', icon: Building2 },
   { title: 'Việc làm', href: '/admin/jobs', icon: Briefcase },
+  { title: 'Duyệt đánh giá', href: '/admin/reviews', icon: Star },
+  { title: 'Duyệt bài viết', href: '/admin/company-posts', icon: Newspaper },
   { title: 'Ngành', href: '/admin/industries', icon: Layers },
   { title: 'Nghề nghiệp', href: '/admin/categories', icon: Layers },
   { title: 'Chuyên ngành', href: '/admin/majors', icon: Layers },

@@ -4,7 +4,11 @@ import type { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import { TextStyleKit } from '@tiptap/extension-text-style';
+import { TableKit } from '@tiptap/extension-table';
+import { Image } from '@tiptap/extension-image';
 import { TiptapToolbar } from './TiptapToolbar';
+import { CtaButton } from './tiptap-extensions';
 import './TiptapEditor.css';
 
 export interface TiptapEditorProps {
@@ -26,10 +30,34 @@ export function TiptapEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      TextStyleKit.configure({
+        backgroundColor: false,
+        fontFamily: false,
+      }),
+      TableKit.configure({
+        table: {
+          resizable: true,
+          renderWrapper: true,
+          HTMLAttributes: { class: 'rich-table' },
+        },
+      }),
+      Image.configure({
+        allowBase64: false,
+        resize: {
+          enabled: true,
+          minWidth: 80,
+          minHeight: 48,
+          alwaysPreserveAspectRatio: true,
+        },
+        HTMLAttributes: {
+          class: 'rich-inline-image',
+        },
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' },
       }),
+      CtaButton,
       Placeholder.configure({ placeholder }),
     ],
     content: value || '',
