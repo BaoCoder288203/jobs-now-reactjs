@@ -15,6 +15,7 @@ import {
 } from '@/services/category.service';
 import { getIndustriesList } from '@/services/industry.service';
 import type { Industry } from '@/types';
+import { Layers, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function AdminCategoriesPage() {
@@ -120,7 +121,7 @@ export function AdminCategoriesPage() {
 
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Quản lý nghề nghiệp (Category)</CardTitle>
@@ -158,25 +159,26 @@ export function AdminCategoriesPage() {
               <div className="flex justify-center py-8">
                 <LoadingSpinner size="lg" />
               </div>
+            ) : categories.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Layers className="mb-4 h-12 w-12 text-gray-400" />
+                  <p className="text-gray-600">Chưa có nghề nghiệp nào</p>
+                </CardContent>
+              </Card>
             ) : (
-              <div className="space-y-2">
-                {categories.length === 0 ? (
-                  <p className="text-sm text-gray-500">Chưa có nghề nghiệp nào.</p>
-                ) : (
-                  categories.map((c) => (
-                    <div
-                      key={c.categoryId}
-                      className="flex items-center justify-between rounded border px-3 py-2 gap-3"
-                    >
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {categories.map((c) => (
+                  <Card key={c.categoryId} className="transition-shadow hover:shadow-lg">
+                    <CardContent className="p-4">
                       {editingId === c.categoryId ? (
-                        <div className="flex-1 flex flex-wrap gap-2 items-center">
+                        <div className="space-y-3">
                           <Input
-                            className="flex-1 min-w-[160px]"
                             value={editingName}
                             onChange={(e) => setEditingName(e.target.value)}
+                            placeholder="Tên nghề nghiệp"
                           />
                           <Select
-                            className="w-40"
                             value={editingIndustryId === '' ? '' : String(editingIndustryId)}
                             onChange={(e) =>
                               setEditingIndustryId(e.target.value === '' ? '' : Number(e.target.value))
@@ -189,49 +191,50 @@ export function AdminCategoriesPage() {
                               </option>
                             ))}
                           </Select>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handleUpdate}
-                            disabled={!editingName.trim()}
-                          >
-                            Lưu
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" onClick={cancelEdit}>
-                            Hủy
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button type="button" size="sm" onClick={handleUpdate} disabled={!editingName.trim()}>
+                              Lưu
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" onClick={cancelEdit}>
+                              Hủy
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium">{c.categoryName}</span>
-                            {c.industryName && (
-                              <span className="text-sm text-gray-500 ml-2">({c.industryName})</span>
-                            )}
+                          <div className="mb-3 flex items-center justify-between">
+                            <div className="min-w-0 flex items-center gap-2">
+                              <Layers className="h-5 w-5 shrink-0 text-accent" />
+                              <h3 className="truncate font-semibold text-gray-900">{c.categoryName}</h3>
+                            </div>
                           </div>
+                          <p className="mb-3 text-xs text-gray-500">{c.industryName || 'Chưa gán ngành'}</p>
                           <div className="flex gap-2">
                             <Button
                               type="button"
-                              size="sm"
                               variant="outline"
+                              size="sm"
+                              className="flex-1 gap-2"
                               onClick={() => startEdit(c)}
                             >
+                              <Edit2 className="h-3 w-3" />
                               Sửa
                             </Button>
                             <Button
                               type="button"
-                              size="sm"
                               variant="outline"
+                              size="sm"
                               onClick={() => handleDelete(c.categoryId)}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              Xóa
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </>
                       )}
-                    </div>
-                  ))
-                )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </CardContent>

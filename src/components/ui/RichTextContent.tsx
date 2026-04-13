@@ -2,12 +2,59 @@ import DOMPurify from 'dompurify';
 import './RichTextContent.css';
 
 const ALLOWED_TAGS = [
-  'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'a', 'ul', 'ol', 'li',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'span',
-  'div', 'code', 'pre', 'hr',
+  'p',
+  'br',
+  'strong',
+  'em',
+  'b',
+  'i',
+  'u',
+  's',
+  'a',
+  'ul',
+  'ol',
+  'li',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'span',
+  'div',
+  'code',
+  'pre',
+  'hr',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  'caption',
+  'colgroup',
+  'col',
+  'img',
 ];
 
-const ALLOWED_ATTR = ['href', 'target', 'rel', 'class'];
+const ALLOWED_ATTR = [
+  'href',
+  'target',
+  'rel',
+  'class',
+  'src',
+  'alt',
+  'title',
+  'width',
+  'height',
+  'colspan',
+  'rowspan',
+  'style',
+  'data-rich-cta',
+  'data-href',
+  'data-label',
+];
 
 export interface RichTextContentProps {
   html: string;

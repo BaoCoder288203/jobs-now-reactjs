@@ -205,7 +205,7 @@ export async function createCompanyReview(
   await apiClient.post(`/company/${companyId}/reviews`, payload);
 }
 
-export async function getRecruiterPendingReviews(page = 1, limit = 10): Promise<CompanyReviewListResponse> {
+export async function getAdminPendingReviews(page = 1, limit = 10): Promise<CompanyReviewListResponse> {
   if (USE_MOCK) {
     return {
       items: [],
@@ -216,20 +216,20 @@ export async function getRecruiterPendingReviews(page = 1, limit = 10): Promise<
       hasNext: false,
     };
   }
-  const response = await apiClient.get('/company/recruiter/reviews/pending', {
+  const response = await apiClient.get('/company/admin/reviews/pending', {
     params: { page, limit },
   });
   return (response.data ?? response) as CompanyReviewListResponse;
 }
 
-export async function approveRecruiterReview(reviewId: number): Promise<void> {
+export async function approveAdminReview(reviewId: number): Promise<void> {
   if (USE_MOCK) return;
-  await apiClient.put(`/company/recruiter/reviews/${reviewId}/approve`);
+  await apiClient.put(`/company/admin/reviews/${reviewId}/approve`);
 }
 
-export async function rejectRecruiterReview(reviewId: number): Promise<void> {
+export async function rejectAdminReview(reviewId: number): Promise<void> {
   if (USE_MOCK) return;
-  await apiClient.put(`/company/recruiter/reviews/${reviewId}/reject`);
+  await apiClient.put(`/company/admin/reviews/${reviewId}/reject`);
 }
 
 export async function followCompany(companyId: string): Promise<void> {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
-import { Header } from '@/components/layout/Header';
 import * as chatService from '@/services/chat.service';
 import type { ConversationResponse, MessageResponse } from '@/services/chat.service';
 import {
@@ -269,8 +268,7 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      <Header />
+    <div className="h-[calc(100vh-170px)] min-h-[560px] flex flex-col bg-gray-50 overflow-hidden rounded-xl border border-gray-200">
       <div className="flex-1 flex overflow-hidden">
         <div
           className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col bg-white border-r border-gray-200`}

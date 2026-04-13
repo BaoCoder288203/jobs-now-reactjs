@@ -6,6 +6,7 @@ import { FeaturedCompaniesSection } from '@/components/home/FeaturedCompaniesSec
 import { CompanyCarousel } from '@/components/home/CompanyCarousel';
 import { JobCarousel } from '@/components/home/JobCarousel';
 import { AIFeaturesSection } from '@/components/home/AIFeaturesSection';
+import { HandbookTeaserSection } from '@/components/home/HandbookTeaserSection';
 
 export function HomePage() {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
@@ -37,6 +38,7 @@ export function HomePage() {
       <JobCarousel />
       <CompanyCarousel />
       <AIFeaturesSection />
+      <HandbookTeaserSection />
     </AppLayout>
   );
 }
