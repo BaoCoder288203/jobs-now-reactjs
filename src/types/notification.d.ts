@@ -5,7 +5,7 @@ export interface Notification {
   createdAt: string;
   applicationId?: number;
   // For Chat notifications
-  type?: 'SYSTEM' | 'CHAT';
+  type?: 'SYSTEM' | 'CHAT' | 'COMPANY_POST' | 'JOB_POST';
   senderName?: string;
   conversationId?: number;
 }
