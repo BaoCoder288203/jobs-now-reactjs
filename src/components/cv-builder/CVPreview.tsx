@@ -34,6 +34,8 @@ const labels = {
     present: 'Hiện tại',
     technology: 'Công nghệ',
     downloadPdf: 'Tải PDF',
+    contact: 'Liên hệ',
+    summary: 'Mục tiêu nghề nghiệp',
   },
   en: {
     experience: 'Work Experience',
@@ -45,6 +47,8 @@ const labels = {
     present: 'Present',
     technology: 'Technologies',
     downloadPdf: 'Download PDF',
+    contact: 'Contact',
+    summary: 'Career Objective',
   },
 };
 

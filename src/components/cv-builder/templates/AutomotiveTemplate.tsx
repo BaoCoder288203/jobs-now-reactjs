@@ -245,7 +245,7 @@ export function AutomotiveTemplate({ data, palette, l, avatarLoadFailed, setAvat
         <main>
             {summaryText && (
             <div style={{ marginBottom: '24px' }}>
-                <h2 style={sectionHeaderStyle}>Hồ sơ năng lực</h2>
+                <h2 style={sectionHeaderStyle}>{l.summary}</h2>
                 <p style={{ margin: 0, color: palette.text, lineHeight: '1.8', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'justify' }}>{summaryText}</p>
             </div>
             )}

@@ -248,7 +248,7 @@ export function DarkSidebarTemplate({ data, palette, l, avatarLoadFailed, setAva
         </div>
 
         <div>
-          <h2 style={sidebarSectionHeaderStyle}>Liên hệ</h2>
+          <h2 style={sidebarSectionHeaderStyle}>{l.contact}</h2>
           {renderContact()}
         </div>
 
@@ -293,7 +293,7 @@ export function DarkSidebarTemplate({ data, palette, l, avatarLoadFailed, setAva
       <main style={{ padding: '13mm 12mm', display: 'flex', flexDirection: 'column' }}>
         {summaryText && (
           <div style={{ marginBottom: '14px', background: palette.accentSoft, borderRadius: '8px', padding: '10px 12px', borderLeft: `3px solid ${palette.accent}` }}>
-            <h2 style={{ ...sectionHeaderStyle, borderBottom: 'none', marginBottom: '6px', paddingBottom: 0 }}>Mục tiêu nghề nghiệp</h2>
+            <h2 style={{ ...sectionHeaderStyle, borderBottom: 'none', marginBottom: '6px', paddingBottom: 0 }}>{l.summary}</h2>
             <p style={{ margin: 0, color: palette.text, lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{summaryText}</p>
           </div>
         )}

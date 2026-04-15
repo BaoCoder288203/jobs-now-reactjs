@@ -207,7 +207,7 @@ export function ITSoftwareTemplate({ data, palette, l, avatarLoadFailed, setAvat
                )}
                
                <div style={{ marginTop: 'auto' }}>
-                  <h2 style={{ fontSize: '11pt', fontWeight: 700, color: palette.accent, textTransform: 'uppercase', marginBottom: '12px', borderBottom: `1px solid ${dividerColor}`, paddingBottom: '4px' }}>Contact</h2>
+                  <h2 style={{ fontSize: '11pt', fontWeight: 700, color: palette.accent, textTransform: 'uppercase', marginBottom: '12px', borderBottom: `1px solid ${dividerColor}`, paddingBottom: '4px' }}>{l.contact}</h2>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '9pt', color: mutedLight, fontFamily: 'monospace', wordBreak: 'break-all' }}>
                         {contactParts.map((item, idx) => (
                             <div key={idx}>{item}</div>

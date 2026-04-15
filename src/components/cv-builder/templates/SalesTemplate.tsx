@@ -143,7 +143,7 @@ export function SalesTemplate({ data, palette, l, avatarLoadFailed, setAvatarLoa
 
       {summaryText && (
           <div style={{ marginBottom: '24px' }}>
-               <h2 style={sectionHeaderStyle}>Tóm tắt mục tiêu</h2>
+               <h2 style={sectionHeaderStyle}>{l.summary}</h2>
                <p style={{ margin: 0, color: palette.text, lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'justify', fontSize: '10.5pt' }}>{summaryText}</p>
           </div>
       )}

@@ -208,7 +208,7 @@ export function SpecialistTemplate({ data, palette, l, avatarLoadFailed, setAvat
       <main style={{ padding: '14mm 16mm' }}>
         {summaryText && (
             <div style={{ marginBottom: '32px' }}>
-                <h2 style={sectionHeaderStyle}>Giới thiệu bản thân</h2>
+                <h2 style={sectionHeaderStyle}>{l.summary}</h2>
                 <p style={{ margin: 0, color: palette.text, lineHeight: '1.8', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'justify', fontSize: '11pt' }}>{summaryText}</p>
             </div>
         )}

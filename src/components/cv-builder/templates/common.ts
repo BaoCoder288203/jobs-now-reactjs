@@ -23,6 +23,8 @@ export interface CVTemplateProps {
     present: string;
     technology: string;
     downloadPdf: string;
+    contact: string;
+    summary: string;
   };
   avatarLoadFailed: boolean;
   setAvatarLoadFailed: (val: boolean) => void;

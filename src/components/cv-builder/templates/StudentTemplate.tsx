@@ -227,7 +227,7 @@ export function StudentTemplate({ data, palette, l, avatarLoadFailed, setAvatarL
           <main style={{ padding: '12mm 16mm', borderRight: '1px solid #f1f5f9' }}>
                {summaryText && (
                   <div style={{ marginBottom: '24px' }}>
-                      <h2 style={sectionHeaderStyle}>Giới thiệu bản thân</h2>
+                      <h2 style={sectionHeaderStyle}>{l.summary}</h2>
                       <p style={{ margin: 0, color: palette.text, lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'justify', fontSize: '10.5pt' }}>{summaryText}</p>
                   </div>
               )}

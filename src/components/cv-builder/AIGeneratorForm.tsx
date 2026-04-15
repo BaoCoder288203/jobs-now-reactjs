@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { CVPreview } from './CVPreview';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { GenerateCVResponse } from '@/services/ai.service';
+import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface IndustryItem {
@@ -73,6 +74,7 @@ export function AIGeneratorForm() {
 
   if (step === 'preview' && cvData) {
     const previewData = {
+      avatarUrl: profile?.avatarUrl || user?.avatar || '',
       fullName: user?.fullName ?? '',
       email: user?.email ?? '',
       phone: user?.phone ?? '',
@@ -116,7 +118,33 @@ export function AIGeneratorForm() {
 
     return (
       <div className="space-y-6">
-        <CVPreview data={previewData} language={input.language as 'vi' | 'en'} onDataChange={() => {}} />
+        {cvData.suggestedTemplateKey && (
+          <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5 shadow-sm">
+            <div className="flex items-start gap-4 relative z-10">
+              <div className="rounded-full bg-primary/20 p-2 text-primary shadow-sm">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  Đề xuất thông minh từ AI
+                  <span className="inline-flex items-center rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">Tự động áp dụng</span>
+                </h4>
+                <p className="mt-1 text-sm text-gray-600">
+                  Phân tích dữ liệu cho thấy hệ mẫu CV này phù hợp nhất với ngành <strong className="text-primary font-semibold">{input.industry || input.targetJob}</strong> của bạn. Bố cục này sẽ giúp làm bật lên các kỹ năng quan trọng nhất!
+                </p>
+              </div>
+            </div>
+            <div className="absolute -right-4 -top-8 text-primary/5">
+              <Sparkles className="h-32 w-32" />
+            </div>
+          </div>
+        )}
+        <CVPreview 
+          data={previewData} 
+          language={input.language as 'vi' | 'en'} 
+          templateKey={(cvData.suggestedTemplateKey as any) || 'cvhay-industry-safety'}
+          onDataChange={() => {}} 
+        />
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={() => setStep('input')}>
             Tạo lại
