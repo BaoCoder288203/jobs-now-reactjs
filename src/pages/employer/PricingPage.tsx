@@ -95,8 +95,8 @@ export default function PricingPage() {
 
   if (loading) {
     return (
-      <DashboardLayout sidebar={<RecruiterSidebar />}>
-        <div className="flex justify-center items-center min-h-[400px]">
+      <DashboardLayout sidebar={<RecruiterSidebar />} noPadding>
+        <div className="flex justify-center items-center min-h-[400px] px-6 py-6">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       </DashboardLayout>
@@ -104,9 +104,11 @@ export default function PricingPage() {
   }
 
   return (
-    <DashboardLayout sidebar={<RecruiterSidebar />}>
-      <div className="-m-6 bg-gradient-to-b from-[#f5fbff] via-[#eef8fd] to-[#f8fcff]">
-        <div className="relative max-w-6xl mx-auto py-10 px-4 sm:px-6 overflow-hidden">
+    <DashboardLayout sidebar={<RecruiterSidebar />} noPadding>
+      <div className="relative min-h-screen w-full z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#f5fbff] via-[#eef8fd] to-[#f8fcff] -z-10" />
+        <div className="relative z-10 w-full py-10 px-4 sm:px-6 lg:px-8 overflow-hidden">
+          <div className="mx-auto w-full max-w-[1360px]">
           <div className="pointer-events-none absolute -top-20 -left-16 h-72 w-72 rounded-full bg-[#9ad8f5]/25 blur-3xl" />
           <div className="pointer-events-none absolute top-40 -right-20 h-80 w-80 rounded-full bg-[#5bb8e8]/20 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-[#d3eefb]/30 blur-3xl" />
@@ -246,7 +248,7 @@ export default function PricingPage() {
                       <div className="rounded-full bg-emerald-100 p-1 shrink-0 mt-0.5">
                         <Check className="h-3 w-3 text-emerald-600 stroke-[3]" />
                       </div>
-                      <span className="text-sm text-slate-700 font-medium">Toàn quyền sử dụng <strong className="text-slate-900">AI CV Builder</strong></span>
+                      <span className="text-sm text-slate-700 font-medium">Mở khóa tính năng <strong className="text-slate-900">AI CV Builder</strong></span>
                     </li>
                   )}
                   {plan.description && (
@@ -283,6 +285,7 @@ export default function PricingPage() {
               </CardContent>
               </Card>
             ))}
+          </div>
           </div>
         </div>
       </div>

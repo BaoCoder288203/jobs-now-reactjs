@@ -70,6 +70,7 @@ export interface ExtractedCVData {
   projects?: { name: string; description?: string; duration?: string; technologies?: string[] }[];
   languages?: { name: string; proficiency: string }[];
   certificates?: { name: string; issuer: string; issue_date?: string }[];
+  suggestedTemplateKey?: string;
 }
 
 export interface JobSeekerProfile {

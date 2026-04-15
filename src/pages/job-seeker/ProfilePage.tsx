@@ -8,12 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { useProfile, useProfileSkills, useUpdateProfile, useAddProfileSkill, useRemoveProfileSkill } from '@/modules/profile/hooks';
-import { mockSkills } from '@/mocks/data/skills.mock';
+import { getAllSkills } from '@/services/skill.service';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { RichTextContent } from '@/components/ui/RichTextContent';
 import { Edit2, X, Plus } from 'lucide-react';
-import type { ProfileSkill } from '@/types';
+import type { ProfileSkill, Skill } from '@/types';
 import { SocialLinksEditor } from '@/components/social/SocialLinksEditor';
 import type { SocialLinkFormRow } from '@/constants/socialPlatforms';
 
@@ -31,30 +31,24 @@ export function JobSeekerProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     headline: '',
-    summary: '',
-    current_position: '',
-    years_experience: '',
-    education_level: '',
-    date_of_birth: '',
-    gender: ''
   });
   const [showAddSkill, setShowAddSkill] = useState(false);
   const [newSkill, setNewSkill] = useState({ skillId: '', level: 'beginner' });
+  const [allSkills, setAllSkills] = useState<Skill[]>([]);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+
+  useEffect(() => {
+    getAllSkills().then(setAllSkills).catch(() => {});
+  }, []);
   const [socialLinks, setSocialLinks] = useState<SocialLinkFormRow[]>([
     { platform: 'FACEBOOK', url: '', logo_url: '' },
   ]);
 
-  // Initialize form data when profile loads (support BE fields: title, bio)
   useEffect(() => {
     if (profile) {
       setFormData({
         headline: profile.headline ?? profile.title ?? '',
-        summary: profile.summary ?? profile.bio ?? '',
-        current_position: profile.current_position ?? '',
-        years_experience: profile.years_experience?.toString() ?? '',
-        education_level: profile.education_level ?? '',
-        date_of_birth: profile.date_of_birth ?? profile.dob ?? '',
-        gender: profile.gender ?? ''
       });
       setSocialLinks(
         profile.socials?.length ?
@@ -80,8 +74,7 @@ export function JobSeekerProfilePage() {
       await updateProfile.mutateAsync({
         userId,
         data: {
-          ...formData,
-          years_experience: parseInt(formData.years_experience) || 0,
+          title: formData.headline.trim(), // API mapping handles this, but lets be explicit
           socials: socialsPayload,
         },
       });
@@ -122,11 +115,11 @@ export function JobSeekerProfilePage() {
   const content = (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Hồ sơ nghề nghiệp</h1>
         {!isEditing && (
           <Button onClick={() => setIsEditing(true)} className="gap-2">
             <Edit2 className="h-4 w-4" />
-            Edit Profile
+            Chỉnh sửa hồ sơ
           </Button>
         )}
       </div>
@@ -134,90 +127,19 @@ export function JobSeekerProfilePage() {
       {/* Basic Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
+          <CardTitle>Chức danh & Mạng xã hội</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {isEditing ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="headline">Headline</Label>
+                <Label htmlFor="headline">Chuyên môn / Định vị (Headline)</Label>
                 <Input
                   id="headline"
                   value={formData.headline}
                   onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
-                  placeholder="e.g., Senior Software Developer"
+                  placeholder="Ví dụ: Senior Software Developer, Digital Marketing Specialist..."
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="summary">Summary</Label>
-                <Textarea
-                  id="summary"
-                  value={formData.summary}
-                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                  placeholder="Tell us about yourself..."
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current_position">Current Position</Label>
-                  <Input
-                    id="current_position"
-                    value={formData.current_position}
-                    onChange={(e) => setFormData({ ...formData, current_position: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="years_experience">Years of Experience</Label>
-                  <Input
-                    id="years_experience"
-                    type="number"
-                    value={formData.years_experience}
-                    onChange={(e) => setFormData({ ...formData, years_experience: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="education_level">Education Level</Label>
-                  <Select
-                    id="education_level"
-                    value={formData.education_level}
-                    onChange={(e) => setFormData({ ...formData, education_level: e.target.value })}
-                  >
-                    <option value="">Select</option>
-                    <option value="high_school">High School</option>
-                    <option value="bachelor">Bachelor</option>
-                    <option value="master">Master</option>
-                    <option value="phd">PhD</option>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select
-                    id="gender"
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                  >
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Date of Birth</Label>
-                  <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  />
-                </div>
               </div>
 
               <SocialLinksEditor
@@ -228,52 +150,18 @@ export function JobSeekerProfilePage() {
 
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={updateProfile.isPending}>
-                  {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
+                  {updateProfile.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </Button>
                 <Button variant="outline" onClick={() => setIsEditing(false)}>
-                  Cancel
+                  Hủy
                 </Button>
               </div>
             </>
           ) : (
             <>
               <div>
-                <Label className="text-sm text-gray-500">Headline</Label>
-                <p className="text-lg font-medium mt-1">{profile?.headline || 'Not set'}</p>
-              </div>
-
-              <div>
-                <Label className="text-sm text-gray-500">Summary</Label>
-                <div className="mt-1">
-                  <RichTextContent html={profile?.summary ?? ''} className="text-gray-700" emptyPlaceholder="Not set" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm text-gray-500">Current Position</Label>
-                  <p className="mt-1">{profile?.current_position || 'Not set'}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm text-gray-500">Years of Experience</Label>
-                  <p className="mt-1">{profile?.years_experience || 'Not set'}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm text-gray-500">Education Level</Label>
-                  <p className="mt-1 capitalize">{profile?.education_level || 'Not set'}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm text-gray-500">Gender</Label>
-                  <p className="mt-1 capitalize">{profile?.gender || 'Not set'}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm text-gray-500">Date of Birth</Label>
-                  <p className="mt-1">{profile?.date_of_birth || 'Not set'}</p>
-                </div>
+                <Label className="text-sm text-gray-500">Chuyên môn (Headline)</Label>
+                <p className="text-lg font-medium mt-1">{profile?.title || profile?.headline || 'Chưa thiết lập'}</p>
               </div>
 
               {profile?.socials && profile.socials.length > 0 && (
@@ -315,20 +203,60 @@ export function JobSeekerProfilePage() {
           {showAddSkill && (
             <div className="mb-4 p-4 border border-gray-200 rounded-lg space-y-3">
               <div className="space-y-2">
-                <Label>Select Skill</Label>
-                <Select
-                  value={newSkill.skillId}
-                  onChange={(e) => setNewSkill({ ...newSkill, skillId: e.target.value })}
-                >
-                  <option value="">Select a skill</option>
-                  {mockSkills
-                    .filter(skill => !skills.some(ps => String(ps.skillId ?? (ps as { skill_id?: string }).skill_id) === String(skill.skillId)))
-                    .map(skill => (
-                      <option key={skill.skillId} value={skill.skillId}>
-                        {skill.name}
-                      </option>
-                    ))}
-                </Select>
+                <Label>Tìm kỹ năng</Label>
+                <div className="relative">
+                  <Input
+                    value={skillSearch}
+                    onFocus={() => setShowSkillDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowSkillDropdown(false), 200)}
+                    onChange={(e) => {
+                      setSkillSearch(e.target.value);
+                      setShowSkillDropdown(true);
+                      const match = allSkills.find(
+                        (s) => s.name.toLowerCase() === e.target.value.toLowerCase()
+                      );
+                      setNewSkill({ ...newSkill, skillId: match ? String(match.skillId) : '' });
+                    }}
+                    placeholder="Gõ để tìm kỹ năng..."
+                  />
+                  
+                  {showSkillDropdown && (
+                    <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                      {allSkills
+                        .filter(
+                          (skill) =>
+                            !skills.some(
+                              (ps) =>
+                                String(ps.skillId ?? (ps as { skill_id?: string }).skill_id) === String(skill.skillId)
+                            )
+                        )
+                        .filter(
+                          (skill) =>
+                            !skillSearch ||
+                            skill.name.toLowerCase().includes(skillSearch.toLowerCase())
+                        )
+                        .map((skill) => (
+                          <li
+                            key={skill.skillId}
+                            className="relative cursor-default select-none py-2 pl-3 pr-9 text-gray-900 hover:bg-primary/10 hover:text-primary cursor-pointer"
+                            onClick={() => {
+                              setSkillSearch(skill.name);
+                              setNewSkill({ ...newSkill, skillId: String(skill.skillId) });
+                              setShowSkillDropdown(false);
+                            }}
+                          >
+                            <span className="block truncate font-medium">{skill.name}</span>
+                          </li>
+                        ))}
+                        {allSkills.filter((skill) => !skills.some((ps) => String(ps.skillId ?? (ps as { skill_id?: string }).skill_id) === String(skill.skillId)))
+                            .filter((skill) => !skillSearch || skill.name.toLowerCase().includes(skillSearch.toLowerCase())).length === 0 && (
+                          <li className="relative cursor-default select-none py-2 px-3 text-gray-500">
+                            Không tìm thấy kỹ năng phù hợp
+                          </li>
+                        )}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -344,11 +272,11 @@ export function JobSeekerProfilePage() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleAddSkill} disabled={addSkill.isPending || !newSkill.skillId} size="sm">
-                  {addSkill.isPending ? 'Adding...' : 'Add'}
+                <Button onClick={() => { handleAddSkill(); setSkillSearch(''); }} disabled={addSkill.isPending || !newSkill.skillId} size="sm">
+                  {addSkill.isPending ? 'Đang thêm...' : 'Thêm'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowAddSkill(false)}>
-                  Cancel
+                <Button variant="outline" size="sm" onClick={() => { setShowAddSkill(false); setSkillSearch(''); }}>
+                  Hủy
                 </Button>
               </div>
             </div>

@@ -24,6 +24,7 @@ import { JobSeekerFollowedCompaniesPage } from '@/pages/job-seeker/FollowedCompa
 import { JobSeekerSavedJobsPage } from '@/pages/job-seeker/SavedJobsPage';
 import { JobSeekerSettingsPage } from '@/pages/job-seeker/SettingsPage';
 import JobSeekerPricingPage from '@/pages/job-seeker/JobSeekerPricingPage';
+import { JobSeekerProfilePage } from '@/pages/job-seeker/ProfilePage';
 
 // Recruiter/Employer Pages
 import { RecruiterDashboardPage } from '@/pages/employer/DashboardPage';
@@ -311,6 +312,14 @@ export function AppRoutes() {
           element={
             <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerDashboardPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <JobSeekerProfilePage />
             </RoleGuard>
           }
         />
