@@ -1,10 +1,16 @@
 import { apiClient } from './api';
+import type { AdminDashboardMetrics, AdminDashboardMetricsQuery } from '@/types/admin-dashboard';
 
 export interface AdminDashboardStats {
   totalApplications: number;
   openJobs: number;
   activeUsers: number;
   pendingApprovals: number;
+}
+
+function unwrap<T>(response: unknown): T {
+  const r = response as { data?: T };
+  return (r?.data ?? r) as T;
 }
 
 export interface AdminUserDTO {
@@ -59,6 +65,27 @@ export async function getAdminStats(): Promise<AdminDashboardStats> {
     activeUsers: Number(data?.activeUsers ?? 0),
     pendingApprovals: Number(data?.pendingApprovals ?? 0),
   };
+}
+
+export async function getAdminDashboardMetrics(
+  query: AdminDashboardMetricsQuery
+): Promise<AdminDashboardMetrics> {
+  const params: Record<string, string | boolean> = {
+    preset: query.preset,
+    tz: query.tz ?? 'Asia/Ho_Chi_Minh',
+    comparePrevious: query.comparePrevious ?? true,
+  };
+
+  if (query.preset === 'custom') {
+    if (!query.from || !query.to) {
+      throw new Error('from and to are required for custom preset');
+    }
+    params.from = query.from;
+    params.to = query.to;
+  }
+
+  const res = await apiClient.get('/admin/dashboard-metrics', { params });
+  return unwrap<AdminDashboardMetrics>(res);
 }
 
 export async function getAdminUsers(): Promise<AdminUserDTO[]> {
