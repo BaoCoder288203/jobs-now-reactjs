@@ -248,20 +248,13 @@ export function CompanyDetailPage() {
         <header className="relative">
           {company.banner_url ? (
             <div
-              className="h-48 md:h-64 bg-cover bg-center"
+              className="h-64 md:h-120 bg-cover bg-center"
               style={{ backgroundImage: `url(${company.banner_url})` }}
             />
           ) : (
-            <div className="h-48 md:h-64 bg-gradient-to-r from-primary/20 to-primary/5" />
+            <div className="h-64 md:h-120 bg-gradient-to-r from-primary/20 to-primary/5" />
           )}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent h-24 pointer-events-none" />
           <div className="container mx-auto px-4 max-w-5xl relative -mt-20 pb-6">
-            <Link to="/companies" className="inline-block mb-4">
-              <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/20">
-                <ArrowLeft className="h-4 w-4" />
-                Quay lại
-              </Button>
-            </Link>
             <div className="flex flex-col sm:flex-row items-start gap-6 bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
               {company.logo_url && (
                 <img
@@ -315,7 +308,7 @@ export function CompanyDetailPage() {
                     disabled={!canWriteReview}
                   >
                     <Star className="h-5 w-5" />
-                    Write Review
+                    Viết đánh giá
                   </Button>
                   <Button
                     onClick={handleToggleFollow}
@@ -325,8 +318,6 @@ export function CompanyDetailPage() {
                     <Heart className={`h-5 w-5 ${isFollowing ? 'fill-white' : ''}`} />
                     {isFollowing ? 'Following' : 'Follow'}
                   </Button>
-                </div>
-                <div className="mt-3">
                   <Button
                     onClick={handleSendMessage}
                     className="gap-2 h-12 px-6 text-base font-semibold sm:w-auto w-full bg-white text-primary border border-primary hover:bg-primary/5"
