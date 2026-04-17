@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select';
 import { useCompanyApplications, useUpdateApplicationStatus } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, User } from 'lucide-react';
+import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Application } from '@/types';
 import {
@@ -177,7 +177,7 @@ export function EmployerApplicationsPage() {
   return (
     <DashboardLayout sidebar={<RecruiterSidebar />}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-col md:flex-row gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Đơn ứng tuyển</h1>
             <p className="text-gray-600 mt-1">
@@ -185,16 +185,24 @@ export function EmployerApplicationsPage() {
             </p>
           </div>
 
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-48"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            {APPLICATION_STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 w-36 px-3"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              {APPLICATION_STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+            <Link to="/employer/jobs/create">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Tạo tin tuyển dụng
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {totalApplications > 0 && (
