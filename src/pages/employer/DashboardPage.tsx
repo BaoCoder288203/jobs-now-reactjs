@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
@@ -8,16 +8,28 @@ import { useJobs } from '@/modules/jobs/hooks';
 import { useCompanyApplications } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { Link } from 'react-router-dom';
-import { Briefcase, Users, FileText, ArrowRight, Plus } from 'lucide-react';
+import { Briefcase, FileText, ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { getJobStatusBadge } from '@/utils/jobStatus';
 import { getApplicationStatusBadge } from '@/utils/applicationStatus';
 import { getSubscriptionStatus, type CompanySubscriptionStatus } from '@/services/subscription-plan.service';
+import type { DashboardPreset } from '@/types/employer-dashboard';
+import { useEmployerDashboardMetrics } from '@/modules/employer-dashboard/hooks';
+import { AnalyticsDateFilter, type AnalyticsDateFilterValue } from '@/components/employer/dashboard/AnalyticsDateFilter';
+import { DashboardKpiGrid } from '@/components/employer/dashboard/DashboardKpiGrid';
+import { DashboardTrendChart } from '@/components/employer/dashboard/DashboardTrendChart';
+import { TopJobsTableCard } from '@/components/employer/dashboard/TopJobsTableCard';
+import { DashboardDonutChart } from '@/components/employer/dashboard/DashboardDonutChart';
+import { DashboardRatingBarChart } from '@/components/employer/dashboard/DashboardRatingBarChart';
 
 export function RecruiterDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
   const [subscriptionStatus, setSubscriptionStatus] = useState<CompanySubscriptionStatus | null>(null);
+  const [filter, setFilter] = useState<AnalyticsDateFilterValue>({
+    preset: 'month',
+    comparePrevious: true,
+  });
 
   // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
@@ -34,6 +46,23 @@ export function RecruiterDashboardPage() {
 
   // Filter jobs chỉ của company này (đảm bảo chắc chắn)
   const companyJobs = companyJobsData?.items?.filter(job => job.company_id === companyId) || [];
+  const canLoadMetrics = filter.preset !== 'custom' || (!!filter.from && !!filter.to);
+  const metricsQuery = useMemo(
+    () => ({
+      preset: filter.preset as DashboardPreset,
+      from: filter.from,
+      to: filter.to,
+      tz: 'Asia/Ho_Chi_Minh',
+      comparePrevious: filter.comparePrevious,
+    }),
+    [filter],
+  );
+  const {
+    data: metrics,
+    isLoading: metricsLoading,
+    isError: metricsError,
+    error: metricsErrorData,
+  } = useEmployerDashboardMetrics(metricsQuery, !!companyId && canLoadMetrics);
 
   const isLoading = companyLoading || jobsLoading || applicationsLoading;
 
@@ -60,31 +89,20 @@ export function RecruiterDashboardPage() {
     }
   };
 
-  const stats = [
-    {
-      title: 'Việc làm đang hoạt động',
-      value: companyJobs.length,
-      icon: Briefcase,
-      link: '/employer/jobs',
-      color: 'text-primary'
-    },
-    {
-      title: 'Tổng đơn ứng tuyển',
-      value: companyApplications.length,
-      icon: FileText,
-      link: '/employer/applications',
-      color: 'text-accent'
-    },
-    {
-      title: 'Ứng viên mới',
-      value: companyApplications.filter(
-        (app) => new Date(app.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      ).length,
-      icon: Users,
-      link: '/employer/applications',
-      color: 'text-primary'
-    }
-  ];
+  const mapStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      PENDING: 'Đang chờ',
+      REVIEWING: 'Đang xem',
+      SHORTLISTED: 'Vào shortlist',
+      INTERVIEWING: 'Phỏng vấn',
+      HIRED: 'Tuyển',
+      REJECTED: 'Từ chối',
+      DRAFT: 'Nháp',
+      PENDING_REVIEW: 'Chờ duyệt',
+      PUBLISHED: 'Đã đăng',
+    };
+    return labels[status] ?? status;
+  };
 
   if (isLoading) {
     return (
@@ -126,36 +144,74 @@ export function RecruiterDashboardPage() {
               Quản lý tin tuyển dụng và đơn ứng tuyển của bạn
             </p>
           </div>
-          <Link to="/employer/jobs/create">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Đăng tin tuyển dụng
-            </Button>
-          </Link>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Link key={stat.title} to={stat.link}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">
-                      {stat.title}
-                    </CardTitle>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                    <p className="text-xs text-gray-500 mt-1">Xem tất cả →</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+        <AnalyticsDateFilter value={filter} onChange={setFilter} />
+
+        {!canLoadMetrics && (
+          <Card>
+            <CardContent className="py-6 text-sm text-gray-600">
+              Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc để xem dữ liệu theo tùy chọn.
+            </CardContent>
+          </Card>
+        )}
+
+        {canLoadMetrics && (
+          <>
+            {metricsLoading && (
+              <Card>
+                <CardContent className="flex justify-center py-12">
+                  <LoadingSpinner />
+                </CardContent>
+              </Card>
+            )}
+
+            {metricsError && (
+              <Card>
+                <CardContent className="py-6 text-sm text-red-600">
+                  {(metricsErrorData as { message?: string })?.message ?? 'Không thể tải dữ liệu dashboard.'}
+                </CardContent>
+              </Card>
+            )}
+
+            {metrics && !metricsLoading && !metricsError && (
+              <>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                  <div className="xl:col-span-2">
+                    <DashboardKpiGrid kpis={metrics.kpis} />
+                  </div>
+                  <div className="xl:col-span-3">
+                    <DashboardTrendChart trend={metrics.trend} showComparison={filter.comparePrevious} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                  <div className="xl:col-span-5">
+                    <TopJobsTableCard data={metrics.topJobs} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <DashboardDonutChart
+                      title="Phễu ứng tuyển"
+                      data={metrics.applicationPipeline.map((item) => ({
+                        status: mapStatusLabel(item.status),
+                        count: item.count,
+                      }))}
+                    />
+                    <DashboardDonutChart
+                      title="Trạng thái bài viết"
+                      data={metrics.postStatus.map((item) => ({
+                        status: mapStatusLabel(item.status),
+                        count: item.count,
+                      }))}
+                    />
+                </div>
+
+                <DashboardRatingBarChart data={metrics.ratingDistribution} />
+              </>
+            )}
+          </>
+        )}
 
         {subscriptionStatus && (
           <Card>
@@ -192,7 +248,7 @@ export function RecruiterDashboardPage() {
                 {companyApplications.slice(0, 5).map((application) => (
                   <div
                     key={application.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex flex-col items-start justify-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors md:flex-row md:items-start md:justify-between"
                   >
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">
@@ -205,7 +261,7 @@ export function RecruiterDashboardPage() {
                         Ứng tuyển ngày {new Date(application.created_at).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
-                    <div className="ml-4 flex items-center gap-3">
+                    <div className="ml-0 mt-1 flex items-center gap-3 md:ml-4 md:mt-0">
                       {getApplicationStatusBadge(application.status)}
                       <Link to={`/employer/applications/${application.id}`}>
                         <Button variant="outline" size="sm">

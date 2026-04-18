@@ -23,7 +23,7 @@ export function DashboardLayout({
         {sidebar && sidebar}
         <main
           className={
-            sidebar ? 'ml-64 min-h-0 min-w-0 flex-1 max-w-full' : 'min-h-0 min-w-0 w-full max-w-full flex-1'
+            sidebar ? 'ml-16 min-h-0 min-w-0 flex-1 max-w-full md:ml-64' : 'min-h-0 min-w-0 w-full max-w-full flex-1'
           }
         >
           <div className={`min-w-0 max-w-full ${noPadding ? '' : 'p-6'}`}>{children}</div>

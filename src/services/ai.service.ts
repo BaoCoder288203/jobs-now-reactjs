@@ -86,6 +86,7 @@ export interface GenerateCVResponse {
   skillsSection: string;
   certifications: string[];
   projects: GenerateCVProject[];
+  suggestedTemplateKey?: string;
 }
 
 export interface JobMatchScoreDTO {
