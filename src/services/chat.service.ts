@@ -35,6 +35,11 @@ export async function createConversation(candidateId: number, employerId: number
   return res.data;
 }
 
+export async function createSupportConversation(): Promise<ConversationResponse> {
+  const res = await apiClient.post('/chat/support/conversation');
+  return res.data;
+}
+
 export async function getUserConversations(userId: number): Promise<ConversationResponse[]> {
   const res = await apiClient.get(`/chat/conversations/${userId}`);
   return res.data;

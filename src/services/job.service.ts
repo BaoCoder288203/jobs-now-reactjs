@@ -2,6 +2,12 @@ import type { Job, JobListParams, PaginatedResponse } from '@/types';
 import { USE_MOCK } from './api';
 import * as mockJobs from '@/mocks/handlers/jobs.mock';
 import { apiClient } from './api';
+import { algoliasearch } from 'algoliasearch';
+
+const algoliaAppId = (import.meta.env.VITE_ALGOLIA_APP_ID || '').trim();
+const algoliaSearchKey = (import.meta.env.VITE_ALGOLIA_SEARCH_KEY || '').trim();
+const hasAlgoliaConfig = Boolean(algoliaAppId && algoliaSearchKey);
+const algoliaClient = hasAlgoliaConfig ? algoliasearch(algoliaAppId, algoliaSearchKey) : null;
 
 interface JobSkillDTOItem {
   skillId?: number;
@@ -181,7 +187,8 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
     };
   }
 
-  const keyword = params?.search;
+  const rawKeyword = params?.search?.trim() || undefined;
+  const keyword = rawKeyword && rawKeyword.length >= 2 ? rawKeyword : undefined;
   const categoryIds =
     params?.category_ids?.map((v) => parseInt(String(v), 10)).filter((n) => !Number.isNaN(n)) ??
     (params?.category_id ? [parseInt(params.category_id, 10)].filter((n) => !Number.isNaN(n)) : undefined);
@@ -189,6 +196,54 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   const jobType = params?.job_type?.trim() ? params.job_type.trim().toUpperCase().replace('-', '_') : undefined;
 
   if (keyword || location || (categoryIds && categoryIds.length > 0) || jobType) {
+    if (algoliaClient) {
+      try {
+        let filters = '';
+        if (jobType) {
+          filters += `jobType:${jobType}`;
+        }
+        if (categoryIds && categoryIds.length > 0) {
+          if (filters) filters += ' AND ';
+          filters += `(${categoryIds.map(id => `categoryId:${id}`).join(' OR ')})`;
+        }
+        if (location) {
+          if (filters) filters += ' AND ';
+          filters += `location:'${location}'`;
+        }
+
+        const { results } = await algoliaClient.search({
+          requests: [
+            {
+              indexName: 'jobs_now_index',
+              query: keyword || '',
+              params: filters ? `filters=${encodeURIComponent(filters)}` : undefined
+            },
+          ],
+        });
+
+        const list = (results[0] as any)?.hits || [];
+        const arr = Array.isArray(list) ? list : [list];
+        const items = arr.map(mapJobDTOToJob);
+
+        if (items.length > 0) {
+          return {
+            items,
+            pagination: {
+              page: 1,
+              limit: items.length,
+              total: items.length,
+              totalPages: 1,
+              hasNext: false,
+              hasPrev: false,
+            },
+          };
+        }
+      } catch (e) {
+        console.error('Algolia search failed, falling back to backend search', e);
+      }
+    }
+    
+    // Fallback to old Search
     const res = (await apiClient.get('/job/searchJobs', {
       params: { keyword, location, categoryIds, jobType },
     })) as { data?: JobDTO[] };

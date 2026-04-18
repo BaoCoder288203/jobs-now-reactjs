@@ -16,15 +16,24 @@ export function JobListingPage() {
     page: 1,
     limit: 12
   });
+  const [searchInput, setSearchInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const ids = searchParams.getAll('categoryIds');
+    const queryFromUrl = (searchParams.get('q') ?? searchParams.get('search') ?? '').trim();
+    const locationFromUrl = (searchParams.get('location') ?? '').trim();
     const categoryIds = ids.length ? ids : undefined;
+
+    setSearchInput(queryFromUrl);
+    setLocationInput(locationFromUrl);
+
     setFilters((prev) => ({
       ...prev,
       category_ids: categoryIds,
+      search: queryFromUrl || undefined,
+      location: locationFromUrl || undefined,
       page: 1,
     }));
   }, [searchParams]);
@@ -33,10 +42,30 @@ export function JobListingPage() {
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const nextSearch = searchInput.trim();
+    const nextLocation = locationInput.trim();
+    if (nextSearch.length === 1) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextSearch) {
+      nextParams.set('q', nextSearch);
+    } else {
+      nextParams.delete('q');
+      nextParams.delete('search');
+    }
+    if (nextLocation) {
+      nextParams.set('location', nextLocation);
+    } else {
+      nextParams.delete('location');
+    }
+    setSearchParams(nextParams);
+
     setFilters((prev) => ({
       ...prev,
-      search: formData.get('search') as string,
+      search: nextSearch || undefined,
+      location: nextLocation || undefined,
       page: 1
     }));
   };
@@ -76,11 +105,15 @@ export function JobListingPage() {
                     name="search"
                     placeholder="Tìm kiếm việc làm, công ty, kỹ năng..."
                     className="pl-10"
-                    defaultValue={filters.search}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                   />
                 </div>
-                <Button type="submit">Tìm kiếm</Button>
+                <Button type="submit" disabled={searchInput.trim().length === 1}>Tìm kiếm</Button>
               </div>
+              {searchInput.trim().length === 1 && (
+                <p className="mt-2 text-xs text-gray-500">Vui lòng nhập tối thiểu 2 ký tự để tìm kiếm.</p>
+              )}
             </form>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

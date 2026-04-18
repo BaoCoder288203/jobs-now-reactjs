@@ -12,7 +12,7 @@ import {
   subscribeToUserStatus,
   subscribeToConversationData
 } from '@/services/websocket';
-import { Send, MessageCircle, Search, ArrowLeft, FileText, Image, X, Download, Trash2 } from 'lucide-react';
+import { Send, MessageCircle, Search, ArrowLeft, FileText, Image, X, Download, Trash2, Headset } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
@@ -32,14 +32,19 @@ export default function ChatPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [conversationToDelete, setConversationToDelete] = useState<ConversationResponse | null>(null);
   const [deletingConversationId, setDeletingConversationId] = useState<number | null>(null);
+  const [isCreatingSupport, setIsCreatingSupport] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
   const statusSubscriptionRef = useRef<any>(null);
   const conversationDataSubscriptionRef = useRef<any>(null);
+  const activeConversationIdRef = useRef<number | null>(null);
+  const selectConversationRequestRef = useRef(0);
+  const hasAutoOpenedConversationRef = useRef(false);
 
   const location = useLocation();
   const openConversationId = location.state?.openConversationId;
+  const openConversation = location.state?.openConversation as ConversationResponse | undefined;
 
   useEffect(() => {
     if (!userId) return;
@@ -104,7 +109,9 @@ export default function ChatPage() {
   }, [userId]);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
   }, []);
 
   useEffect(() => {
@@ -113,15 +120,25 @@ export default function ChatPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectConversation = async (conv: ConversationResponse) => {
+  const selectConversation = useCallback(async (conv: ConversationResponse) => {
+    const requestId = ++selectConversationRequestRef.current;
+    activeConversationIdRef.current = conv.conversationId;
+
+    subscriptionRef.current?.unsubscribe();
+    subscriptionRef.current = null;
+
     if (userId) {
       await connectWebSocket(userId);
     }
 
     setSelectedConv(conv);
     setShowSidebar(false);
+    setMessages([]);
 
     const msgs = await chatService.getMessages(conv.conversationId);
+    if (requestId !== selectConversationRequestRef.current || activeConversationIdRef.current !== conv.conversationId) {
+      return;
+    }
     setMessages(msgs);
 
     if (userId) {
@@ -133,26 +150,73 @@ export default function ChatPage() {
       );
     }
 
-    subscriptionRef.current?.unsubscribe();
     subscriptionRef.current = subscribeToConversation(
       conv.conversationId,
       (msg: MessageResponse) => {
+        if (activeConversationIdRef.current !== conv.conversationId) {
+          return;
+        }
         setMessages((prev) => [...prev, msg]);
         if (userId && msg.senderId !== userId) {
           markMessagesRead(conv.conversationId, userId);
         }
       }
     );
-  };
+  }, [userId]);
 
   useEffect(() => {
-    if (openConversationId && conversations.length > 0) {
-      const targetConv = conversations.find(c => c.conversationId === openConversationId);
-      if (targetConv && selectedConv?.conversationId !== openConversationId) {
-        selectConversation(targetConv);
+    if (!userId) return;
+    if (hasAutoOpenedConversationRef.current) return;
+    if (!openConversation?.conversationId) return;
+
+    if (selectedConv?.conversationId === openConversation.conversationId) {
+      hasAutoOpenedConversationRef.current = true;
+      return;
+    }
+
+    setConversations((prev) => {
+      const index = prev.findIndex((c) => c.conversationId === openConversation.conversationId);
+      if (index >= 0) {
+        const next = [...prev];
+        next[index] = { ...next[index], ...openConversation };
+        return next;
+      }
+      return [openConversation, ...prev];
+    });
+
+    const runAutoOpen = async () => {
+      try {
+        await selectConversation(openConversation);
+        hasAutoOpenedConversationRef.current = true;
+      } catch (error) {
+        console.error('Failed to auto open support conversation from state', error);
+      }
+    };
+
+    void runAutoOpen();
+  }, [openConversation, selectedConv?.conversationId, selectConversation, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (hasAutoOpenedConversationRef.current) return;
+    const requestedConversationId = Number(openConversationId);
+    if (Number.isNaN(requestedConversationId)) return;
+    if (requestedConversationId && conversations.length > 0) {
+      const targetConv = conversations.find(c => c.conversationId === requestedConversationId);
+      if (targetConv && selectedConv?.conversationId !== requestedConversationId) {
+        const runAutoOpenById = async () => {
+          try {
+            await selectConversation(targetConv);
+            hasAutoOpenedConversationRef.current = true;
+          } catch (error) {
+            console.error('Failed to auto open support conversation by id', error);
+          }
+        };
+
+        void runAutoOpenById();
       }
     }
-  }, [openConversationId, conversations]);
+  }, [openConversationId, conversations, selectedConv?.conversationId, selectConversation, userId]);
 
   const handleSend = async () => {
     if ((!newMessage.trim() && !selectedFile) || !selectedConv || !userId) return;
@@ -196,6 +260,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     return () => {
+      activeConversationIdRef.current = null;
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
@@ -255,6 +320,33 @@ export default function ChatPage() {
     c.otherUserName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const canContactSupport = user?.role === 'ROLE_JOBSEEKER' || user?.role === 'ROLE_COMPANY';
+
+  const handleContactSupport = async () => {
+    if (!userId || !canContactSupport) return;
+    setIsCreatingSupport(true);
+    try {
+      const supportConversation = await chatService.createSupportConversation();
+      setConversations((prev) => {
+        const existingIndex = prev.findIndex((c) => c.conversationId === supportConversation.conversationId);
+        if (existingIndex >= 0) {
+          const next = [...prev];
+          next[existingIndex] = { ...next[existingIndex], ...supportConversation };
+          next.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+          return next;
+        }
+        return [supportConversation, ...prev];
+      });
+      hasAutoOpenedConversationRef.current = true;
+      await selectConversation(supportConversation);
+    } catch (error) {
+      console.error('Cannot create support conversation', error);
+      toast.error('Không thể mở cuộc trò chuyện hỗ trợ');
+    } finally {
+      setIsCreatingSupport(false);
+    }
+  };
+
   const formatTime = (dateStr: string) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -275,10 +367,22 @@ export default function ChatPage() {
           style={{ width: '360px', minWidth: '360px' }}
         >
           <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-primary" />
-              Tin nhắn
-            </h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-primary" />
+                Tin nhắn
+              </h2>
+              {canContactSupport && (
+                <button
+                  onClick={handleContactSupport}
+                  disabled={isCreatingSupport}
+                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  <Headset className="h-3.5 w-3.5" />
+                  {isCreatingSupport ? 'Đang mở...' : 'Liên hệ hỗ trợ'}
+                </button>
+              )}
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -302,7 +406,10 @@ export default function ChatPage() {
               filteredConversations.map((conv) => (
                 <div
                   key={conv.conversationId}
-                  onClick={() => selectConversation(conv)}
+                  onClick={() => {
+                    hasAutoOpenedConversationRef.current = true;
+                    void selectConversation(conv);
+                  }}
                   className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${selectedConv?.conversationId === conv.conversationId
                       ? 'bg-primary/10 border-l-4 border-primary'
                       : 'hover:bg-gray-50 border-l-4 border-transparent'
@@ -391,7 +498,7 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-white">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-white">
                 {messages.map((msg) => {
                   const isMine = msg.senderId === userId;
                   return (
@@ -432,7 +539,6 @@ export default function ChatPage() {
                     </div>
                   );
                 })}
-                <div ref={messagesEndRef} />
               </div>
 
               <div className="px-4 py-3 border-t border-gray-200 bg-white">

@@ -33,6 +33,7 @@ import { EmployerApplicationsPage } from '@/pages/employer/ApplicationsPage';
 import { EmployerApplicationDetailPage } from '@/pages/employer/ApplicationDetailPage';
 import { CreateJobPage } from '@/pages/employer/CreateJobPage';
 import { EmployerCompanyPage } from '@/pages/employer/CompanyPage';
+import { EmployerFollowersPage } from '@/pages/employer/FollowersPage';
 import { EmployerSettingsPage } from '@/pages/employer/SettingsPage';
 import PricingPage from '@/pages/employer/PricingPage';
 import PaymentResultPage from '@/pages/public/PaymentResultPage';
@@ -127,6 +128,16 @@ export function AppRoutes() {
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerCompanyPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/followers"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <EmployerFollowersPage />
             </RoleGuard>
           </RequireAuth>
         }
