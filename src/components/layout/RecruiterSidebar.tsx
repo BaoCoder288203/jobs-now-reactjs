@@ -7,7 +7,6 @@ import {
   Users,
   UserPlus,
   Building2,
-  BarChart3,
   LogOut,
   Newspaper
 } from 'lucide-react';
@@ -31,7 +30,6 @@ const menuItems: SidebarItem[] = [
   { title: 'Người theo dõi', href: '/employer/followers', icon: UserPlus },
   { title: 'Công ty', href: '/employer/company', icon: Building2 },
   { title: 'Bài viết', href: '/employer/posts', icon: Newspaper },
-  { title: 'Thống kê', href: '/employer/analytics', icon: BarChart3 },
 ];
 
 export function RecruiterSidebar() {
@@ -46,22 +44,27 @@ export function RecruiterSidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-gray-200 bg-white">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-16 border-r border-gray-200 bg-white md:w-64">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center border-b border-gray-200 px-6">
-          <Link to="/" className="flex items-center space-x-2">
+        <div className="flex h-16 items-center justify-center border-b border-gray-200 px-2 md:justify-start md:px-6">
+          <Link to="/" className="flex w-full items-center justify-center">
             <img
               src="/logo/logo_header.png"
               alt="JobsNow Logo"
-              className="h-8 w-auto"
+              className="h-8 w-auto md:hidden"
+            />
+            <img
+              src="/logo/logo_full.png"
+              alt="JobsNow Logo Full"
+              className="hidden h-8 w-auto md:block"
             />
           </Link>
         </div>
 
         {/* User Profile Section */}
         {user && (
-          <div className="border-b border-gray-200 px-6 py-4">
+          <div className="hidden border-b border-gray-200 px-6 py-4 md:block">
             <div className="flex items-center space-x-3">
               {user.avatar ? (
                 <img
@@ -89,7 +92,7 @@ export function RecruiterSidebar() {
         )}
 
         {/* Navigation Menu */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1 px-2 py-4 md:px-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
@@ -99,28 +102,28 @@ export function RecruiterSidebar() {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center justify-center rounded-lg px-2 py-2 text-sm font-medium transition-colors md:justify-start md:space-x-3 md:px-3",
                   isActive
                     ? "bg-accent text-gray-900"
                     : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span>{item.title}</span>
+                <span className="hidden md:inline">{item.title}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* Logout Button */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-gray-200 p-2 md:p-4">
           <Button
             variant="ghost"
-            className="w-full justify-start"
+            className="w-full justify-center md:justify-start"
             onClick={handleLogout}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Đăng xuất
+            <LogOut className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Đăng xuất</span>
           </Button>
         </div>
       </div>

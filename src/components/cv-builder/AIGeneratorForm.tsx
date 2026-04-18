@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { CVPreview } from './CVPreview';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { GenerateCVResponse } from '@/services/ai.service';
+import { normalizeCVTemplateKey } from '@/constants/cvTemplates';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -142,7 +143,7 @@ export function AIGeneratorForm() {
         <CVPreview 
           data={previewData} 
           language={input.language as 'vi' | 'en'} 
-          templateKey={(cvData.suggestedTemplateKey as any) || 'cvhay-industry-safety'}
+          templateKey={normalizeCVTemplateKey(cvData.suggestedTemplateKey)}
           onDataChange={() => {}} 
         />
         <div className="flex gap-3 justify-center">
