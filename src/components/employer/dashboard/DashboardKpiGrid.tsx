@@ -2,8 +2,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { DashboardKpis } from '@/types/employer-dashboard';
 import { Eye, FileText, Star, UserPlus, Users, BookOpenText, BadgeCheck } from 'lucide-react';
 
+export type RecruiterTrendMetric =
+  | 'followers'
+  | 'applications'
+  | 'reviews'
+  | 'approvedPosts'
+  | 'jobViews'
+  | 'jobApplies'
+  | 'avgRating';
+
 interface DashboardKpiGridProps {
   kpis: DashboardKpis;
+  selectedTrendMetrics: RecruiterTrendMetric[];
+  onToggleTrendMetric: (metric: RecruiterTrendMetric) => void;
 }
 
 function formatDelta(deltaPercent: number | null) {
@@ -16,16 +27,20 @@ function formatInteger(num: number) {
   return num.toLocaleString('vi-VN');
 }
 
-export function DashboardKpiGrid({ kpis }: DashboardKpiGridProps) {
-  const avgRating = (kpis.avgRatingX100.value / 100).toFixed(2);
+export function DashboardKpiGrid({
+  kpis,
+  selectedTrendMetrics,
+  onToggleTrendMetric,
+}: DashboardKpiGridProps) {
+  const avgRating = (kpis.avgRatingX100.value).toFixed(2);
   const items = [
-    { key: 'followers', title: 'Followers', value: formatInteger(kpis.followers.value), delta: kpis.followers.deltaPercent, icon: Users },
-    { key: 'applications', title: 'Đơn ứng tuyển', value: formatInteger(kpis.applications.value), delta: kpis.applications.deltaPercent, icon: FileText },
-    { key: 'reviews', title: 'Đánh giá mới', value: formatInteger(kpis.reviews.value), delta: kpis.reviews.deltaPercent, icon: Star },
-    { key: 'approvedPosts', title: 'Post đã duyệt', value: formatInteger(kpis.approvedPosts.value), delta: kpis.approvedPosts.deltaPercent, icon: BadgeCheck },
-    { key: 'jobViews', title: 'Lượt xem job', value: formatInteger(kpis.jobViews.value), delta: null, icon: Eye },
-    { key: 'jobApplies', title: 'Apply theo job', value: formatInteger(kpis.jobApplies.value), delta: null, icon: UserPlus },
-    { key: 'avgRating', title: 'Điểm trung bình', value: avgRating, delta: kpis.avgRatingX100.deltaPercent, icon: BookOpenText },
+    { key: 'followers', title: 'Followers', value: formatInteger(kpis.followers.value), delta: kpis.followers.deltaPercent, icon: Users, selectable: true },
+    { key: 'applications', title: 'Đơn ứng tuyển', value: formatInteger(kpis.applications.value), delta: kpis.applications.deltaPercent, icon: FileText, selectable: true },
+    { key: 'reviews', title: 'Đánh giá mới', value: formatInteger(kpis.reviews.value), delta: kpis.reviews.deltaPercent, icon: Star, selectable: true },
+    { key: 'approvedPosts', title: 'Post đã duyệt', value: formatInteger(kpis.approvedPosts.value), delta: kpis.approvedPosts.deltaPercent, icon: BadgeCheck, selectable: true },
+    { key: 'jobViews', title: 'Lượt xem job', value: formatInteger(kpis.jobViews.value), delta: kpis.jobViews.deltaPercent, icon: Eye, selectable: true },
+    { key: 'jobApplies', title: 'Apply theo job', value: formatInteger(kpis.jobApplies.value), delta: kpis.jobApplies.deltaPercent, icon: UserPlus, selectable: true },
+    { key: 'avgRating', title: 'Điểm trung bình', value: avgRating, delta: kpis.avgRatingX100.deltaPercent, icon: BookOpenText, selectable: true },
   ];
 
   return (
@@ -33,8 +48,15 @@ export function DashboardKpiGrid({ kpis }: DashboardKpiGridProps) {
       {items.map((item) => {
         const Icon = item.icon;
         const positive = (item.delta ?? 0) >= 0;
+        const isActive = selectedTrendMetrics.includes(item.key as RecruiterTrendMetric);
         return (
-          <Card key={item.key} className="hover:shadow-sm">
+          <Card
+            key={item.key}
+            className={`cursor-pointer hover:shadow-sm transition-all ${
+              isActive ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50/40' : ''
+            }`}
+            onClick={() => item.selectable && onToggleTrendMetric(item.key as RecruiterTrendMetric)}
+          >
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
               <Icon className="h-4 w-4 text-gray-500" />

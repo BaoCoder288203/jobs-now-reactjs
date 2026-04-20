@@ -2,8 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { AdminDashboardKpis } from '@/types/admin-dashboard';
 import { Building2, Briefcase, CreditCard, DollarSign, Layers3, Users } from 'lucide-react';
 
+export type AdminTrendMetric =
+  | 'totalUsers'
+  | 'totalCompanies'
+  | 'totalJobs'
+  | 'activePlans'
+  | 'paidOrders'
+  | 'paidRevenue';
+
 interface AdminDashboardKpiGridProps {
   kpis: AdminDashboardKpis;
+  selectedTrendMetrics: AdminTrendMetric[];
+  onToggleTrendMetric: (metric: AdminTrendMetric) => void;
 }
 
 function formatDelta(deltaPercent: number | null) {
@@ -12,14 +22,18 @@ function formatDelta(deltaPercent: number | null) {
   return `${sign}${deltaPercent.toFixed(2)}%`;
 }
 
-export function AdminDashboardKpiGrid({ kpis }: AdminDashboardKpiGridProps) {
+export function AdminDashboardKpiGrid({
+  kpis,
+  selectedTrendMetrics,
+  onToggleTrendMetric,
+}: AdminDashboardKpiGridProps) {
   const items = [
-    { key: 'totalUsers', title: 'Tổng người dùng', value: kpis.totalUsers.value, delta: kpis.totalUsers.deltaPercent, icon: Users },
-    { key: 'totalCompanies', title: 'Tổng công ty', value: kpis.totalCompanies.value, delta: kpis.totalCompanies.deltaPercent, icon: Building2 },
-    { key: 'totalJobs', title: 'Tổng việc làm', value: kpis.totalJobs.value, delta: kpis.totalJobs.deltaPercent, icon: Briefcase },
-    { key: 'activePlans', title: 'Gói đang active', value: kpis.activePlans.value, delta: kpis.activePlans.deltaPercent, icon: Layers3 },
-    { key: 'paidOrders', title: 'Đơn đã thanh toán', value: kpis.paidOrders.value, delta: kpis.paidOrders.deltaPercent, icon: CreditCard },
-    { key: 'paidRevenue', title: 'Doanh thu', value: kpis.paidRevenue.value, delta: kpis.paidRevenue.deltaPercent, icon: DollarSign, isCurrency: true },
+    { key: 'totalUsers', title: 'Tổng người dùng', value: kpis.totalUsers.value, delta: kpis.totalUsers.deltaPercent, icon: Users, selectable: true },
+    { key: 'totalCompanies', title: 'Tổng công ty', value: kpis.totalCompanies.value, delta: kpis.totalCompanies.deltaPercent, icon: Building2, selectable: true },
+    { key: 'totalJobs', title: 'Tổng việc làm', value: kpis.totalJobs.value, delta: kpis.totalJobs.deltaPercent, icon: Briefcase, selectable: true },
+    { key: 'activePlans', title: 'Gói có thanh toán', value: kpis.activePlans.value, delta: kpis.activePlans.deltaPercent, icon: Layers3, selectable: true },
+    { key: 'paidOrders', title: 'Đơn đã thanh toán', value: kpis.paidOrders.value, delta: kpis.paidOrders.deltaPercent, icon: CreditCard, selectable: true },
+    { key: 'paidRevenue', title: 'Doanh thu', value: kpis.paidRevenue.value, delta: kpis.paidRevenue.deltaPercent, icon: DollarSign, isCurrency: true, selectable: true },
   ];
 
   return (
@@ -27,8 +41,17 @@ export function AdminDashboardKpiGrid({ kpis }: AdminDashboardKpiGridProps) {
       {items.map((item) => {
         const Icon = item.icon;
         const positive = (item.delta ?? 0) >= 0;
+        const isActive = selectedTrendMetrics.includes(item.key as AdminTrendMetric);
+        const selectable = item.selectable;
         return (
-          <Card key={item.key} className="hover:shadow-sm">
+          <Card
+            key={item.key}
+            className={`hover:shadow-sm transition-all ${
+              selectable ? 'cursor-pointer' : ''
+            } ${isActive ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50/40' : ''}`}
+            onClick={() => selectable && onToggleTrendMetric(item.key as AdminTrendMetric)}
+            title={selectable ? 'Chọn để hiển thị trên biểu đồ' : 'Chỉ số này chưa có dữ liệu biểu đồ theo mốc thời gian'}
+          >
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
               <Icon className="h-4 w-4 text-gray-500" />

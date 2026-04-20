@@ -17,7 +17,7 @@ import { getSubscriptionStatus, type CompanySubscriptionStatus } from '@/service
 import type { DashboardPreset } from '@/types/employer-dashboard';
 import { useEmployerDashboardMetrics } from '@/modules/employer-dashboard/hooks';
 import { AnalyticsDateFilter, type AnalyticsDateFilterValue } from '@/components/employer/dashboard/AnalyticsDateFilter';
-import { DashboardKpiGrid } from '@/components/employer/dashboard/DashboardKpiGrid';
+import { DashboardKpiGrid, type RecruiterTrendMetric } from '@/components/employer/dashboard/DashboardKpiGrid';
 import { DashboardTrendChart } from '@/components/employer/dashboard/DashboardTrendChart';
 import { TopJobsTableCard } from '@/components/employer/dashboard/TopJobsTableCard';
 import { DashboardDonutChart } from '@/components/employer/dashboard/DashboardDonutChart';
@@ -30,6 +30,10 @@ export function RecruiterDashboardPage() {
     preset: 'month',
     comparePrevious: true,
   });
+  const [selectedTrendMetrics, setSelectedTrendMetrics] = useState<RecruiterTrendMetric[]>([
+    'applications',
+    'followers',
+  ]);
 
   // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
@@ -102,6 +106,16 @@ export function RecruiterDashboardPage() {
       PUBLISHED: 'Đã đăng',
     };
     return labels[status] ?? status;
+  };
+
+  const toggleTrendMetric = (metric: RecruiterTrendMetric) => {
+    setSelectedTrendMetrics((prev) => {
+      if (prev.includes(metric)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((item) => item !== metric);
+      }
+      return [...prev, metric];
+    });
   };
 
   if (isLoading) {
@@ -178,10 +192,18 @@ export function RecruiterDashboardPage() {
               <>
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
                   <div className="xl:col-span-2">
-                    <DashboardKpiGrid kpis={metrics.kpis} />
+                    <DashboardKpiGrid
+                      kpis={metrics.kpis}
+                      selectedTrendMetrics={selectedTrendMetrics}
+                      onToggleTrendMetric={toggleTrendMetric}
+                    />
                   </div>
                   <div className="xl:col-span-3">
-                    <DashboardTrendChart trend={metrics.trend} showComparison={filter.comparePrevious} />
+                    <DashboardTrendChart
+                      trend={metrics.trend}
+                      showComparison={filter.comparePrevious}
+                      selectedMetrics={selectedTrendMetrics}
+                    />
                   </div>
                 </div>
 

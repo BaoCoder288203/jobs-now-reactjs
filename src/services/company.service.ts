@@ -25,6 +25,7 @@ interface CompanyDTO {
   isVerified?: boolean;
   jobPostCount?: number;
   followerCount?: number;
+  createdAt?: string;
   email?: string;
   phone?: string;
   images?: { imageId?: number; imageUrl?: string; type?: string }[];
@@ -57,7 +58,7 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
     create_job_count: dto.jobPostCount,
     follower_count: dto.followerCount,
     owner_user_id: dto.ownerUserId != null ? String(dto.ownerUserId) : '',
-    created_at: new Date().toISOString(),
+    created_at: dto.createdAt ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
     thumbnail_images: dto.images?.map((img) => img.imageUrl).filter(Boolean) as string[] | undefined,
     images: dto.images?.filter((img) => img.imageId != null).map((img) => ({

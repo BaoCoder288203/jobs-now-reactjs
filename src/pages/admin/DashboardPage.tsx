@@ -13,7 +13,7 @@ import {
   AdminAnalyticsDateFilter,
   type AdminAnalyticsDateFilterValue,
 } from '@/components/admin/dashboard/AdminAnalyticsDateFilter';
-import { AdminDashboardKpiGrid } from '@/components/admin/dashboard/AdminDashboardKpiGrid';
+import { AdminDashboardKpiGrid, type AdminTrendMetric } from '@/components/admin/dashboard/AdminDashboardKpiGrid';
 import { AdminDashboardTrendChart } from '@/components/admin/dashboard/AdminDashboardTrendChart';
 import { AdminDashboardDonutChart } from '@/components/admin/dashboard/AdminDashboardDonutChart';
 import { AdminTopPlansTableCard } from '@/components/admin/dashboard/AdminTopPlansTableCard';
@@ -25,6 +25,7 @@ export function AdminDashboardPage() {
     preset: 'month',
     comparePrevious: true,
   });
+  const [selectedTrendMetrics, setSelectedTrendMetrics] = useState<AdminTrendMetric[]>(['paidRevenue', 'paidOrders']);
 
   const { data: adminJobs = [], isLoading: jobsLoading } = useAdminJobs();
   const { data: companiesData } = useCompanies({ limit: 10 });
@@ -51,6 +52,18 @@ export function AdminDashboardPage() {
     PAID: 'Paid',
     FAILED: 'Failed',
     CANCELLED: 'Cancelled',
+  };
+
+  const toggleTrendMetric = (metric: AdminTrendMetric) => {
+    setSelectedTrendMetrics((prev) => {
+      if (prev.includes(metric)) {
+        if (prev.length === 1) {
+          return prev;
+        }
+        return prev.filter((item) => item !== metric);
+      }
+      return [...prev, metric];
+    });
   };
 
   return (
@@ -96,11 +109,19 @@ export function AdminDashboardPage() {
 
             {metrics && !metricsLoading && !metricsError && (
               <>
-                <AdminDashboardKpiGrid kpis={metrics.kpis} />
+                <AdminDashboardKpiGrid
+                  kpis={metrics.kpis}
+                  selectedTrendMetrics={selectedTrendMetrics}
+                  onToggleTrendMetric={toggleTrendMetric}
+                />
 
                 <div className="grid grid-cols-1">
                   <div className="col-span-5">
-                    <AdminDashboardTrendChart trend={metrics.trend} showComparison={filter.comparePrevious} />
+                    <AdminDashboardTrendChart
+                      trend={metrics.trend}
+                      showComparison={filter.comparePrevious}
+                      selectedMetrics={selectedTrendMetrics}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

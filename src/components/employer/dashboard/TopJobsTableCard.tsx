@@ -9,7 +9,7 @@ export function TopJobsTableCard({ data }: TopJobsTableCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Top Jobs theo hiệu suất</CardTitle>
+        <CardTitle className="text-lg">Jobs theo hiệu suất</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
