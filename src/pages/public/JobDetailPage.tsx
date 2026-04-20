@@ -237,12 +237,29 @@ export function JobDetailPage() {
   }
 
   const salaryText = (() => {
+    const sType = (job as { salary_type?: string }).salary_type ?? 'RANGE';
+    const sCurrency = (job as { salary_currency?: string }).salary_currency ?? 'VND';
+
+    if (sType === 'NEGOTIABLE') return 'Thỏa thuận';
+    if (sType === 'COMPETITIVE') return 'Cạnh tranh';
+
     if (!job.salary_min && !job.salary_max) return 'Thỏa thuận';
-    const min = job.salary_min ? job.salary_min / 1_000_000 : null;
-    const max = job.salary_max ? job.salary_max / 1_000_000 : null;
-    if (min && max) return `${min} - ${max} triệu`;
-    if (min && !max) return `Từ ${min} triệu`;
-    if (!min && max) return `Đến ${max} triệu`;
+
+    const formatAmount = (val: number) => {
+      if (sCurrency === 'VND') {
+        const millions = val / 1_000_000;
+        return `${millions % 1 === 0 ? millions : millions.toFixed(1)} triệu`;
+      }
+      return val.toLocaleString('en-US');
+    };
+
+    const min = job.salary_min ? formatAmount(job.salary_min) : null;
+    const max = job.salary_max ? formatAmount(job.salary_max) : null;
+    const unit = sCurrency !== 'VND' ? ` ${sCurrency}` : '';
+
+    if (min && max) return `${min} - ${max}${unit}`;
+    if (min && !max) return `Từ ${min}${unit}`;
+    if (!min && max) return `Đến ${max}${unit}`;
     return 'Thỏa thuận';
   })();
 

@@ -39,6 +39,8 @@ export function JobSeekerSavedJobsPage() {
               location: savedJob.location,
               salary_min: savedJob.salaryMin,
               salary_max: savedJob.salaryMax,
+              salary_type: savedJob.salaryType,
+              salary_currency: savedJob.salaryCurrency,
               job_type: savedJob.jobType,
               company: {
                 name: savedJob.companyName,

@@ -29,6 +29,8 @@ interface JobDTO {
   benefits?: string;
   salaryMin?: number;
   salaryMax?: number;
+  salaryType?: string;
+  salaryCurrency?: string;
   yearsOfExperience?: string;
   educationLevel?: string;
   jobType?: string;
@@ -81,6 +83,8 @@ function mapJobDTOToJob(dto: JobDTO): Job {
     benefits: dto.benefits,
     salary_min: dto.salaryMin,
     salary_max: dto.salaryMax,
+    salary_type: dto.salaryType as Job['salary_type'],
+    salary_currency: dto.salaryCurrency as Job['salary_currency'],
     yearsOfExperience: dto.yearsOfExperience,
     educationLevel: dto.educationLevel,
     location: dto.location,
@@ -195,80 +199,92 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   const location = params?.location?.trim() || undefined;
   const jobType = params?.job_type?.trim() ? params.job_type.trim().toUpperCase().replace('-', '_') : undefined;
 
-  if (keyword || location || (categoryIds && categoryIds.length > 0) || jobType) {
-    if (algoliaClient) {
-      try {
-        let filters = '';
-        if (jobType) {
-          filters += `jobType:${jobType}`;
-        }
-        if (categoryIds && categoryIds.length > 0) {
-          if (filters) filters += ' AND ';
-          filters += `(${categoryIds.map(id => `categoryId:${id}`).join(' OR ')})`;
-        }
-        if (location) {
-          if (filters) filters += ' AND ';
-          filters += `location:'${location}'`;
-        }
+  const page = params?.page ? Number(params.page) : 1;
+  const limit = params?.limit ? Number(params.limit) : 10;
 
-        const { results } = await algoliaClient.search({
-          requests: [
-            {
-              indexName: 'jobs_now_index',
-              query: keyword || '',
-              params: filters ? `filters=${encodeURIComponent(filters)}` : undefined
-            },
-          ],
-        });
-
-        const list = (results[0] as any)?.hits || [];
-        const arr = Array.isArray(list) ? list : [list];
-        const items = arr.map(mapJobDTOToJob);
-
-        if (items.length > 0) {
-          return {
-            items,
-            pagination: {
-              page: 1,
-              limit: items.length,
-              total: items.length,
-              totalPages: 1,
-              hasNext: false,
-              hasPrev: false,
-            },
-          };
-        }
-      } catch (e) {
-        console.error('Algolia search failed, falling back to backend search', e);
+  if (algoliaClient) {
+    try {
+      let filters = '';
+      if (jobType) {
+        filters += `jobType:${jobType}`;
       }
+      if (categoryIds && categoryIds.length > 0) {
+        if (filters) filters += ' AND ';
+        filters += `(${categoryIds.map((id) => `categoryId:${id}`).join(' OR ')})`;
+      }
+      if (location) {
+        if (filters) filters += ' AND ';
+        filters += `location:'${location}'`;
+      }
+
+      const algoliaParams = [
+        filters ? `filters=${encodeURIComponent(filters)}` : '',
+        `page=${page - 1}`,
+        `hitsPerPage=${limit}`
+      ].filter(Boolean).join('&');
+
+      const { results } = await algoliaClient.search({
+        requests: [
+          {
+            indexName: 'jobs_now_index',
+            query: keyword || '',
+            params: algoliaParams,
+          },
+        ],
+      });
+
+      const resultObj = results[0] as any;
+      const list = resultObj?.hits || [];
+      const nbHits = resultObj?.nbHits || 0;
+      const nbPages = resultObj?.nbPages || 1;
+
+      const arr = Array.isArray(list) ? list : [list];
+      const items = arr.map(mapJobDTOToJob);
+
+      return {
+        items,
+        pagination: {
+          page,
+          limit,
+          total: nbHits,
+          totalPages: nbPages,
+          hasNext: page < nbPages,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (e) {
+      console.error('Algolia search failed, falling back to backend search', e);
     }
-    
-    // Fallback to old Search
+  }
+
+  // Fallback to old Search if Algolia fails or config is missing
+  if (keyword || location || (categoryIds && categoryIds.length > 0) || jobType) {
     const res = (await apiClient.get('/job/searchJobs', {
       params: { keyword, location, categoryIds, jobType },
     })) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
     const items = arr.map(mapJobDTOToJob);
+    // Note: Old searchJobs hasn't implemented pagination on BE, so we just mock it for array slice wrapper
+    const start = (page - 1) * limit;
     return {
-      items,
+      items: items.slice(start, start + limit),
       pagination: {
-        page: 1,
-        limit: items.length,
+        page,
+        limit,
         total: items.length,
-        totalPages: 1,
-        hasNext: false,
-        hasPrev: false,
+        totalPages: Math.ceil(items.length / limit),
+        hasNext: start + limit < items.length,
+        hasPrev: page > 1,
       },
     };
   }
 
+  // Fallback to get all jobs if no filters
   const res = (await apiClient.get('/job')) as { data?: JobDTO[] };
   const list = (res.data ?? res) as JobDTO[] | JobDTO;
   const arr = Array.isArray(list) ? list : [list];
   const items = arr.map(mapJobDTOToJob);
-  const page = params?.page ?? 1;
-  const limit = params?.limit ?? 10;
   const start = (page - 1) * limit;
   return {
     items: items.slice(start, start + limit),
@@ -316,8 +332,10 @@ export async function createJob(data: Partial<Job>): Promise<Job> {
     description: data.description,
     requirements: data.requirements ?? '',
     benefits: data.benefits ?? '',
-    salaryMin: data.salary_min ?? 0,
-    salaryMax: data.salary_max ?? 0,
+    salaryMin: data.salary_type === 'RANGE' ? (data.salary_min ?? 0) : undefined,
+    salaryMax: data.salary_type === 'RANGE' ? (data.salary_max ?? 0) : undefined,
+    salaryType: (data as { salary_type?: string }).salary_type?.toUpperCase() ?? 'RANGE',
+    salaryCurrency: (data as { salary_currency?: string }).salary_currency?.toUpperCase() ?? 'VND',
     yearsOfExperience: data.yearsOfExperience ?? '0',
     educationLevel: (data.educationLevel ?? 'OTHER').toUpperCase(),
     jobType: toJobTypeBE(data.job_type),
@@ -352,8 +370,10 @@ export async function updateJob(jobId: string, data: Partial<Job>): Promise<Job>
     description: data.description,
     requirements: data.requirements ?? '',
     benefits: data.benefits ?? '',
-    salaryMin: data.salary_min,
-    salaryMax: data.salary_max,
+    salaryMin: data.salary_type === 'RANGE' ? data.salary_min : undefined,
+    salaryMax: data.salary_type === 'RANGE' ? data.salary_max : undefined,
+    salaryType: (data as { salary_type?: string }).salary_type?.toUpperCase(),
+    salaryCurrency: (data as { salary_currency?: string }).salary_currency?.toUpperCase(),
     yearsOfExperience: data.yearsOfExperience ?? undefined,
     educationLevel: data.educationLevel?.toUpperCase(),
     jobType: data.job_type ? toJobTypeBE(data.job_type) : undefined,

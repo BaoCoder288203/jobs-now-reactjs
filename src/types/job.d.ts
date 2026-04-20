@@ -45,6 +45,8 @@ export interface Job {
   benefits?: string;
   salary_min?: number;
   salary_max?: number;
+  salary_type?: 'RANGE' | 'NEGOTIABLE' | 'COMPETITIVE';
+  salary_currency?: 'VND' | 'USD' | 'EUR' | 'JPY' | 'SGD' | 'KRW' | 'OTHER';
   yearsOfExperience?: string;
   educationLevel?: string;
   job_type?: string;
@@ -103,6 +105,8 @@ export interface SavedJob {
   location: string;
   salaryMin: number;
   salaryMax: number;
+  salaryType?: 'RANGE' | 'NEGOTIABLE' | 'COMPETITIVE';
+  salaryCurrency?: 'VND' | 'USD' | 'EUR' | 'JPY' | 'SGD' | 'KRW' | 'OTHER';
   jobType: string;
   savedAt: string;
   isSaved?: boolean;
