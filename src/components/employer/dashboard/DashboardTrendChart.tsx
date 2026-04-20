@@ -77,7 +77,7 @@ const recruiterMetricOptions: RecruiterMetricOption[] = [
   },
 ];
 
-export function DashboardTrendChart({ trend, showComparison, selectedMetrics }: DashboardTrendChartProps) {
+export function DashboardTrendChart({ trend, selectedMetrics }: DashboardTrendChartProps) {
   return (
     <Card>
       <CardHeader>
