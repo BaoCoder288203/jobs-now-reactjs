@@ -37,6 +37,16 @@ export interface DashboardTrendPoint {
   previousFollowers: number;
   currentApplications: number;
   previousApplications: number;
+  currentReviews: number;
+  previousReviews: number;
+  currentApprovedPosts: number;
+  previousApprovedPosts: number;
+  currentJobViews: number;
+  previousJobViews: number;
+  currentJobApplies: number;
+  previousJobApplies: number;
+  currentAvgRating: number;
+  previousAvgRating: number;
 }
 
 export interface DashboardRatingDistributionItem {

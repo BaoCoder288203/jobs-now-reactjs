@@ -416,9 +416,9 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                         onError={() => setError('Đăng nhập Google thất bại')}
                         theme="outline"
                         size="large"
-                        text="continue_with"
+                        // text="continue_with"
                         shape="rectangular"
-                        width={320}
+                        width={272}
                       />
                     </div>
                   </div>

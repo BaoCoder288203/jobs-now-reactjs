@@ -36,6 +36,14 @@ export interface AdminDashboardTrendPoint {
   currentRevenue: number;
   previousOrderCount: number;
   previousRevenue: number;
+  currentTotalUsers: number;
+  previousTotalUsers: number;
+  currentTotalCompanies: number;
+  previousTotalCompanies: number;
+  currentTotalJobs: number;
+  previousTotalJobs: number;
+  currentActivePlans: number;
+  previousActivePlans: number;
 }
 
 export interface AdminDashboardStatusCountItem {
