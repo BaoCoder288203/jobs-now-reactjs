@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAdminJobs, useDeleteJob, useApproveJob, useRejectJob, useUnpublishJob } from '@/modules/jobs/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Search, Trash2, Building2, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { Briefcase, Search, Trash2, Building2, MapPin, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { getJobStatusBadge } from '@/utils/jobStatus';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import type { Job } from '@/types';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -172,6 +173,17 @@ export function AdminJobsPage() {
                     {job.isPending && (
                       <>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          asChild
+                        >
+                          <Link to={`/jobs/${job.id}`}>
+                            <Eye className="h-4 w-4" />
+                            Xem
+                          </Link>
+                        </Button>
+                        <Button
                           size="sm"
                           className="gap-1 bg-[#90D3B4] text-white hover:bg-[#90D3B4]/80"
                           onClick={() => handleApprove(job.id)}
@@ -193,26 +205,52 @@ export function AdminJobsPage() {
                       </>
                     )}
                     {job.isApproved && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1"
-                        onClick={() => handleUnpublish(job.id)}
-                        disabled={unpublishJob.isPending}
-                      >
-                        Gỡ bài
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          asChild
+                        >
+                          <Link to={`/jobs/${job.id}`}>
+                            <Eye className="h-4 w-4" />
+                            Xem
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => handleUnpublish(job.id)}
+                          disabled={unpublishJob.isPending}
+                        >
+                          Gỡ bài
+                        </Button>
+                      </>
                     )}
                     {isRejected(job) && (
-                      <Button
-                        size="sm"
-                        className="gap-1 bg-[#90D3B4] text-white hover:bg-[#90D3B4]/80"
-                        onClick={() => handleApprove(job.id)}
-                        disabled={approveJob.isPending}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Cho phép đăng lại
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          asChild
+                        >
+                          <Link to={`/jobs/${job.id}`}>
+                            <Eye className="h-4 w-4" />
+                            Xem
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="gap-1 bg-[#90D3B4] text-white hover:bg-[#90D3B4]/80"
+                          onClick={() => handleApprove(job.id)}
+                          disabled={approveJob.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Cho phép đăng lại
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="outline"

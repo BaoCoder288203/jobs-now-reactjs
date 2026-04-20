@@ -41,6 +41,25 @@ const YEARS_OPTIONS = ['0', '1', '2', '3', '1-3', '3-5', '5+'] as const;
 const APP_LANGS = ['VIETNAMESE', 'ENGLISH', 'JAPANESE', 'KOREAN', 'CHINESE', 'ANY'] as const;
 const GENDERS = ['MALE', 'FEMALE', 'ANY'] as const;
 
+const SALARY_TYPES = ['RANGE', 'NEGOTIABLE', 'COMPETITIVE'] as const;
+const SALARY_CURRENCIES = ['VND', 'USD', 'EUR', 'JPY', 'SGD', 'KRW', 'OTHER'] as const;
+
+const SALARY_TYPE_LABELS: Record<string, string> = {
+  RANGE: 'Khoảng lương cụ thể',
+  NEGOTIABLE: 'Thỏa thuận',
+  COMPETITIVE: 'Cạnh tranh',
+};
+
+const SALARY_CURRENCY_LABELS: Record<string, string> = {
+  VND: 'VNĐ',
+  USD: 'USD',
+  EUR: 'EUR',
+  JPY: 'JPY',
+  SGD: 'SGD',
+  KRW: 'KRW',
+  OTHER: 'Khác',
+};
+
 const EDU_MAJOR_TEMPLATE_RE = /^- Tốt nghiệp .+ trở lên chuyên ngành .+\.\s*$/;
 
 function RequiredStar() {
@@ -59,8 +78,10 @@ const jobSchema = z
   benefits: z
     .string()
     .refine((s) => htmlToPlainText(s).trim().length >= 1, 'Benefits are required'),
-  salary_min: z.number().min(0).optional(),
-  salary_max: z.number().min(0).optional(),
+  salary_type: z.enum(SALARY_TYPES).default('RANGE'),
+  salary_currency: z.enum(SALARY_CURRENCIES).default('VND'),
+  salary_min: z.number().min(0).or(z.nan()).optional(),
+  salary_max: z.number().min(0).or(z.nan()).optional(),
   location: z.string().min(1, 'Location is required'),
   job_type: z.enum(JOB_TYPES),
   yearsOfExperience: z.string().min(1, 'Years of experience is required'),
@@ -81,6 +102,13 @@ const jobSchema = z
   maxAge: z.string().optional(),
 })
   .superRefine((data, ctx) => {
+    if (data.salary_type === 'RANGE') {
+      const sMin = data.salary_min;
+      const sMax = data.salary_max;
+      if (typeof sMin === 'number' && !Number.isNaN(sMin) && typeof sMax === 'number' && !Number.isNaN(sMax) && sMin > sMax) {
+        ctx.addIssue({ code: 'custom', path: ['salary_max'], message: 'Lương tối đa phải ≥ lương tối thiểu' });
+      }
+    }
     const min = data.minAge?.trim() ? parseInt(data.minAge, 10) : undefined;
     const max = data.maxAge?.trim() ? parseInt(data.maxAge, 10) : undefined;
     if (min != null && (Number.isNaN(min) || min < 16 || min > 99)) {
@@ -144,6 +172,11 @@ export function CreateJobPage() {
   const [majorSearch, setMajorSearch] = useState('');
   const [majorDropdownOpen, setMajorDropdownOpen] = useState(false);
   const majorDropdownRef = useRef<HTMLDivElement>(null);
+  
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
   const [skillPickerOpenIndex, setSkillPickerOpenIndex] = useState<number | null>(null);
   const [skillPickerSearch, setSkillPickerSearch] = useState('');
   const skillPickerContainerRef = useRef<HTMLDivElement>(null);
@@ -154,6 +187,9 @@ export function CreateJobPage() {
       const t = e.target as Node;
       if (majorDropdownRef.current && !majorDropdownRef.current.contains(t)) {
         setMajorDropdownOpen(false);
+      }
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(t)) {
+        setCategoryDropdownOpen(false);
       }
       if (skillPickerContainerRef.current && !skillPickerContainerRef.current.contains(t)) {
         setSkillPickerOpenIndex(null);
@@ -179,6 +215,8 @@ export function CreateJobPage() {
       description: '',
       requirements: '',
       benefits: '',
+      salary_type: 'RANGE',
+      salary_currency: 'VND',
       location: '',
       job_type: 'full_time',
       status: 'closed',
@@ -209,8 +247,10 @@ export function CreateJobPage() {
         description: plainTextToTipTapHtml(job.description || ''),
         requirements: plainTextToTipTapHtml(job.requirements || ''),
         benefits: plainTextToTipTapHtml(job.benefits || ''),
-        salary_min: job.salary_min,
-        salary_max: job.salary_max,
+        salary_type: (job.salary_type ?? 'RANGE') as JobFormData['salary_type'],
+        salary_currency: (job.salary_currency ?? 'VND') as JobFormData['salary_currency'],
+        salary_min: job.salary_type === 'RANGE' ? job.salary_min : undefined,
+        salary_max: job.salary_type === 'RANGE' ? job.salary_max : undefined,
         location: job.location || '',
         job_type: (job.job_type?.toLowerCase() ?? 'full_time') as JobFormData['job_type'],
         yearsOfExperience: job.yearsOfExperience ?? '0',
@@ -297,6 +337,10 @@ export function CreateJobPage() {
 
       const payload = {
         ...data,
+        salary_type: data.salary_type,
+        salary_currency: data.salary_currency,
+        salary_min: typeof data.salary_min === 'number' && !Number.isNaN(data.salary_min) ? data.salary_min : undefined,
+        salary_max: typeof data.salary_max === 'number' && !Number.isNaN(data.salary_max) ? data.salary_max : undefined,
         company_id: companyId,
         category_id: data.category_id ?? undefined,
         jobSkills: data.jobSkills ?? [],
@@ -476,25 +520,67 @@ export function CreateJobPage() {
                 {errors.benefits && <p className="text-sm text-red-600">{errors.benefits.message}</p>}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="salary_min">Minimum Salary</Label>
-                  <Input
-                    id="salary_min"
-                    type="number"
-                    {...register('salary_min', { valueAsNumber: true })}
-                    placeholder="0"
-                  />
+              <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                <Label className="font-semibold">Mức lương <RequiredStar /></Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="salary_type">Loại lương</Label>
+                    <Select
+                      id="salary_type"
+                      value={watch('salary_type') ?? 'RANGE'}
+                      onChange={(e) => setValue('salary_type', e.target.value as JobFormData['salary_type'], { shouldValidate: true })}
+                    >
+                      {SALARY_TYPES.map((v) => (
+                        <option key={v} value={v}>{SALARY_TYPE_LABELS[v]}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="salary_currency">Đơn vị tiền tệ</Label>
+                    <Select
+                      id="salary_currency"
+                      value={watch('salary_currency') ?? 'VND'}
+                      onChange={(e) => setValue('salary_currency', e.target.value as JobFormData['salary_currency'])}
+                      disabled={watch('salary_type') !== 'RANGE'}
+                    >
+                      {SALARY_CURRENCIES.map((v) => (
+                        <option key={v} value={v}>{SALARY_CURRENCY_LABELS[v]}</option>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary_max">Maximum Salary</Label>
-                  <Input
-                    id="salary_max"
-                    type="number"
-                    {...register('salary_max', { valueAsNumber: true })}
-                    placeholder="0"
-                  />
-                </div>
+
+                {watch('salary_type') === 'RANGE' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="salary_min">Lương tối thiểu</Label>
+                      <Input
+                        id="salary_min"
+                        type="number"
+                        min={0}
+                        {...register('salary_min', { valueAsNumber: true })}
+                        placeholder={watch('salary_currency') === 'VND' ? 'VD: 5000000' : 'VD: 500'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="salary_max">Lương tối đa</Label>
+                      <Input
+                        id="salary_max"
+                        type="number"
+                        min={0}
+                        {...register('salary_max', { valueAsNumber: true })}
+                        placeholder={watch('salary_currency') === 'VND' ? 'VD: 10000000' : 'VD: 1000'}
+                      />
+                      {errors.salary_max && <p className="text-sm text-red-600">{errors.salary_max.message}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {watch('salary_type') !== 'RANGE' && (
+                  <p className="text-sm text-gray-500 italic">
+                    {SALARY_TYPE_LABELS[watch('salary_type') ?? 'RANGE']} — không cần nhập mức lương cụ thể.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -863,21 +949,80 @@ export function CreateJobPage() {
                   />
                   {errors.deadline && <p className="text-sm text-red-600">{errors.deadline.message}</p>}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category_id">Category</Label>
-                  <Select
-                    id="category_id"
-                    value={watch('category_id') ?? ''}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setValue('category_id', v === '' ? undefined : Number(v));
-                    }}
-                  >
-                    <option value="">-- Select category --</option>
-                    {categories.map((c) => (
-                      <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
-                    ))}
-                  </Select>
+                <div className="space-y-2" ref={categoryDropdownRef}>
+                  <Label>Category</Label>
+                  <p className="text-xs text-gray-500">
+                    Nhập để tìm và chọn ngành nghề.
+                  </p>
+                  <div className="relative">
+                    <div
+                      className="flex min-h-11 w-full flex-wrap items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent"
+                      onClick={() => setCategoryDropdownOpen(true)}
+                    >
+                      {(() => {
+                        const cid = watch('category_id');
+                        const cat = categories.find((c) => c.categoryId === cid);
+                        return cat ? (
+                          <Badge variant="outline" className="gap-1 pr-1">
+                            {cat.categoryName}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setValue('category_id', undefined);
+                              }}
+                              className="rounded-full p-0.5 hover:bg-gray-200"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })()}
+                      <input
+                        type="text"
+                        placeholder="Gõ để tìm ngành nghề..."
+                        value={categorySearch}
+                        onChange={(e) => setCategorySearch(e.target.value)}
+                        onFocus={() => setCategoryDropdownOpen(true)}
+                        className="min-w-[150px] flex-1 border-0 bg-transparent p-0 text-sm outline-none placeholder:text-gray-400"
+                      />
+                      <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+                    </div>
+                    {categoryDropdownOpen && (
+                      <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                        {categories
+                          .filter((c) =>
+                            (c.categoryName ?? '').toLowerCase().includes(categorySearch.toLowerCase())
+                          )
+                          .map((c) => {
+                            const selected = watch('category_id') === c.categoryId;
+                            return (
+                              <button
+                                key={c.categoryId}
+                                type="button"
+                                className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${
+                                  selected ? 'bg-primary/10 font-medium' : ''
+                                }`}
+                                onClick={() => {
+                                  setValue('category_id', selected ? undefined : c.categoryId);
+                                  setCategoryDropdownOpen(false);
+                                  setCategorySearch('');
+                                }}
+                              >
+                                {c.categoryName}
+                              </button>
+                            );
+                          })}
+                        {categories.filter((c) =>
+                          (c.categoryName ?? '').toLowerCase().includes(categorySearch.toLowerCase())
+                        ).length === 0 && (
+                          <p className="px-3 py-4 text-center text-sm text-gray-500">
+                            Không tìm thấy ngành nghề
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
