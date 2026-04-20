@@ -69,7 +69,7 @@ const adminMetricOptions: AdminMetricOption[] = [
   },
 ];
 
-export function AdminDashboardTrendChart({ trend, showComparison, selectedMetrics }: AdminDashboardTrendChartProps) {
+export function AdminDashboardTrendChart({ trend, selectedMetrics }: AdminDashboardTrendChartProps) {
   return (
     <Card>
       <CardHeader>
