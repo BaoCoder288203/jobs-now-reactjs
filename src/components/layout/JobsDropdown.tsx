@@ -10,15 +10,29 @@ interface JobsDropdownProps {
   anchorRef: React.RefObject<HTMLElement | null>;
 }
 
+const CATEGORY_STORAGE_KEY = 'jobs:selectedCategories';
+
+function readStoredCategories(): string[] {
+  const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => String(item).trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function JobsDropdown({ isOpen, onClose, anchorRef }: JobsDropdownProps) {
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [selectedIndustryId, setSelectedIndustryId] = useState<string>('');
   const [categories, setCategories] = useState<JobCategoryDTO[]>([]);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set());
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const count = selectedCategoryIds.size;
+  const count = selectedCategories.size;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -53,23 +67,31 @@ export function JobsDropdown({ isOpen, onClose, anchorRef }: JobsDropdownProps) 
       .catch(() => setCategories([]));
   }, [selectedIndustryId]);
 
-  const toggleCategory = (categoryId: number) => {
-    setSelectedCategoryIds((prev) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedCategories(new Set(readStoredCategories()));
+  }, [isOpen]);
+
+  const toggleCategory = (categoryName: string) => {
+    setSelectedCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(categoryId)) next.delete(categoryId);
-      else next.add(categoryId);
+      if (next.has(categoryName)) next.delete(categoryName);
+      else next.add(categoryName);
       return next;
     });
   };
 
-  const handleClear = () => setSelectedCategoryIds(new Set());
+  const handleClear = () => setSelectedCategories(new Set());
 
   const handleApply = () => {
-    const params = new URLSearchParams();
-    if (selectedCategoryIds.size) {
-      Array.from(selectedCategoryIds).forEach((id) => params.append('categoryIds', String(id)));
+    const values = Array.from(selectedCategories);
+    if (values.length > 0) {
+      window.localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(values));
+    } else {
+      window.localStorage.removeItem(CATEGORY_STORAGE_KEY);
     }
-    navigate(`/jobs${params.toString() ? `?${params.toString()}` : ''}`);
+    window.dispatchEvent(new Event('jobs-categories-updated'));
+    navigate('/jobs');
     onClose();
   };
 
@@ -102,20 +124,21 @@ export function JobsDropdown({ isOpen, onClose, anchorRef }: JobsDropdownProps) 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => {
-              const id = cat.categoryId ?? 0;
-              const active = selectedCategoryIds.has(id);
+              const categoryName = (cat.categoryName ?? '').trim();
+              if (!categoryName) return null;
+              const active = selectedCategories.has(categoryName);
               return (
                 <button
-                  key={id}
+                  key={cat.categoryId ?? categoryName}
                   type="button"
-                  onClick={() => toggleCategory(id)}
+                  onClick={() => toggleCategory(categoryName)}
                   className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
                     active
                       ? 'bg-[#81d1f3] text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {cat.categoryName}
+                  {categoryName}
                 </button>
               );
             })}

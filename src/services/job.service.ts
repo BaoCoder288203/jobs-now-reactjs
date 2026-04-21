@@ -193,9 +193,9 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
 
   const rawKeyword = params?.search?.trim() || undefined;
   const keyword = rawKeyword && rawKeyword.length >= 2 ? rawKeyword : undefined;
-  const categoryIds =
-    params?.category_ids?.map((v) => parseInt(String(v), 10)).filter((n) => !Number.isNaN(n)) ??
-    (params?.category_id ? [parseInt(params.category_id, 10)].filter((n) => !Number.isNaN(n)) : undefined);
+  const categories =
+    params?.categories?.map((value) => String(value).trim()).filter(Boolean) ?? undefined;
+  const combinedKeyword = [keyword, ...(categories ?? [])].filter(Boolean).join(' ').trim();
   const location = params?.location?.trim() || undefined;
   const jobType = params?.job_type?.trim() ? params.job_type.trim().toUpperCase().replace('-', '_') : undefined;
 
@@ -207,10 +207,6 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
       let filters = '';
       if (jobType) {
         filters += `jobType:${jobType}`;
-      }
-      if (categoryIds && categoryIds.length > 0) {
-        if (filters) filters += ' AND ';
-        filters += `(${categoryIds.map((id) => `categoryId:${id}`).join(' OR ')})`;
       }
       if (location) {
         if (filters) filters += ' AND ';
@@ -227,12 +223,11 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
         requests: [
           {
             indexName: 'jobs_now_index',
-            query: keyword || '',
+            query: combinedKeyword,
             params: algoliaParams,
           },
         ],
       });
-
       const resultObj = results[0] as any;
       const list = resultObj?.hits || [];
       const nbHits = resultObj?.nbHits || 0;
@@ -258,9 +253,9 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
   }
 
   // Fallback to old Search if Algolia fails or config is missing
-  if (keyword || location || (categoryIds && categoryIds.length > 0) || jobType) {
+  if (combinedKeyword || location || jobType) {
     const res = (await apiClient.get('/job/searchJobs', {
-      params: { keyword, location, categoryIds, jobType },
+      params: { keyword: combinedKeyword || undefined, location, jobType },
     })) as { data?: JobDTO[] };
     const list = (res.data ?? res) as JobDTO[] | JobDTO;
     const arr = Array.isArray(list) ? list : [list];
