@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { JobCard } from '@/components/common/JobCard';
 import { useJobs } from '@/modules/jobs/hooks';
@@ -11,6 +11,20 @@ import { Search } from 'lucide-react';
 import { JOB_TYPE_OPTIONS } from '@/constants/jobEnums';
 import { useSearchParams } from 'react-router-dom';
 
+const CATEGORY_STORAGE_KEY = 'jobs:selectedCategories';
+
+function getStoredCategories(): string[] {
+  const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => String(item).trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function JobListingPage() {
   const [filters, setFilters] = useState<JobListParams>({
     page: 1,
@@ -18,25 +32,42 @@ export function JobListingPage() {
   });
   const [searchInput, setSearchInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const applyStoredCategories = useCallback(() => {
+    const storedCategories = getStoredCategories();
+    setSelectedCategories(storedCategories);
+    setFilters((prev) => ({
+      ...prev,
+      categories: storedCategories.length > 0 ? storedCategories : undefined,
+      page: 1,
+    }));
+  }, []);
+
   useEffect(() => {
-    const ids = searchParams.getAll('categoryIds');
     const queryFromUrl = (searchParams.get('q') ?? searchParams.get('search') ?? '').trim();
     const locationFromUrl = (searchParams.get('location') ?? '').trim();
-    const categoryIds = ids.length ? ids : undefined;
+    const storedCategories = getStoredCategories();
 
     setSearchInput(queryFromUrl);
     setLocationInput(locationFromUrl);
+    setSelectedCategories(storedCategories);
 
     setFilters((prev) => ({
       ...prev,
-      category_ids: categoryIds,
+      categories: storedCategories.length > 0 ? storedCategories : undefined,
       search: queryFromUrl || undefined,
       location: locationFromUrl || undefined,
       page: 1,
     }));
   }, [searchParams]);
+
+  useEffect(() => {
+    const handleCategoryUpdate = () => applyStoredCategories();
+    window.addEventListener('jobs-categories-updated', handleCategoryUpdate);
+    return () => window.removeEventListener('jobs-categories-updated', handleCategoryUpdate);
+  }, [applyStoredCategories]);
 
   const { data, isLoading, error } = useJobs(filters);
 
@@ -76,6 +107,21 @@ export function JobListingPage() {
       [key]: value || undefined,
       page: 1
     }));
+  };
+
+  const handleRemoveCategory = (category: string) => {
+    const nextCategories = selectedCategories.filter((item) => item !== category);
+    if (nextCategories.length > 0) {
+      window.localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(nextCategories));
+    } else {
+      window.localStorage.removeItem(CATEGORY_STORAGE_KEY);
+    }
+    applyStoredCategories();
+  };
+
+  const handleClearCategories = () => {
+    window.localStorage.removeItem(CATEGORY_STORAGE_KEY);
+    applyStoredCategories();
   };
 
   useEffect(() => {
@@ -144,6 +190,29 @@ export function JobListingPage() {
               </div>
             </div>
           </div>
+
+          {selectedCategories.length > 0 && (
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              {selectedCategories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => handleRemoveCategory(category)}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#81d1f3]/20 px-3 py-1 text-sm font-medium text-[#0284c7]"
+                >
+                  {category}
+                  <span aria-hidden="true">x</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={handleClearCategories}
+                className="ml-1 text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                Xóa tất cả
+              </button>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="flex justify-center py-12">
