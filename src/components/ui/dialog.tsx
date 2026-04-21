@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -7,10 +8,16 @@ interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  containerClassName?: string;
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, containerClassName }: DialogProps) {
   const [mounted, setMounted] = React.useState(false);
+
+  useHotkey("Escape", () => onOpenChange(false), {
+    enabled: open,
+    requireReset: true,
+  });
 
   React.useEffect(() => {
     setMounted(true);
@@ -31,7 +38,6 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open || !mounted) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only close if clicking directly on overlay, not on content
     if (e.target === e.currentTarget) {
       onOpenChange(false);
     }
@@ -50,7 +56,10 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none"
       >
         <div 
-          className="pointer-events-auto w-full max-w-2xl max-h-[90vh]"
+          className={cn(
+            "pointer-events-auto w-full max-w-2xl max-h-[90vh]",
+            containerClassName
+          )}
           onClick={(e) => e.stopPropagation()}
         >
           {children}

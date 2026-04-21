@@ -1,5 +1,5 @@
 import type { User, Session } from '@/types';
-import { mockUsers, mockRoles, findUserByCredentials } from '../data/users.mock';
+import { mockUsers, mockRoles, findUserByCredentials, type MockUser } from '../data/users.mock';
 import { createSession, getSessionByToken, deleteSession, getSessionsByUserId } from '../data/sessions.mock';
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -20,14 +20,14 @@ export async function mockLogin(email: string, password: string): Promise<{
   
   const token = `mock-jwt-token-${user.id}-${Date.now()}`;
   const refreshToken = `mock-refresh-token-${user.id}-${Date.now()}`;
-  
+
   const session = createSession(user.id, token, navigator.userAgent);
-  
+
   localStorage.setItem('token', token);
   localStorage.setItem('refreshToken', refreshToken);
-  
+
   return {
-    user,
+    user: user as User,
     token,
     refreshToken,
     session
@@ -60,27 +60,37 @@ export async function mockRegister(data: {
     'ADMIN': 'role-3'
   };
   
-  // Get role from mockRoles
   const roleId = roleIdMap[data.role] || 'role-1';
-  const role = mockRoles.find(r => r.id === roleId);
-  
-  const newUser: User = {
+  const roleDetail = mockRoles.find(r => r.id === roleId);
+  const roleNameMap: Record<string, string> = {
+    'role-1': 'ROLE_JOBSEEKER',
+    'role-2': 'ROLE_COMPANY',
+    'role-3': 'ROLE_ADMIN'
+  };
+
+  const newUser: MockUser = {
     id: `user-${Date.now()}`,
+    userId: Date.now() % 100000,
     email: data.email,
-    full_name: data.fullName,
-    phone: data.phone,
+    fullName: data.fullName,
+    phone: data.phone ?? null,
+    role: roleNameMap[roleId] ?? 'ROLE_JOBSEEKER',
+    avatar: null,
+    profileId: null,
+    companyId: null,
+    companyName: null,
     role_id: roleId,
     status: 'active',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    role: role
+    roleDetail: roleDetail ?? undefined
   };
-  
+
   mockUsers.push(newUser);
-  
+
   const token = `mock-jwt-token-${newUser.id}-${Date.now()}`;
   localStorage.setItem('token', token);
-  
+
   return {
     user: newUser,
     token
@@ -107,8 +117,8 @@ export async function mockGetCurrentUser(): Promise<User> {
   if (!user) {
     throw new Error('User not found');
   }
-  
-  return user;
+
+  return user as User;
 }
 
 export async function mockLogout(): Promise<void> {

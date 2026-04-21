@@ -1,116 +1,177 @@
+import { useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useMyApplications } from '@/modules/applications/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, Calendar, MapPin, ExternalLink } from 'lucide-react';
+import { Briefcase, Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Application } from '@/types';
+import { RichTextContent } from '@/components/ui/RichTextContent';
+
+function replaceInterviewPlaceholders(
+  html: string,
+  application: Application
+): string {
+  const name = application.user?.fullName ?? 'Ứng viên';
+  const jobTitle = application.job?.title ?? '';
+  const companyName = application.job?.company?.name ?? '';
+  return html
+    .replace(/\{\{name\}\}/g, name)
+    .replace(/\{\{jobTitle\}\}/g, jobTitle)
+    .replace(/\{\{companyName\}\}/g, companyName);
+}
+
+function InterviewDetailsCollapsible({
+  application,
+}: {
+  application: Application;
+}) {
+  const [open, setOpen] = useState(false);
+  if (
+    application.status !== 'interviewing' ||
+    !application.interview_details_html
+  )
+    return null;
+
+  const processedHtml = replaceInterviewPlaceholders(
+    application.interview_details_html,
+    application
+  );
+
+  return (
+    <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50/60 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sky-100/60 transition-colors"
+      >
+        <span className="text-sm font-semibold text-sky-800">
+          📋 Lịch / thông tin phỏng vấn
+        </span>
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-sky-600" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-sky-600" />
+        )}
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 border-t border-sky-200">
+          <div className="prose prose-sm max-w-none text-gray-800 pt-3">
+            <RichTextContent html={processedHtml} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function JobSeekerApplicationsPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.id || '';
+  const userId = user?.userId ? String(user.userId) : '';
+  const profileId = user?.profileId ?? undefined;
 
-  const { data: applicationsData, isLoading } = useMyApplications(userId);
+  const { data: applicationsData, isLoading } = useMyApplications(profileId, userId);
 
   const getStatusBadge = (status: string) => {
+    const normalized = (status ?? '').toUpperCase();
     const statusMap: Record<string, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-gray-100 text-gray-700' },
-      approved: { label: 'Approved', className: 'bg-accent-light text-gray-900' },
-      rejected: { label: 'Rejected', className: 'bg-red-100 text-red-800' },
-      reviewing: { label: 'Reviewing', className: 'bg-primary-light text-gray-900' }
+      PENDING: { label: 'Chờ xử lý', className: 'bg-gray-100 text-gray-700' },
+      REVIEWING: { label: 'Đang xem xét', className: 'bg-blue-100 text-blue-800' },
+      SHORTLISTED: { label: 'Đạt vòng hồ sơ', className: 'bg-green-100 text-green-800' },
+      INTERVIEWING: { label: 'Phỏng vấn', className: 'bg-purple-100 text-purple-800' },
+      REJECTED: { label: 'Từ chối', className: 'bg-red-100 text-red-800' },
+      HIRED: { label: 'Đã tuyển', className: 'bg-emerald-600 text-white' },
     };
+    const statusInfo = statusMap[normalized] || statusMap.PENDING;
 
-    const statusInfo = statusMap[status.toLowerCase()] || statusMap.pending;
-
-    return (
-      <Badge className={statusInfo.className}>
-        {statusInfo.label}
-      </Badge>
-    );
+    return <Badge className={statusInfo.className}>{statusInfo.label}</Badge>;
   };
 
   const applications = applicationsData || [];
 
   const content = (
     <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
-          <p className="text-gray-600 mt-1">
-            Track your job applications and their status
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Đơn ứng tuyển</h1>
+        <p className="text-gray-600 mt-1">
+          Theo dõi trạng thái các đơn ứng tuyển của bạn
+        </p>
+      </div>
 
-        {applications.length > 0 ? (
-          <div className="space-y-4">
-            {applications.map((application: Application) => (
-              <Card key={application.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Briefcase className="h-5 w-5 text-primary" />
-                        <Link
-                          to={`/jobs/${application.job_id}`}
-                          className="text-xl font-semibold text-gray-900 hover:text-primary transition-colors"
-                        >
-                          {application.job?.title}
-                        </Link>
-                      </div>
-
-                      <p className="text-gray-600 mb-3">
-                        {application.job?.company?.name}
-                      </p>
-
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                        {application.job?.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {application.job.location}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          Applied on {new Date(application.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-
-                      {application.cover_letter && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Cover Letter:</p>
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {application.cover_letter}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="ml-6 flex flex-col items-end gap-3">
-                      {getStatusBadge(application.status)}
-                      <Link to={`/jobs/${application.job_id}`}>
-                        <Button variant="outline" size="sm" className="gap-2">
-                          View Job
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
+      {applications.length > 0 ? (
+        <div className="space-y-4">
+          {applications.map((application: Application) => (
+            <Card key={application.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      <Link
+                        to={`/jobs/${application.job_id}`}
+                        className="text-xl font-semibold text-gray-900 hover:text-primary transition-colors"
+                      >
+                        {application.job?.title}
                       </Link>
                     </div>
+
+                    <p className="text-gray-600 mb-3">
+                      {application.job?.company?.name}
+                    </p>
+
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                      {application.job?.location && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {application.job.location}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Ứng tuyển ngày {new Date(application.created_at).toLocaleDateString('vi-VN')}
+                      </div>
+                    </div>
+
+                    {application.cover_letter && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm font-medium text-gray-700 mb-1">Thư xin việc:</p>
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {application.cover_letter}
+                        </p>
+                      </div>
+                    )}
+
+                    <InterviewDetailsCollapsible application={application} />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Briefcase className="h-16 w-16 text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-4">You haven't applied to any jobs yet</p>
-              <Link to="/jobs">
-                <Button>Browse Jobs</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+
+                  <div className="ml-6 flex flex-col items-end gap-3">
+                    {getStatusBadge(application.status)}
+                    <Link to={`/jobs/${application.job_id}`}>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        Xem việc làm
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Briefcase className="h-16 w-16 text-gray-400 mb-4" />
+            <p className="text-gray-600 mb-4">Bạn chưa ứng tuyển công việc nào</p>
+            <Link to="/jobs">
+              <Button>Tìm việc làm</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 
@@ -126,4 +187,3 @@ export function JobSeekerApplicationsPage() {
 
   return <div className="p-6">{content}</div>;
 }
-

@@ -100,7 +100,9 @@ export async function mockCreateMyCompany(formData: FormData): Promise<Company> 
       website: companyData.website || undefined,
       company_size: companyData.company_size || undefined,
       address: companyData.address || undefined,
-      industry_id: companyData.industry_id || undefined,
+      industry_id: Array.isArray(companyData.industry_ids) ? companyData.industry_ids[0] : companyData.industry_id,
+      industry_ids: companyData.industry_ids ?? [],
+      industries: undefined,
       owner_user_id: session.userId,
       create_job_count: 0,
       is_verified: false,
@@ -108,26 +110,41 @@ export async function mockCreateMyCompany(formData: FormData): Promise<Company> 
       updated_at: new Date().toISOString(),
     };
     
+    const fileToDataUrl = async (file: File): Promise<string> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else resolve(URL.createObjectURL(file));
+        };
+        reader.onerror = () => resolve(URL.createObjectURL(file));
+        reader.readAsDataURL(file);
+      });
+    };
+
     // Handle logo upload (simulate)
     const logoFile = formData.get('logoFile');
     if (logoFile && logoFile instanceof File) {
-      // In real app, upload to server and get URL
-      // For mock, create a data URL
-      const logoDataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            resolve(URL.createObjectURL(logoFile));
-          }
-        };
-        reader.onerror = () => resolve(URL.createObjectURL(logoFile));
-        reader.readAsDataURL(logoFile);
-      });
-      newCompany.logo_url = logoDataUrl;
+      newCompany.logo_url = await fileToDataUrl(logoFile);
     }
-    
+
+    const bannerFile = formData.get('bannerFile');
+    if (bannerFile && bannerFile instanceof File) {
+      newCompany.banner_url = await fileToDataUrl(bannerFile as File);
+    }
+
+    const urlsFromJson: string[] = Array.isArray(companyData.thumbnail_image_urls)
+      ? companyData.thumbnail_image_urls.filter((u: unknown): u is string => typeof u === 'string')
+      : [];
+    if (urlsFromJson.length > 0) {
+      newCompany.thumbnail_images = urlsFromJson;
+      newCompany.images = urlsFromJson.map((url, i) => ({
+        imageId: Date.now() + i,
+        imageUrl: url,
+        type: 'OTHER',
+      }));
+    }
+
     mockCompanies.push(newCompany);
     return newCompany;
   } catch (error: any) {
@@ -174,30 +191,48 @@ export async function mockUpdateMyCompany(formData: FormData): Promise<Company> 
       website: companyData.website !== undefined ? companyData.website : existingCompany.website,
       company_size: companyData.company_size !== undefined ? companyData.company_size : existingCompany.company_size,
       address: companyData.address !== undefined ? companyData.address : existingCompany.address,
-      industry_id: companyData.industry_id !== undefined ? companyData.industry_id : existingCompany.industry_id,
+      industry_id: Array.isArray(companyData.industry_ids) && companyData.industry_ids[0] ? companyData.industry_ids[0] : (companyData.industry_id ?? existingCompany.industry_id),
+      industry_ids: companyData.industry_ids !== undefined ? companyData.industry_ids : existingCompany.industry_ids ?? [],
       updated_at: new Date().toISOString(),
     };
     
-    // Handle logo upload (simulate)
-    const logoFile = formData.get('logoFile');
-    if (logoFile && logoFile instanceof File) {
-      // In real app, upload to server and get URL
-      // For mock, create a data URL
-      const logoDataUrl = await new Promise<string>((resolve) => {
+    const fileToDataUrl = async (file: File): Promise<string> => {
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            resolve(URL.createObjectURL(logoFile));
-          }
+          if (typeof reader.result === 'string') resolve(reader.result);
+          else resolve(URL.createObjectURL(file));
         };
-        reader.onerror = () => resolve(URL.createObjectURL(logoFile));
-        reader.readAsDataURL(logoFile);
+        reader.onerror = () => resolve(URL.createObjectURL(file));
+        reader.readAsDataURL(file);
       });
-      updatedCompany.logo_url = logoDataUrl;
+    };
+
+    const logoFile = formData.get('logoFile');
+    if (logoFile && logoFile instanceof File) {
+      updatedCompany.logo_url = await fileToDataUrl(logoFile);
     }
-    
+
+    const bannerFile = formData.get('bannerFile');
+    if (bannerFile && bannerFile instanceof File) {
+      updatedCompany.banner_url = await fileToDataUrl(bannerFile as File);
+    }
+
+    const urlsFromJson: string[] = Array.isArray(companyData.thumbnail_image_urls)
+      ? companyData.thumbnail_image_urls.filter((u: unknown): u is string => typeof u === 'string')
+      : [];
+    if (urlsFromJson.length > 0) {
+      const nextThumbs = [...(existingCompany.thumbnail_images ?? []), ...urlsFromJson];
+      updatedCompany.thumbnail_images = nextThumbs;
+      const baseId = Date.now();
+      const newImageRows = urlsFromJson.map((url, i) => ({
+        imageId: baseId + i,
+        imageUrl: url,
+        type: 'OTHER',
+      }));
+      updatedCompany.images = [...(existingCompany.images ?? []), ...newImageRows];
+    }
+
     mockCompanies[companyIndex] = updatedCompany;
     return updatedCompany;
   } catch (error: any) {

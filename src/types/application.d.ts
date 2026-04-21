@@ -8,7 +8,10 @@ export interface Application {
   user_id: string;
   resume_id: string;
   cover_letter?: string;
-  status: string; // pending, reviewed, accepted, rejected
+  /** PENDING | REVIEWING | SHORTLISTED | INTERVIEWING | REJECTED | HIRED (from BE) */
+  status: string;
+  /** HTML từ recruiter khi chuyển sang phỏng vấn */
+  interview_details_html?: string;
   created_at: string;
   
   job?: Job;

@@ -5,50 +5,57 @@ import {
   getSavedJobsByProfileId,
   isJobSaved 
 } from '../data/savedJobs.mock';
-import { mockJobs } from '../data/jobs.mock';
-import { mockUsers } from '../data/users.mock';
 
-export async function mockGetSavedJobs(userId: string): Promise<SavedJob[]> {
+export async function mockGetSavedJobs(profileId: string): Promise<SavedJob[]> {
   await delay(400);
-  return getSavedJobsByProfileId(userId);
+  return getSavedJobsByProfileId(profileId);
 }
 
 export async function mockSaveJob(
-  userId: string,
+  profileId: string,
   jobId: string
 ): Promise<SavedJob> {
   await delay(400);
   
-  if (isJobSaved(userId, jobId)) {
+  if (isJobSaved(profileId, jobId)) {
     throw new Error('Job already saved');
   }
-  
-  const job = mockJobs.find(j => j.id === jobId);
-  if (!job) {
-    throw new Error('Job not found');
+
+  const numericJobId = Number(jobId);
+  if (Number.isNaN(numericJobId)) {
+    throw new Error('Invalid job id');
   }
   
-  const newSavedJob: SavedJob = {
-    id: `saved-${Date.now()}`,
-    user_id: userId,
-    job_id: jobId,
-    created_at: new Date().toISOString(),
-    user: mockUsers.find(u => u.id === userId),
-    job
+  const maxId = mockSavedJobs.reduce((max, item) => Math.max(max, item.savedJobId), 0);
+  const newSavedJob = {
+    profileId,
+    savedJobId: maxId + 1,
+    jobId: numericJobId,
+    jobTitle: `Job #${numericJobId}`,
+    companyName: 'Mock Company',
+    companyLogo: '',
+    location: 'Remote',
+    salaryMin: 0,
+    salaryMax: 0,
+    jobType: 'full_time',
+    savedAt: new Date().toISOString(),
   };
   
   mockSavedJobs.push(newSavedJob);
-  return newSavedJob;
+  const { profileId: _profileId, ...savedJob } = newSavedJob;
+  return savedJob;
 }
 
 export async function mockUnsaveJob(
-  userId: string,
+  profileId: string,
   jobId: string
 ): Promise<void> {
   await delay(300);
+
+  const numericJobId = Number(jobId);
   
   const index = mockSavedJobs.findIndex(
-    sj => sj.user_id === userId && sj.job_id === jobId
+    (sj) => sj.profileId === profileId && sj.jobId === numericJobId
   );
   
   if (index === -1) {

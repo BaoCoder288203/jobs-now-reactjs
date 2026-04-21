@@ -36,12 +36,8 @@ export async function mockGetJobs(params?: JobListParams): Promise<PaginatedResp
     filteredJobs = filteredJobs.filter(job => job.category_id === params.category_id);
   }
   
-  if (params?.industry_id) {
-    filteredJobs = filteredJobs.filter(job => job.industry_id === params.industry_id);
-  }
-  
   if (params?.experience_level) {
-    filteredJobs = filteredJobs.filter(job => job.experience_level === params.experience_level);
+    filteredJobs = filteredJobs.filter(job => job.yearsOfExperience === params.experience_level);
   }
   
   if (params?.min_salary) {
@@ -93,26 +89,29 @@ export async function mockGetJobDetail(jobId: string): Promise<Job> {
 
 export async function mockCreateJob(jobData: Partial<Job>): Promise<Job> {
   await delay(600);
-  
+
   const newJob: Job = {
     id: `job-${Date.now()}`,
     company_id: jobData.company_id!,
     title: jobData.title!,
     description: jobData.description!,
     requirements: jobData.requirements,
+    benefits: jobData.benefits,
     salary_min: jobData.salary_min,
     salary_max: jobData.salary_max,
     location: jobData.location,
     job_type: jobData.job_type,
-    experience_level: jobData.experience_level,
-    industry_id: jobData.industry_id,
+    yearsOfExperience: jobData.yearsOfExperience,
+    educationLevel: jobData.educationLevel,
     category_id: jobData.category_id,
     status: jobData.status || 'open',
-    expired_at: jobData.expired_at,
+    expired_at: jobData.expired_at ?? jobData.deadline,
+    deadline: jobData.deadline ?? jobData.expired_at,
+    thumbnail_url: jobData.thumbnail_url,
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
-  
+
   mockJobs.push(newJob);
   return newJob;
 }

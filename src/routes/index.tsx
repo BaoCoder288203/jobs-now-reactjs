@@ -10,14 +10,21 @@ import { CompanyDetailPage } from '@/pages/public/CompanyDetailPage';
 import { ToolsPlaceholderPage } from '@/pages/public/ToolsPlaceholderPage';
 import { CVToolsLandingPage } from '@/pages/public/CVToolsLandingPage';
 import { CVBuilderPage } from '@/pages/public/CVBuilderPage';
+import { CVImprovePage } from '@/pages/public/CVImprovePage';
+import { HandbookHubPage } from '@/pages/public/HandbookHubPage';
+import { HandbookCategoryPage } from '@/pages/public/HandbookCategoryPage';
+import { HandbookPostDetailPage } from '@/pages/public/HandbookPostDetailPage';
 
 // Job Seeker Pages
 import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
-import { JobSeekerProfilePage } from '@/pages/job-seeker/ProfilePage';
 import { JobSeekerResumesPage } from '@/pages/job-seeker/ResumesPage';
+import { ResumeEditPage } from '@/pages/job-seeker/ResumeEditPage';
 import { JobSeekerApplicationsPage } from '@/pages/job-seeker/ApplicationsPage';
+import { JobSeekerFollowedCompaniesPage } from '@/pages/job-seeker/FollowedCompaniesPage';
 import { JobSeekerSavedJobsPage } from '@/pages/job-seeker/SavedJobsPage';
 import { JobSeekerSettingsPage } from '@/pages/job-seeker/SettingsPage';
+import JobSeekerPricingPage from '@/pages/job-seeker/JobSeekerPricingPage';
+import { JobSeekerProfilePage } from '@/pages/job-seeker/ProfilePage';
 
 // Recruiter/Employer Pages
 import { RecruiterDashboardPage } from '@/pages/employer/DashboardPage';
@@ -26,18 +33,29 @@ import { EmployerApplicationsPage } from '@/pages/employer/ApplicationsPage';
 import { EmployerApplicationDetailPage } from '@/pages/employer/ApplicationDetailPage';
 import { CreateJobPage } from '@/pages/employer/CreateJobPage';
 import { EmployerCompanyPage } from '@/pages/employer/CompanyPage';
+import { EmployerFollowersPage } from '@/pages/employer/FollowersPage';
 import { EmployerSettingsPage } from '@/pages/employer/SettingsPage';
+import PricingPage from '@/pages/employer/PricingPage';
+import PaymentResultPage from '@/pages/public/PaymentResultPage';
+import { CompanyPostsPage } from '@/pages/employer/CompanyPostsPage';
+import { CompanyPostEditPage } from '@/pages/employer/CompanyPostEditPage';
 
-// Admin Pages
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
 import { AdminCompaniesPage } from '@/pages/admin/CompaniesPage';
 import { AdminJobsPage } from '@/pages/admin/JobsPage';
 import { AdminSkillsPage } from '@/pages/admin/SkillsPage';
+import { AdminIndustriesPage } from '@/pages/admin/IndustriesPage';
+import { AdminCategoriesPage } from '@/pages/admin/CategoriesPage';
+import { AdminMajorsPage } from '@/pages/admin/MajorsPage';
+import { AdminReviewsPage } from '@/pages/admin/ReviewsPage';
+import { AdminCompanyPostsPage } from '@/pages/admin/CompanyPostsPage';
 
-// User Pages (Common for all roles)
 import UserPage from '@/pages/user/UserPage';
 import UserInfoPage from '@/pages/user/UserInfoPage';
+import { NotificationsPage } from '@/pages/user/NotificationsPage';
+import { AdminSupportPage } from '@/pages/admin/SupportPage';
+import ChatPage from '@/pages/user/ChatPage';
 
 export function AppRoutes() {
   return (
@@ -49,20 +67,26 @@ export function AppRoutes() {
       <Route path="/companies" element={<CompanyListingPage />} />
       <Route path="/companies/:id" element={<CompanyDetailPage />} />
 
+      <Route path="/cam-nang-viec-lam" element={<HandbookHubPage />} />
+      <Route path="/cam-nang-viec-lam/bai-viet/:slug" element={<HandbookPostDetailPage />} />
+      <Route path="/cam-nang-viec-lam/:categorySlug" element={<HandbookCategoryPage />} />
+
       {/* Tools (CV landing + builder) */}
       <Route path="/tools/tao-cv/builder" element={<CVBuilderPage />} />
       <Route path="/tools/tao-cv" element={<CVToolsLandingPage />} />
       <Route path="/tools/chuan-hoa-cv" element={<CVToolsLandingPage />} />
+      <Route path="/tools/chuan-hoa-cv/analyze" element={<CVImprovePage />} />
       {/* Tools (placeholder) */}
       <Route path="/tools/tinh-luong-gross-net" element={<ToolsPlaceholderPage />} />
       <Route path="/tools/phong-van" element={<ToolsPlaceholderPage />} />
+      <Route path="/payment-result" element={<PaymentResultPage />} />
 
       {/* Recruiter/Employer Routes */}
       <Route
         path="/employer/dashboard"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <RecruiterDashboardPage />
             </RoleGuard>
           </RequireAuth>
@@ -72,7 +96,7 @@ export function AppRoutes() {
         path="/employer/jobs"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerJobsPage />
             </RoleGuard>
           </RequireAuth>
@@ -82,7 +106,7 @@ export function AppRoutes() {
         path="/employer/jobs/create"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <CreateJobPage />
             </RoleGuard>
           </RequireAuth>
@@ -92,7 +116,7 @@ export function AppRoutes() {
         path="/employer/jobs/:id/edit"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <CreateJobPage />
             </RoleGuard>
           </RequireAuth>
@@ -102,8 +126,38 @@ export function AppRoutes() {
         path="/employer/company"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerCompanyPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/followers"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <EmployerFollowersPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/posts"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <CompanyPostsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/posts/:id"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <CompanyPostEditPage />
             </RoleGuard>
           </RequireAuth>
         }
@@ -112,7 +166,7 @@ export function AppRoutes() {
         path="/employer/settings"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerSettingsPage />
             </RoleGuard>
           </RequireAuth>
@@ -122,7 +176,7 @@ export function AppRoutes() {
         path="/employer/applications"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerApplicationsPage />
             </RoleGuard>
           </RequireAuth>
@@ -132,8 +186,18 @@ export function AppRoutes() {
         path="/employer/applications/:id"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['RECRUITER']}>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerApplicationDetailPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/pricing"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <PricingPage />
             </RoleGuard>
           </RequireAuth>
         }
@@ -144,7 +208,7 @@ export function AppRoutes() {
         path="/admin/dashboard"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminDashboardPage />
             </RoleGuard>
           </RequireAuth>
@@ -154,7 +218,7 @@ export function AppRoutes() {
         path="/admin/users"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminUsersPage />
             </RoleGuard>
           </RequireAuth>
@@ -164,7 +228,7 @@ export function AppRoutes() {
         path="/admin/companies"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminCompaniesPage />
             </RoleGuard>
           </RequireAuth>
@@ -174,7 +238,7 @@ export function AppRoutes() {
         path="/admin/jobs"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminJobsPage />
             </RoleGuard>
           </RequireAuth>
@@ -184,8 +248,58 @@ export function AppRoutes() {
         path="/admin/skills"
         element={
           <RequireAuth>
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
               <AdminSkillsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/industries"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminIndustriesPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/categories"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminCategoriesPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/majors"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminMajorsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/reviews"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminReviewsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/company-posts"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminCompanyPostsPage />
             </RoleGuard>
           </RequireAuth>
         }
@@ -207,7 +321,7 @@ export function AppRoutes() {
         <Route
           path="dashboard"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerDashboardPage />
             </RoleGuard>
           }
@@ -215,7 +329,7 @@ export function AppRoutes() {
         <Route
           path="profile"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerProfilePage />
             </RoleGuard>
           }
@@ -223,7 +337,7 @@ export function AppRoutes() {
         <Route
           path="applications"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerApplicationsPage />
             </RoleGuard>
           }
@@ -231,28 +345,63 @@ export function AppRoutes() {
         <Route
           path="resumes"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerResumesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="resumes/edit"
+          element={
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <ResumeEditPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="pricing"
+          element={
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <JobSeekerPricingPage />
             </RoleGuard>
           }
         />
         <Route
           path="saved-jobs"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
               <JobSeekerSavedJobsPage />
             </RoleGuard>
           }
         />
         <Route
-          path="settings"
+          path="followed-companies"
           element={
-            <RoleGuard allowedRoles={['JOB_SEEKER']}>
-              <JobSeekerSettingsPage />
+            <RoleGuard allowedRoles={['ROLE_JOBSEEKER']}>
+              <JobSeekerFollowedCompaniesPage />
             </RoleGuard>
           }
         />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="chat" element={<ChatPage />} />
+        {/* Settings - all authenticated roles (Job Seeker, Recruiter, Admin) */}
+        <Route path="settings" element={<JobSeekerSettingsPage />} />
       </Route>
+
+      {/* Admin Support */}
+      <Route
+        path="/admin/support"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_ADMIN']}>
+              <AdminSupportPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+
+      {/* Chat redirect to user area */}
+      <Route path="/chat" element={<Navigate to="/user/chat" replace />} />
 
       {/* Redirect old routes to new structure */}
       <Route path="/recruiter/dashboard" element={<Navigate to="/employer/dashboard" replace />} />

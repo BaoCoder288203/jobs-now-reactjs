@@ -13,8 +13,8 @@ export async function mockGetResumes(userId: string): Promise<Resume[]> {
   if (!profile) {
     return [];
   }
-  
-  return getResumesByProfileId(profile.id);
+  const profileId = profile.id ?? String(profile.profileId);
+  return getResumesByProfileId(profileId);
 }
 
 export async function mockUploadResume(
@@ -27,31 +27,38 @@ export async function mockUploadResume(
   if (!profile) {
     throw new Error('Profile not found');
   }
-  
+  const profileId = profile.id ?? String(profile.profileId);
+
   // Validate file type
   if (file.type !== 'application/pdf') {
     throw new Error('Only PDF files are allowed');
   }
-  
+
   // Validate file size (max 5MB)
   if (file.size > 5 * 1024 * 1024) {
     throw new Error('File size must be less than 5MB');
   }
-  
+
   // Create a mock file URL (in real app, this would be uploaded to cloud storage)
   const fileUrl = `/resumes/${userId}/${file.name}`;
-  
+  const created_at = new Date().toISOString();
+
   // Check if user already has a default resume
-  const existingResumes = getResumesByProfileId(profile.id);
+  const existingResumes = getResumesByProfileId(profileId);
   const hasDefault = existingResumes.some(r => r.is_default);
-  
+  const nextNumericId = Math.max(0, ...mockResumes.map((r) => r.resumeId)) + 1;
+
   const newResume: Resume = {
+    resumeId: nextNumericId,
+    resumeName: file.name,
+    resumeUrl: fileUrl,
+    uploadedAt: created_at,
     id: `resume-${Date.now()}`,
-    job_seeker_profile_id: profile.id,
+    job_seeker_profile_id: profileId,
     file_url: fileUrl,
     file_name: file.name,
-    is_default: !hasDefault, // First resume is default
-    created_at: new Date().toISOString(),
+    is_default: !hasDefault,
+    created_at,
     type: 'UPLOADED',
     is_ai_generated: false,
     extracted_text: JSON.stringify({
@@ -61,10 +68,9 @@ export async function mockUploadResume(
       educations: [],
       skills: [],
     }),
-    profile
+    profile,
   };
-  
-  // In real app, this would be saved to database
+
   mockResumes.push(newResume);
   
   return newResume;
@@ -80,9 +86,9 @@ export async function mockSetDefaultResume(
   if (!profile) {
     throw new Error('Profile not found');
   }
-  
-  const resumes = getResumesByProfileId(profile.id);
-  
+  const profileId = profile.id ?? String(profile.profileId);
+  const resumes = getResumesByProfileId(profileId);
+
   // Remove default from all resumes
   resumes.forEach(r => {
     if (r.id === resumeId) {
@@ -100,6 +106,22 @@ export async function mockSetDefaultResume(
   return resume;
 }
 
+export async function mockUpdateResume(
+  resumeId: string,
+  data: { resumeName?: string; summary?: string | null; templateKey?: string }
+): Promise<Resume> {
+  await delay(300);
+  const r = mockResumes.find((x) => x.id === resumeId || String(x.resumeId) === resumeId);
+  if (!r) throw new Error('Resume not found');
+  if (data.resumeName != null) {
+    r.file_name = data.resumeName;
+    r.resumeName = data.resumeName;
+  }
+  if (data.summary !== undefined) r.summary = data.summary;
+  if (data.templateKey !== undefined) r.templateKey = data.templateKey;
+  return r;
+}
+
 export async function mockDeleteResume(
   userId: string,
   resumeId: string
@@ -110,14 +132,14 @@ export async function mockDeleteResume(
   if (!profile) {
     throw new Error('Profile not found');
   }
-  
-  const resumes = getResumesByProfileId(profile.id);
+  const profileId = profile.id ?? String(profile.profileId);
+  const resumes = getResumesByProfileId(profileId);
   const resume = resumes.find(r => r.id === resumeId);
-  
+
   if (!resume) {
     throw new Error('Resume not found');
   }
-  
+
   if (resume.is_default && resumes.length > 1) {
     throw new Error('Cannot delete default resume. Please set another resume as default first.');
   }

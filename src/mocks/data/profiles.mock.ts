@@ -4,6 +4,16 @@ import { mockSkills } from './skills.mock';
 
 export const mockJobSeekerProfiles: JobSeekerProfile[] = [
   {
+    profileId: 1,
+    userId: 2,
+    fullName: 'John Doe',
+    email: 'john.doe@example.com',
+    avatarUrl: mockUsers[1].avatar,
+    title: 'Senior Software Developer',
+    bio: 'Experienced software developer with 5 years in web development. Passionate about building scalable applications.',
+    phone: mockUsers[1].phone,
+    address: null,
+    dob: '1995-05-15',
     id: 'profile-1',
     user_id: 'user-2',
     headline: 'Senior Software Developer',
@@ -18,6 +28,16 @@ export const mockJobSeekerProfiles: JobSeekerProfile[] = [
     user: mockUsers[1]
   },
   {
+    profileId: 2,
+    userId: 3,
+    fullName: 'Jane Smith',
+    email: 'jane.smith@example.com',
+    avatarUrl: mockUsers[2].avatar,
+    title: 'Frontend Developer',
+    bio: 'Frontend developer passionate about React and TypeScript. Love creating beautiful user interfaces.',
+    phone: mockUsers[2].phone,
+    address: null,
+    dob: '1997-03-20',
     id: 'profile-2',
     user_id: 'user-3',
     headline: 'Frontend Developer',
@@ -35,6 +55,10 @@ export const mockJobSeekerProfiles: JobSeekerProfile[] = [
 
 export const mockResumes: Resume[] = [
   {
+    resumeId: 1,
+    resumeName: 'john-doe-resume.pdf',
+    resumeUrl: '/resumes/user-2/john-doe-resume.pdf',
+    uploadedAt: '2024-01-15T00:00:00Z',
     id: 'resume-1',
     job_seeker_profile_id: 'profile-1',
     file_url: '/resumes/user-2/john-doe-resume.pdf',
@@ -46,6 +70,10 @@ export const mockResumes: Resume[] = [
     profile: mockJobSeekerProfiles[0]
   },
   {
+    resumeId: 2,
+    resumeName: 'jane-smith-resume.pdf',
+    resumeUrl: '/resumes/user-3/jane-smith-resume.pdf',
+    uploadedAt: '2024-02-01T00:00:00Z',
     id: 'resume-2',
     job_seeker_profile_id: 'profile-2',
     file_url: '/resumes/user-3/jane-smith-resume.pdf',
@@ -89,6 +117,8 @@ export const mockResumes: Resume[] = [
 
 export const mockProfileSkills: ProfileSkill[] = [
   {
+    skillId: 1,
+    skillName: mockSkills[0].name,
     id: 'profileskill-1',
     job_seeker_profile_id: 'profile-1',
     skill_id: 'skill-1',
@@ -97,6 +127,8 @@ export const mockProfileSkills: ProfileSkill[] = [
     skill: mockSkills[0]
   },
   {
+    skillId: 2,
+    skillName: mockSkills[1].name,
     id: 'profileskill-2',
     job_seeker_profile_id: 'profile-1',
     skill_id: 'skill-2',
@@ -105,6 +137,8 @@ export const mockProfileSkills: ProfileSkill[] = [
     skill: mockSkills[1]
   },
   {
+    skillId: 3,
+    skillName: mockSkills[0].name,
     id: 'profileskill-3',
     job_seeker_profile_id: 'profile-2',
     skill_id: 'skill-1',
@@ -113,6 +147,8 @@ export const mockProfileSkills: ProfileSkill[] = [
     skill: mockSkills[0]
   },
   {
+    skillId: 4,
+    skillName: mockSkills[5].name,
     id: 'profileskill-4',
     job_seeker_profile_id: 'profile-2',
     skill_id: 'skill-6',

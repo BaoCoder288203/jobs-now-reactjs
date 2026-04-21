@@ -1,28 +1,38 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { UserDropdown } from '@/components/common/UserDropdown';
+import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { RoleModeSelector } from '@/components/common/RoleModeSelector';
 import { JobsDropdown } from '@/components/layout/JobsDropdown';
 import { ToolsDropdown } from '@/components/layout/ToolsDropdown';
 import { Bell, Search, Phone, Menu, X, ChevronDown, Wrench } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { TOOLS_MENU } from '@/constants/toolsMenu';
 
 const SCROLL_THRESHOLD = 60;
 
 export function Header() {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user, unreadMessageCount } = useAppSelector((state) => state.auth);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const jobsAnchorRef = useRef<HTMLButtonElement>(null);
   const toolsAnchorRef = useRef<HTMLButtonElement>(null);
   const jobsAnchorRefBottom = useRef<HTMLButtonElement>(null);
   const toolsAnchorRefBottom = useRef<HTMLButtonElement>(null);
+  const notificationAnchorRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  useHotkey('Mod+K', (e) => {
+    e.preventDefault();
+    searchInputRef.current?.focus();
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
@@ -51,14 +61,12 @@ export function Header() {
   return (
     <>
       <header
-        className={`sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 transition-[box-shadow] duration-300 ${
-          scrolled ? 'shadow-sm' : ''
-        }`}
+        className={`sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 transition-[box-shadow] duration-300 ${scrolled ? 'shadow-sm' : ''
+          }`}
       >
         <div
-          className={`container mx-auto flex items-center justify-between gap-2 md:gap-4 px-4 transition-[height] duration-300 ${
-            scrolled ? 'h-14' : 'h-16'
-          }`}
+          className={`container mx-auto flex items-center justify-between gap-2 md:gap-4 px-4 transition-[height] duration-300 ${scrolled ? 'h-14' : 'h-16'
+            }`}
         >
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -136,6 +144,7 @@ export function Header() {
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 max-w-2xl items-center relative">
             <Input
+              ref={searchInputRef}
               type="text"
               placeholder="Vị trí tuyển dụng, công ty..."
               value={searchQuery}
@@ -155,9 +164,8 @@ export function Header() {
           <div className="hidden md:flex items-center space-x-4 shrink-0">
             <a
               href="tel:0332916529"
-              className={`hidden lg:flex items-center rounded-full hover:bg-gray-100 transition-colors ${
-                scrolled ? 'gap-2' : 'p-2'
-              }`}
+              className={`hidden lg:flex items-center rounded-full hover:bg-gray-100 transition-colors ${scrolled ? 'gap-2' : 'p-2'
+                }`}
               title="(0332) 916 529"
             >
               <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-primary-light shrink-0">
@@ -174,9 +182,32 @@ export function Header() {
 
             {isAuthenticated && user ? (
               <>
-                <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                  <Bell className="h-5 w-5 text-gray-600" />
-                </button>
+                <div
+                  className="relative flex items-center"
+                  onMouseLeave={() => setNotificationOpen(false)}
+                >
+                  <button
+                    ref={notificationAnchorRef}
+                    type="button"
+                    className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label="Mở thông báo"
+                    onMouseEnter={() => setNotificationOpen(true)}
+                  >
+                    <Bell className="h-5 w-5 text-gray-600" />
+                    {/* Badge showing unread messages */}
+                    {(unreadMessageCount > 0) && (
+                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                        {unreadMessageCount}
+                      </span>
+                    )}
+                  </button>
+                  <NotificationDropdown
+                    isOpen={notificationOpen}
+                    onClose={() => setNotificationOpen(false)}
+                    anchorRef={notificationAnchorRef}
+                    userId={String(user.userId)}
+                  />
+                </div>
                 <UserDropdown />
               </>
             ) : (
@@ -186,11 +217,10 @@ export function Header() {
         </div>
 
         <div
-          className={`hidden md:block border-t border-gray-200 bg-gray-100/90 transition-all duration-300 ease-out max-[1024px]:max-h-14 max-[1024px]:opacity-100 ${
-            scrolled
-              ? 'min-[1025px]:max-h-14 min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto'
-              : 'min-[1025px]:max-h-0 min-[1025px]:opacity-0 min-[1025px]:pointer-events-none'
-          }`}
+          className={`hidden md:block border-t border-gray-200 bg-gray-100/90 transition-all duration-300 ease-out max-[1024px]:max-h-14 max-[1024px]:opacity-100 ${scrolled
+            ? 'min-[1025px]:max-h-14 min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto'
+            : 'min-[1025px]:max-h-0 min-[1025px]:opacity-0 min-[1025px]:pointer-events-none'
+            }`}
         >
           <nav className="container mx-auto flex h-14 items-center justify-center gap-1 px-4">
             <div
@@ -321,13 +351,14 @@ export function Header() {
               <div className="mt-auto">
                 {isAuthenticated && user ? (
                   <div className="space-y-2">
-                    <button
+                    <Link
+                      to="/user/notifications"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="w-full px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
                     >
                       <Bell className="h-5 w-5" />
                       <span>Thông báo</span>
-                    </button>
+                    </Link>
                     <UserDropdown />
                   </div>
                 ) : (

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCompanies } from '@/modules/companies/hooks';
@@ -8,18 +8,48 @@ import { CompanyTopCard } from '@/components/common/CompanyHomePageCard';
 export function CompanyCarousel() {
   const { data: companiesData, isLoading } = useCompanies({ limit: 20 });
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [itemsPerView, setItemsPerView] = useState(4);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const companies = companiesData?.items || [];
-  const itemsPerView = 4; // Số items hiển thị mỗi lần
   const maxIndex = Math.max(0, companies.length - itemsPerView);
+
+  useEffect(() => {
+    const updateItemsPerView = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) {
+        setItemsPerView(4);
+        return;
+      }
+      if (width >= 1280) {
+        setItemsPerView(3);
+        return;
+      }
+      if (width >= 768) {
+        setItemsPerView(2);
+        return;
+      }
+      setItemsPerView(1);
+    };
+
+    updateItemsPerView();
+    window.addEventListener('resize', updateItemsPerView);
+    return () => window.removeEventListener('resize', updateItemsPerView);
+  }, []);
+
+  useEffect(() => {
+    if (currentIndex > maxIndex) {
+      setCurrentIndex(maxIndex);
+    }
+  }, [currentIndex, maxIndex]);
 
   const scrollToIndex = (index: number) => {
     const clampedIndex = Math.max(0, Math.min(index, maxIndex));
     setCurrentIndex(clampedIndex);
     
     if (scrollContainerRef.current) {
-      const itemWidth = scrollContainerRef.current.children[0]?.clientWidth || 0;
+      const firstChild = scrollContainerRef.current.children[0] as HTMLElement | undefined;
+      const itemWidth = firstChild?.getBoundingClientRect().width || 0;
       const gap = 24; // gap-6 = 24px
       const scrollPosition = clampedIndex * (itemWidth + gap);
       scrollContainerRef.current.scrollTo({
@@ -94,7 +124,7 @@ export function CompanyCarousel() {
           {companies.map((company) => (
             <div
               key={company.id}
-              className="flex-shrink-0 w-100"
+              className="flex-shrink-0 w-[300px] md:w-[360px] xl:w-[380px]"
             >
               <CompanyTopCard company={company} />
             </div>

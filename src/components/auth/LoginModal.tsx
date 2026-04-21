@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAppDispatch } from '@/app/hooks';
-import { loginAsync, registerAsync } from '@/auth/authSlice';
+import { loginAsync, loginByOtpAsync, googleLoginAsync, registerAsync, verifyOtpAsync } from '@/auth/authSlice';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Mail, Globe } from 'lucide-react';
-import { mockUsers } from '@/mocks/data/users.mock';
 import { useNavigate } from 'react-router-dom';
+import * as authService from '@/services/auth.service';
 
 type RoleMode = 'job_seeker' | 'employer';
 
@@ -21,146 +21,135 @@ interface LoginModalProps {
   mode: RoleMode;
 }
 
-// Step 1: Check account schema
 const checkAccountSchema = z.object({
-  identifier: z.string().min(1, 'Vui lòng nhập số điện thoại hoặc email')
+  email: z.string().min(1, 'Vui lòng nhập email').email('Email không hợp lệ'),
 });
 
-// Step 2a: Register schema
-const registerSchema = z.object({
-  full_name: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
-  phone: z.string().optional(),
-  email: z.string().email('Email không hợp lệ').optional(),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-  confirmPassword: z.string()
-}).refine((data) => {
-  if (!data.phone && !data.email) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Vui lòng nhập số điện thoại hoặc email',
-  path: ['phone']
+const registerJobSeekerSchema = z.object({
+  fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự'),
+  email: z.string().email('Email không hợp lệ'),
+  phone: z.string().regex(/^[0-9]{10,11}$/, 'Số điện thoại phải 10-11 số').optional().or(z.literal('')),
+  password: z.string()
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .max(20, 'Mật khẩu tối đa 20 ký tự')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường và 1 số'),
+  confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Mật khẩu xác nhận không khớp',
-  path: ['confirmPassword']
+  path: ['confirmPassword'],
 });
 
-// Step 2b: Login schema
+const registerCompanySchema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+  phone: z
+    .string()
+    .min(1, 'Vui lòng nhập số điện thoại')
+    .regex(/^[0-9]{10,11}$/, 'Số điện thoại phải 10-11 số'),
+  companyName: z.string().min(1, 'Tên công ty là bắt buộc'),
+  website: z.string().optional(),
+  description: z.string().optional(),
+  password: z.string()
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .max(20, 'Mật khẩu tối đa 20 ký tự')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường và 1 số'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmPassword'],
+});
+
 const loginSchema = z.object({
-  identifier: z.string().min(1, 'Vui lòng nhập tên đăng nhập'),
-  password: z.string().min(1, 'Vui lòng nhập mật khẩu')
+  email: z.string().email('Email không hợp lệ'),
+  password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
+});
+
+const otpSchema = z.object({
+  otp: z.string().regex(/^[0-9]{6}$/, 'OTP phải là 6 chữ số'),
 });
 
 type CheckAccountFormData = z.infer<typeof checkAccountSchema>;
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterJobSeekerFormData = z.infer<typeof registerJobSeekerSchema>;
+type RegisterCompanyFormData = z.infer<typeof registerCompanySchema>;
 type LoginFormData = z.infer<typeof loginSchema>;
+type OtpFormData = z.infer<typeof otpSchema>;
+
 
 export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [step, setStep] = useState<'check' | 'register' | 'login'>('check');
-  const [identifier, setIdentifier] = useState('');
+  const [step, setStep] = useState<'check' | 'register' | 'login' | 'login-otp' | 'verify-otp'>('check');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
 
-  // Get mode display text
   const modeText = mode === 'job_seeker' ? 'Người tìm việc' : 'Nhà tuyển dụng';
 
-  // Check if user exists
-  const checkUserExists = (identifier: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isEmail = emailRegex.test(identifier);
-    
-    if (isEmail) {
-      return mockUsers.some(u => u.email === identifier);
-    } else {
-      return mockUsers.some(u => u.phone === identifier);
-    }
-  };
-
-  // Check account form
   const checkForm = useForm<CheckAccountFormData>({
-    resolver: zodResolver(checkAccountSchema)
+    resolver: zodResolver(checkAccountSchema),
   });
 
-  // Register form
-  const registerForm = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema)
+  const registerJobSeekerForm = useForm<RegisterJobSeekerFormData>({
+    resolver: zodResolver(registerJobSeekerSchema),
   });
 
-  // Login form
+  const registerCompanyForm = useForm<RegisterCompanyFormData>({
+    resolver: zodResolver(registerCompanySchema),
+    defaultValues: {
+      email: '',
+      phone: '',
+      companyName: '',
+      website: '',
+      description: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      identifier: ''
-    }
+    defaultValues: { email: '', password: '' },
   });
+
+  const otpForm = useForm<OtpFormData>({
+    resolver: zodResolver(otpSchema),
+  });
+
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) return;
+    const timer = setInterval(() => setResendCooldownSeconds((s) => s - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldownSeconds]);
 
   const handleCheckAccount = async (data: CheckAccountFormData) => {
     try {
       setError(null);
       setIsLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const exists = checkUserExists(data.identifier);
-      setIdentifier(data.identifier);
-      
-      // Pre-fill forms
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const isEmail = emailRegex.test(data.identifier);
-      
+
+      const exists = await authService.checkEmail(data.email);
+      setEmail(data.email);
+
       if (exists) {
-        // User exists - show login form
-        loginForm.setValue('identifier', data.identifier);
-        setStep('login');
+        loginForm.setValue('email', data.email);
+        setStep('login-otp');
+        try {
+          await authService.sendLoginOtp(data.email);
+          setResendCooldownSeconds(60);
+        } catch (sendErr: any) {
+          setError(sendErr.message || 'Gửi mã OTP thất bại');
+        }
       } else {
-        // User doesn't exist - show register form
-        if (isEmail) {
-          registerForm.setValue('email', data.identifier);
+        if (mode === 'job_seeker') {
+          registerJobSeekerForm.setValue('email', data.email);
         } else {
-          registerForm.setValue('phone', data.identifier);
+          registerCompanyForm.setValue('email', data.email);
         }
         setStep('register');
       }
     } catch (err: any) {
-      setError(err.message || 'Đã xảy ra lỗi');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegister = async (data: RegisterFormData) => {
-    try {
-      setError(null);
-      setIsLoading(true);
-      
-      const { confirmPassword, ...registerData } = data;
-      const role = mode === 'job_seeker' ? 'JOB_SEEKER' : 'RECRUITER';
-      
-      // Ensure email is provided for registration
-      if (!registerData.email && !registerData.phone) {
-        setError('Vui lòng nhập email hoặc số điện thoại');
-        return;
-      }
-      
-      // If phone is provided but no email, use a placeholder email for now
-      const email = registerData.email || `${registerData.phone}@jobsnow.local`;
-      
-      await dispatch(registerAsync({
-        email,
-        password: registerData.password,
-        fullName: registerData.full_name,
-        role: role as 'JOB_SEEKER' | 'RECRUITER',
-        phone: registerData.phone
-      })).unwrap();
-      
-      onOpenChange(false);
-      navigate(mode === 'job_seeker' ? '/user/dashboard' : '/employer/dashboard', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      setError(err.message || 'Đã xảy ra lỗi khi kiểm tra email');
     } finally {
       setIsLoading(false);
     }
@@ -170,343 +159,281 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     try {
       setError(null);
       setIsLoading(true);
-      
-      // Find user by email or phone
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const isEmail = emailRegex.test(data.identifier);
-      
-      let userEmail = '';
-      if (isEmail) {
-        userEmail = data.identifier;
-      } else {
-        const user = mockUsers.find(u => u.phone === data.identifier);
-        if (!user) {
-          throw new Error('Không tìm thấy tài khoản');
-        }
-        userEmail = user.email;
-      }
-      
-      await dispatch(loginAsync({
-        email: userEmail,
-        password: data.password
+
+      const result = await dispatch(loginAsync({
+        email: data.email,
+        password: data.password,
       })).unwrap();
-      
+
       onOpenChange(false);
-      navigate(mode === 'job_seeker' ? '/user/dashboard' : '/employer/dashboard', { replace: true });
+
+      if (result.role === 'ROLE_JOBSEEKER') {
+        navigate('/user/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_COMPANY') {
+        navigate('/employer/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      }
     } catch (err: any) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      setError(err || 'Đăng nhập thất bại');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check if form has data
-  const hasFormData = () => {
-    const checkValue = checkForm.watch('identifier');
-    const registerValues = registerForm.watch();
-    const loginValues = loginForm.watch();
-    
-    return !!(
-      checkValue ||
-      registerValues.full_name ||
-      registerValues.phone ||
-      registerValues.email ||
-      registerValues.password ||
-      registerValues.confirmPassword ||
-      loginValues.identifier ||
-      loginValues.password
-    );
+
+  const handleRegisterJobSeeker = async (data: RegisterJobSeekerFormData) => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      await dispatch(registerAsync({
+        email: data.email,
+        password: data.password,
+        fullName: data.fullName,
+        phone: data.phone || undefined,
+        roleName: 'ROLE_JOBSEEKER',
+      })).unwrap();
+
+      setSuccessMessage('Đăng ký thành công! Hãy đăng nhập.');
+      loginForm.setValue('email', data.email);
+      setStep('login');
+    } catch (err: any) {
+      setError(err || 'Đăng ký thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegisterCompany = async (data: RegisterCompanyFormData) => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      await dispatch(registerAsync({
+        email: data.email,
+        password: data.password,
+        phone: data.phone,
+        roleName: 'ROLE_COMPANY',
+        companyName: data.companyName,
+        website: data.website,
+        description: data.description,
+        logo: logoFile || undefined,
+      })).unwrap();
+
+      setSuccessMessage('Vui lòng kiểm tra email để nhận mã OTP!');
+      setStep('verify-otp');
+    } catch (err: any) {
+      setError(err || 'Đăng ký thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (data: OtpFormData) => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      await dispatch(verifyOtpAsync({
+        email,
+        otp: data.otp,
+      })).unwrap();
+
+      setSuccessMessage('Xác thực thành công! Hãy đăng nhập.');
+      loginForm.setValue('email', email);
+      setStep('login');
+    } catch (err: any) {
+      setError(err || 'Xác thực OTP thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      await authService.resendOtp(email);
+      setSuccessMessage('Đã gửi lại mã OTP!');
+    } catch (err: any) {
+      setError(err.message || 'Gửi lại OTP thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyLoginOtp = async (data: OtpFormData) => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      const result = await dispatch(loginByOtpAsync({
+        email,
+        otp: data.otp,
+      })).unwrap();
+
+      onOpenChange(false);
+
+      if (result.role === 'ROLE_JOBSEEKER') {
+        navigate('/user/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_COMPANY') {
+        navigate('/employer/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      }
+    } catch (err: any) {
+      setError(err || 'Mã OTP không đúng hoặc đã hết hạn');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    const idToken = credentialResponse.credential;
+    if (!idToken) return;
+    try {
+      setError(null);
+      setIsLoading(true);
+      const roleName = mode === 'employer' ? 'ROLE_COMPANY' : 'ROLE_JOBSEEKER';
+      const result = await dispatch(googleLoginAsync({ idToken, roleName })).unwrap();
+      onOpenChange(false);
+      if (result.role === 'ROLE_JOBSEEKER') {
+        navigate('/user/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_COMPANY') {
+        navigate('/employer/dashboard', { replace: true });
+      } else if (result.role === 'ROLE_ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      }
+    } catch (err: any) {
+      setError(err || 'Đăng nhập Google thất bại');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendLoginOtp = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      await authService.sendLoginOtp(email);
+      setResendCooldownSeconds(60);
+      setSuccessMessage('Đã gửi lại mã OTP!');
+    } catch (err: any) {
+      setError(err.message || 'Gửi lại OTP thất bại');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
-    // Check if user has entered any data
-    if (hasFormData()) {
-      const confirmed = window.confirm('Bạn có thông tin chưa hoàn thành. Bạn có chắc chắn muốn đóng cửa sổ đăng nhập không?');
-      if (!confirmed) {
-        return;
-      }
-    }
-    
     setStep('check');
-    setIdentifier('');
+    setEmail('');
     setError(null);
+    setSuccessMessage(null);
+    setLogoFile(null);
+    setResendCooldownSeconds(0);
     checkForm.reset();
-    registerForm.reset();
+    registerJobSeekerForm.reset();
+    registerCompanyForm.reset();
     loginForm.reset();
+    otpForm.reset();
     onOpenChange(false);
   };
 
   const handleDialogOverlayClick = (open: boolean) => {
-    if (!open) {
-      handleClose();
-    }
+    if (!open) handleClose();
   };
 
   const handleBack = () => {
     setStep('check');
     setError(null);
+    setSuccessMessage(null);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOverlayClick}>
       <DialogContent className="p-0" onClose={handleClose}>
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-[500px]">
-          {/* Left: Form */}
           <div className="p-8 flex flex-col">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                {modeText}
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">{modeText}</h2>
               <p className="text-gray-600">
                 {step === 'check' && 'Đăng nhập hoặc Đăng ký'}
                 {step === 'register' && 'Tạo tài khoản mới'}
                 {step === 'login' && 'Đăng nhập'}
+                {step === 'login-otp' && 'Nhập mã OTP đăng nhập'}
+                {step === 'verify-otp' && 'Xác thực OTP'}
               </p>
-              {step === 'register' && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Để kết nối với các cơ hội việc làm tốt nhất
-                </p>
-              )}
             </div>
+
+            {successMessage && (
+              <div className="mb-4 p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg">
+                {successMessage}
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                {error}
+              </div>
+            )}
 
             {step === 'check' && (
               <form onSubmit={checkForm.handleSubmit(handleCheckAccount)} className="flex-1 flex flex-col">
                 <div className="flex-1">
-                  {error && (
-                    <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                      {error}
-                    </div>
-                  )}
-
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="identifier">Số điện thoại hoặc Email</Label>
+                      <Label htmlFor="check_email">Email</Label>
                       <Input
-                        id="identifier"
-                        type="text"
-                        placeholder="Nhập số điện thoại của bạn"
-                        {...checkForm.register('identifier')}
-                        className={checkForm.formState.errors.identifier ? 'border-red-500' : ''}
+                        id="check_email"
+                        type="email"
+                        placeholder="Nhập email của bạn"
+                        {...checkForm.register('email')}
+                        className={checkForm.formState.errors.email ? 'border-red-500' : ''}
                       />
-                      {checkForm.formState.errors.identifier && (
-                        <p className="text-sm text-red-600">
-                          {checkForm.formState.errors.identifier.message}
-                        </p>
+                      {checkForm.formState.errors.email && (
+                        <p className="text-sm text-red-600">{checkForm.formState.errors.email.message}</p>
                       )}
                     </div>
                   </div>
-
                   <div className="mt-6">
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      size="lg"
-                      disabled={isLoading}
-                    >
+                    <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
                       {isLoading ? (
-                        <span className="flex items-center gap-2">
-                          <LoadingSpinner size="sm" />
-                          Đang kiểm tra...
-                        </span>
-                      ) : (
-                        'Tiếp tục'
-                      )}
+                        <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang kiểm tra...</span>
+                      ) : 'Tiếp tục'}
                     </Button>
                   </div>
-
                   <div className="mt-6 flex items-center gap-4">
                     <div className="flex-1 h-px bg-gray-300"></div>
                     <span className="text-sm text-gray-500">Hoặc</span>
                     <div className="flex-1 h-px bg-gray-300"></div>
                   </div>
-
                   <div className="mt-6 space-y-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Globe className="h-5 w-5 mr-2" />
-                      Đăng nhập bằng Google
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      size="lg"
-                    >
-                      <Mail className="h-5 w-5 mr-2" />
-                      Đăng nhập bằng Email
-                    </Button>
-                  </div>
-                </div>
-
-                <p className="mt-6 text-xs text-gray-500">
-                  Bằng việc đăng nhập, tôi đồng ý chia sẻ thông tin cá nhân của mình với nhà tuyển dụng theo các{' '}
-                  <a href="#" className="text-primary hover:underline">Điều khoản sử dụng</a>,{' '}
-                  <a href="#" className="text-primary hover:underline">Chính sách bảo mật</a> và{' '}
-                  <a href="#" className="text-primary hover:underline">Chính sách dữ liệu cá nhân</a> của JobsNow.
-                </p>
-              </form>
-            )}
-
-            {step === 'register' && (
-              <form onSubmit={registerForm.handleSubmit(handleRegister)} className="flex-1 flex flex-col">
-                <div className="flex-1">
-                  {error && (
-                    <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                      {error}
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name">Họ và tên *</Label>
-                      <Input
-                        id="full_name"
-                        type="text"
-                        placeholder="Nhập họ và tên"
-                        {...registerForm.register('full_name')}
-                        className={registerForm.formState.errors.full_name ? 'border-red-500' : ''}
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => setError('Đăng nhập Google thất bại')}
+                        theme="outline"
+                        size="large"
+                        // text="continue_with"
+                        shape="rectangular"
+                        width={272}
                       />
-                      {registerForm.formState.errors.full_name && (
-                        <p className="text-sm text-red-600">
-                          {registerForm.formState.errors.full_name.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {identifier && !identifier.includes('@') && (
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Số điện thoại</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="Nhập số điện thoại"
-                          {...registerForm.register('phone')}
-                          defaultValue={identifier}
-                          className={registerForm.formState.errors.phone ? 'border-red-500' : ''}
-                        />
-                        {registerForm.formState.errors.phone && (
-                          <p className="text-sm text-red-600">
-                            {registerForm.formState.errors.phone.message}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {identifier && identifier.includes('@') && (
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="Nhập email của bạn"
-                          {...registerForm.register('email')}
-                          defaultValue={identifier}
-                          className={registerForm.formState.errors.email ? 'border-red-500' : ''}
-                        />
-                        {registerForm.formState.errors.email && (
-                          <p className="text-sm text-red-600">
-                            {registerForm.formState.errors.email.message}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Mật khẩu *</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Nhập mật khẩu"
-                        {...registerForm.register('password')}
-                        className={registerForm.formState.errors.password ? 'border-red-500' : ''}
-                      />
-                      {registerForm.formState.errors.password && (
-                        <p className="text-sm text-red-600">
-                          {registerForm.formState.errors.password.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="Nhập lại mật khẩu"
-                        {...registerForm.register('confirmPassword')}
-                        className={registerForm.formState.errors.confirmPassword ? 'border-red-500' : ''}
-                      />
-                      {registerForm.formState.errors.confirmPassword && (
-                        <p className="text-sm text-red-600">
-                          {registerForm.formState.errors.confirmPassword.message}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-6">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    size="lg"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center gap-2">
-                        <LoadingSpinner size="sm" />
-                        Đang tạo tài khoản...
-                      </span>
-                    ) : (
-                      'Hoàn tất'
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full mt-2"
-                    onClick={handleBack}
-                  >
-                    Quay lại
-                  </Button>
-                </div>
-
-                <p className="mt-6 text-xs text-gray-500">
-                  Bằng việc đăng nhập, tôi đồng ý chia sẻ thông tin cá nhân của mình với nhà tuyển dụng theo các{' '}
-                  <a href="#" className="text-primary hover:underline">Điều khoản sử dụng</a>,{' '}
-                  <a href="#" className="text-primary hover:underline">Chính sách bảo mật</a> và{' '}
-                  <a href="#" className="text-primary hover:underline">Chính sách dữ liệu cá nhân</a> của JobsNow.
-                </p>
               </form>
             )}
 
             {step === 'login' && (
               <form onSubmit={loginForm.handleSubmit(handleLogin)} className="flex-1 flex flex-col">
                 <div className="flex-1">
-                  {error && (
-                    <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                      {error}
-                    </div>
-                  )}
-
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login_identifier">Tên đăng nhập</Label>
-                      <Input
-                        id="login_identifier"
-                        type="text"
-                        placeholder="Số điện thoại hoặc email"
-                        {...loginForm.register('identifier')}
-                        defaultValue={identifier}
-                        className={loginForm.formState.errors.identifier ? 'border-red-500' : ''}
-                        readOnly
-                      />
+                      <Label htmlFor="login_email">Email</Label>
+                      <Input id="login_email" type="email" {...loginForm.register('email')} readOnly />
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="login_password">Mật khẩu *</Label>
                       <Input
@@ -517,61 +444,241 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                         className={loginForm.formState.errors.password ? 'border-red-500' : ''}
                       />
                       {loginForm.formState.errors.password && (
-                        <p className="text-sm text-red-600">
-                          {loginForm.formState.errors.password.message}
-                        </p>
+                        <p className="text-sm text-red-600">{loginForm.formState.errors.password.message}</p>
                       )}
                     </div>
                   </div>
                 </div>
-
                 <div className="mt-6">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    size="lg"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
                     {isLoading ? (
-                      <span className="flex items-center gap-2">
-                        <LoadingSpinner size="sm" />
-                        Đang đăng nhập...
-                      </span>
-                    ) : (
-                      'Đăng nhập'
+                      <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang đăng nhập...</span>
+                    ) : 'Đăng nhập'}
+                  </Button>
+                  <Button type="button" variant="ghost" className="w-full mt-2" onClick={() => { setStep('login-otp'); setError(null); setSuccessMessage(null); }}>
+                    Quay lại
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {step === 'login-otp' && (
+              <form onSubmit={otpForm.handleSubmit(handleVerifyLoginOtp)} className="flex-1 flex flex-col">
+                <div className="flex-1 space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Mã OTP đã được gửi tới <strong>{email}</strong>
+                  </p>
+                  <p className="text-xs text-gray-500">Mã có hiệu lực trong 5 phút.</p>
+                  <div className="space-y-2">
+                    <Label>Nhập mã OTP (6 số)</Label>
+                    <Input type="text" maxLength={6} placeholder="000000"
+                      {...otpForm.register('otp')}
+                      className={otpForm.formState.errors.otp ? 'border-red-500' : ''} />
+                    {otpForm.formState.errors.otp && (
+                      <p className="text-sm text-red-600">{otpForm.formState.errors.otp.message}</p>
                     )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={handleResendLoginOtp}
+                    disabled={isLoading || resendCooldownSeconds > 0}
+                    className="p-0 h-auto"
+                  >
+                    {resendCooldownSeconds > 0 ? `Gửi lại mã sau ${resendCooldownSeconds}s` : 'Gửi lại mã OTP'}
+                  </Button>
+                </div>
+                <div className="mt-6">
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang xác thực...</span>
+                    ) : 'Xác thực'}
+                  </Button>
+                  <Button type="button" variant="ghost" className="w-full mt-2" onClick={handleBack}>
+                    Quay lại
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
-                    className="w-full mt-2"
-                    onClick={handleBack}
+                    variant="link"
+                    className="w-full mt-2 text-sm text-gray-600"
+                    onClick={() => { setStep('login'); loginForm.setValue('email', email); setError(null); setSuccessMessage(null); }}
                   >
-                    Quay lại
+                    Đăng nhập bằng mật khẩu
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {step === 'register' && mode === 'job_seeker' && (
+              <form onSubmit={registerJobSeekerForm.handleSubmit(handleRegisterJobSeeker)} className="flex-1 flex flex-col">
+                <div className="flex-1 space-y-4">
+                  <div className="space-y-2">
+                    <Label>Họ và tên *</Label>
+                    <Input placeholder="Nhập họ và tên" {...registerJobSeekerForm.register('fullName')}
+                      className={registerJobSeekerForm.formState.errors.fullName ? 'border-red-500' : ''} />
+                    {registerJobSeekerForm.formState.errors.fullName && (
+                      <p className="text-sm text-red-600">{registerJobSeekerForm.formState.errors.fullName.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" {...registerJobSeekerForm.register('email')} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Số điện thoại</Label>
+                    <Input type="tel" placeholder="VD: 0901234567" {...registerJobSeekerForm.register('phone')}
+                      className={registerJobSeekerForm.formState.errors.phone ? 'border-red-500' : ''} />
+                    {registerJobSeekerForm.formState.errors.phone && (
+                      <p className="text-sm text-red-600">{registerJobSeekerForm.formState.errors.phone.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mật khẩu *</Label>
+                    <Input type="password" placeholder="6-20 ký tự, gồm chữ hoa, thường và số"
+                      {...registerJobSeekerForm.register('password')}
+                      className={registerJobSeekerForm.formState.errors.password ? 'border-red-500' : ''} />
+                    {registerJobSeekerForm.formState.errors.password && (
+                      <p className="text-sm text-red-600">{registerJobSeekerForm.formState.errors.password.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Xác nhận mật khẩu *</Label>
+                    <Input type="password" placeholder="Nhập lại mật khẩu"
+                      {...registerJobSeekerForm.register('confirmPassword')}
+                      className={registerJobSeekerForm.formState.errors.confirmPassword ? 'border-red-500' : ''} />
+                    {registerJobSeekerForm.formState.errors.confirmPassword && (
+                      <p className="text-sm text-red-600">{registerJobSeekerForm.formState.errors.confirmPassword.message}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang tạo tài khoản...</span>
+                    ) : 'Hoàn tất'}
+                  </Button>
+                  <Button type="button" variant="ghost" className="w-full mt-2" onClick={handleBack}>Quay lại</Button>
+                </div>
+              </form>
+            )}
+
+            {step === 'register' && mode === 'employer' && (
+              <form onSubmit={registerCompanyForm.handleSubmit(handleRegisterCompany)} className="flex-1 flex flex-col">
+                <div className="flex-1 space-y-4">
+                  <div className="space-y-2">
+                    <Label>
+                      Tên công ty <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
+                    <Input placeholder="Nhập tên công ty" {...registerCompanyForm.register('companyName')}
+                      className={registerCompanyForm.formState.errors.companyName ? 'border-red-500' : ''} />
+                    {registerCompanyForm.formState.errors.companyName && (
+                      <p className="text-sm text-red-600">{registerCompanyForm.formState.errors.companyName.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Email <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
+                    <Input type="email" {...registerCompanyForm.register('email')} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Số điện thoại <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
+                    <Input
+                      type="tel"
+                      placeholder="VD: 0901234567"
+                      {...registerCompanyForm.register('phone')}
+                      className={registerCompanyForm.formState.errors.phone ? 'border-red-500' : ''}
+                    />
+                    {registerCompanyForm.formState.errors.phone && (
+                      <p className="text-sm text-red-600">{registerCompanyForm.formState.errors.phone.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Website</Label>
+                    <Input placeholder="https://company.com" {...registerCompanyForm.register('website')} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mô tả công ty</Label>
+                    <Input placeholder="Mô tả ngắn về công ty" {...registerCompanyForm.register('description')} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Logo công ty</Label>
+                    <Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Mật khẩu <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
+                    <Input type="password" placeholder="6-20 ký tự, gồm chữ hoa, thường và số"
+                      {...registerCompanyForm.register('password')}
+                      className={registerCompanyForm.formState.errors.password ? 'border-red-500' : ''} />
+                    {registerCompanyForm.formState.errors.password && (
+                      <p className="text-sm text-red-600">{registerCompanyForm.formState.errors.password.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Xác nhận mật khẩu <span className="text-red-500" aria-hidden="true">*</span>
+                    </Label>
+                    <Input type="password" placeholder="Nhập lại mật khẩu"
+                      {...registerCompanyForm.register('confirmPassword')}
+                      className={registerCompanyForm.formState.errors.confirmPassword ? 'border-red-500' : ''} />
+                    {registerCompanyForm.formState.errors.confirmPassword && (
+                      <p className="text-sm text-red-600">{registerCompanyForm.formState.errors.confirmPassword.message}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang đăng ký...</span>
+                    ) : 'Đăng ký'}
+                  </Button>
+                  <Button type="button" variant="ghost" className="w-full mt-2" onClick={handleBack}>Quay lại</Button>
+                </div>
+              </form>
+            )}
+
+            {step === 'verify-otp' && (
+              <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="flex-1 flex flex-col">
+                <div className="flex-1 space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Mã OTP đã được gửi tới <strong>{email}</strong>
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Nhập mã OTP (6 số)</Label>
+                    <Input type="text" maxLength={6} placeholder="000000"
+                      {...otpForm.register('otp')}
+                      className={otpForm.formState.errors.otp ? 'border-red-500' : ''} />
+                    {otpForm.formState.errors.otp && (
+                      <p className="text-sm text-red-600">{otpForm.formState.errors.otp.message}</p>
+                    )}
+                  </div>
+                  <Button type="button" variant="link" onClick={handleResendOtp} disabled={isLoading}>
+                    Gửi lại mã OTP
+                  </Button>
+                </div>
+                <div className="mt-6">
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <span className="flex items-center gap-2"><LoadingSpinner size="sm" />Đang xác thực...</span>
+                    ) : 'Xác thực'}
                   </Button>
                 </div>
               </form>
             )}
           </div>
 
-          {/* Right: Promotional Banner */}
-          <div className="flex flex-col justify-content-center align-items-center hidden md:block bg-gradient-to-br from-primary/20 to-accent/20 p-8 flex items-center justify-center">
-            <div className="h-full flex flex-col justify-center align-center text-center">
+          <div className="hidden md:block bg-gradient-to-br from-primary/20 to-accent/20 p-8 flex items-center justify-center">
+            <div className="h-full flex flex-col justify-center text-center">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  ỨNG TUYỂN 1 CHẠM
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">ỨNG TUYỂN 1 CHẠM</h3>
                 <p className="text-gray-600 mb-4">MỌI LÚC MỌI NƠI</p>
-                {/* Hiển thị text theo mode */}
-                <p className="text-sm text-gray-500">
-                  Dành cho {modeText}
-                </p>
+                <p className="text-sm text-gray-500">Dành cho {modeText}</p>
               </div>
-              <img 
-                src="/logo/logo_header.png" 
-                alt="JobsNow Logo" 
-                className="w-full mx-auto mb-4"
-              />
+              <img src="/logo/logo_header.png" alt="JobsNow Logo" className="w-full mx-auto mb-4" />
             </div>
           </div>
         </div>
@@ -579,4 +686,3 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     </Dialog>
   );
 }
-

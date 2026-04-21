@@ -8,3 +8,6 @@ export * from './application.d';
 export * from './notification.d';
 export * from './conversation.d';
 export * from './subscription.d';
+export * from './company-review.d';
+export * from './employer-dashboard';
+export * from './admin-dashboard';

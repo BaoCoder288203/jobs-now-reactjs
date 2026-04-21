@@ -20,8 +20,16 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, data }: { userId: string; data: Partial<JobSeekerProfile> }) =>
-      profileService.updateProfile(userId, data),
+    mutationFn: ({ userId, profileId, data }: { userId: string; profileId?: number; data: Partial<JobSeekerProfile> }) =>
+      profileService.updateProfile(profileId ?? userId, {
+        ...data,
+        phone: data.phone ?? undefined,
+        fullName: data.fullName ?? undefined,
+        title: data.title ?? undefined,
+        bio: data.bio ?? undefined,
+        address: data.address ?? undefined,
+        dob: data.dob ?? undefined,
+      }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.detail(variables.userId) });
     }
@@ -40,11 +48,18 @@ export function useAddProfileSkill() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ userId, skillId, level }: { userId: string; skillId: string; level: string }) =>
-      profileService.addProfileSkill(userId, skillId, level),
+    mutationFn: ({
+      userId,
+      skillId,
+      level,
+    }: {
+      userId: string;
+      skillId: string;
+      level: string;
+    }) => profileService.addProfileSkill(userId, skillId, level),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.skills(variables.userId) });
-    }
+    },
   });
 }
 

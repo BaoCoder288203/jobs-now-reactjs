@@ -9,22 +9,15 @@ export const applicationKeys = {
   detail: (id: string) => [...applicationKeys.all, 'detail', id] as const
 };
 
-/**
- * Hook for Job Seeker: Get applications of a specific user
- * Returns: Application[]
- */
-export function useMyApplications(userId: string) {
+export function useMyApplications(profileId: string | number | undefined, userId?: string) {
+  const effectiveKey = profileId ?? userId ?? '';
   return useQuery({
-    queryKey: [...applicationKeys.my(), userId],
-    queryFn: () => applicationService.getMyApplications(userId),
-    enabled: !!userId
+    queryKey: [...applicationKeys.my(), String(effectiveKey)],
+    queryFn: () => applicationService.getMyApplications(profileId, userId),
+    enabled: !!profileId || !!userId
   });
 }
 
-/**
- * Hook for Employer/Admin: Get all applications
- * Returns: Application[]
- */
 export function useAllApplications() {
   return useQuery({
     queryKey: [...applicationKeys.all, 'list'],
@@ -41,10 +34,6 @@ export function useJobApplications(jobId: string) {
   });
 }
 
-/**
- * Hook for Recruiter: Get applications of a company
- * Returns: Application[]
- */
 export function useCompanyApplications(companyId?: string) {
   return useQuery({
     queryKey: [...applicationKeys.all, 'company', companyId],
@@ -61,13 +50,15 @@ export function useApplyJob() {
       userId,
       jobId,
       resumeId,
-      coverLetter
+      coverLetter,
+      profileId
     }: {
       userId: string;
       jobId: string;
       resumeId?: string;
       coverLetter?: string;
-    }) => applicationService.applyJob(userId, jobId, resumeId, coverLetter),
+      profileId?: number;
+    }) => applicationService.applyJob(userId, jobId, resumeId, coverLetter, profileId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: applicationKeys.my() });
       queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.job_id) });
@@ -81,15 +72,18 @@ export function useUpdateApplicationStatus() {
   return useMutation({
     mutationFn: ({
       applicationId,
-      status
+      status,
+      interviewDetailsHtml,
     }: {
       applicationId: string;
       status: string;
-    }) => applicationService.updateApplicationStatus(applicationId, status),
+      interviewDetailsHtml?: string;
+    }) => applicationService.updateApplicationStatus(applicationId, status, interviewDetailsHtml),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: applicationKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: applicationKeys.job(data.job_id) });
       queryClient.invalidateQueries({ queryKey: applicationKeys.all });
+      queryClient.invalidateQueries({ queryKey: [...applicationKeys.all, 'company'] });
     }
   });
 }

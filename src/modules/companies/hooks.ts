@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Company, PaginationParams } from '@/types';
+import type { CreateCompanyReviewRequest } from '@/types/company-review';
 import * as companyService from '@/services/company.service';
 import { useAppSelector } from '@/app/hooks';
 
@@ -11,6 +12,24 @@ export const companyKeys = {
   details: () => [...companyKeys.all, 'detail'] as const,
   detail: (id: string) => [...companyKeys.details(), id] as const,
   myCompany: () => [...companyKeys.all, 'my'] as const
+};
+
+export const companyReviewKeys = {
+  all: ['company-reviews'] as const,
+  list: (companyId: string, page: number, limit: number) =>
+    [...companyReviewKeys.all, companyId, page, limit] as const,
+};
+
+export const companyFollowKeys = {
+  all: ['company-follow'] as const,
+  detail: (companyId: string) => [...companyFollowKeys.all, companyId] as const,
+  followers: (companyId: string, page: number) => [...companyFollowKeys.all, 'followers', companyId, page] as const,
+  myFollowed: (page: number) => [...companyFollowKeys.all, 'my-followed', page] as const,
+};
+
+export const adminReviewKeys = {
+  all: ['admin-company-reviews'] as const,
+  list: (page: number, limit: number) => [...adminReviewKeys.all, page, limit] as const,
 };
 
 export function useCompanies(params?: PaginationParams) {
@@ -40,41 +59,174 @@ export function useCompanyDetail(companyId: string) {
   });
 }
 
-// Hook mới: Lấy company của user hiện tại (recruiter chỉ có 1 company)
 export function useMyCompany() {
   const { user } = useAppSelector((state) => state.auth);
-  
+
   return useQuery({
     queryKey: companyKeys.myCompany(),
     queryFn: () => companyService.getMyCompany(),
-    enabled: !!user && (user.role?.name === 'recruiter' || user.role?.name === 'employer')
+    enabled: !!user && (user.role === 'ROLE_COMPANY' || user.role === 'ROLE_ADMIN')
   });
 }
 
-// Hook: Tạo company mới
 export function useCreateMyCompany() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (formData: FormData) => companyService.createMyCompany(formData),
     onSuccess: () => {
-      // Invalidate và refetch myCompany
       queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
       queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
     },
   });
 }
 
-// Hook: Cập nhật company
 export function useUpdateMyCompany() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (formData: FormData) => companyService.updateMyCompany(formData),
     onSuccess: () => {
-      // Invalidate và refetch myCompany
       queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
       queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (companyId: string) => companyService.deleteLogo(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteBanner() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (companyId: string) => companyService.deleteBanner(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteCompanyImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (imageId: number) => companyService.deleteCompanyImage(imageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
+export function useCompanyReviews(companyId: string, page = 1, limit = 5) {
+  return useQuery({
+    queryKey: companyReviewKeys.list(companyId, page, limit),
+    queryFn: () => companyService.getCompanyReviews(companyId, page, limit),
+    enabled: !!companyId,
+  });
+}
+
+export function useCreateCompanyReview(companyId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateCompanyReviewRequest) =>
+      companyService.createCompanyReview(companyId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyReviewKeys.all });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+    },
+  });
+}
+
+export function useCompanyFollowStatus(companyId: string, enabled = true) {
+  return useQuery({
+    queryKey: companyFollowKeys.detail(companyId),
+    queryFn: () => companyService.getCompanyFollowStatus(companyId),
+    enabled: !!companyId && enabled,
+  });
+}
+
+export function useFollowCompany(companyId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => companyService.followCompany(companyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(companyId) });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(companyId) });
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.all });
+    },
+  });
+}
+
+export function useUnfollowCompany(defaultCompanyId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (companyIdToUnfollow?: string) => {
+      const targetId = companyIdToUnfollow ?? defaultCompanyId;
+      if (!targetId) throw new Error('Company ID is required');
+      return companyService.unfollowCompany(targetId);
+    },
+    onSuccess: (_, variables) => {
+      const targetId = variables ?? defaultCompanyId ?? '';
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.detail(targetId) });
+      queryClient.invalidateQueries({ queryKey: companyKeys.detail(targetId) });
+      queryClient.invalidateQueries({ queryKey: companyFollowKeys.all });
+    },
+  });
+}
+
+export function useCompanyFollowers(companyId: string | undefined, page = 0, size = 20) {
+  return useQuery({
+    queryKey: companyFollowKeys.followers(companyId ?? '', page),
+    queryFn: () => companyService.getCompanyFollowers(companyId!, page, size),
+    enabled: !!companyId,
+  });
+}
+
+export function useMyFollowedCompanies(page = 0, size = 20) {
+  return useQuery({
+    queryKey: companyFollowKeys.myFollowed(page),
+    queryFn: () => companyService.getMyFollowedCompanies(page, size),
+  });
+}
+
+export function useAdminPendingReviews(page = 1, limit = 10) {
+  return useQuery({
+    queryKey: adminReviewKeys.list(page, limit),
+    queryFn: () => companyService.getAdminPendingReviews(page, limit),
+  });
+}
+
+export function useApproveAdminReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: number) => companyService.approveAdminReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
+    },
+  });
+}
+
+export function useRejectAdminReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: number) => companyService.rejectAdminReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
     },
   });
 }

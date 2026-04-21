@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { JOB_CATEGORIES, type JobCategoryId } from '@/constants/jobCategories';
+import { getIndustriesList } from '@/services/industry.service';
+import { getJobCategoriesByIndustry, type JobCategoryDTO } from '@/services/category.service';
+import type { Industry } from '@/types';
 
 interface JobsDropdownProps {
   isOpen: boolean;
@@ -9,13 +11,14 @@ interface JobsDropdownProps {
 }
 
 export function JobsDropdown({ isOpen, onClose, anchorRef }: JobsDropdownProps) {
-  const [selectedId, setSelectedId] = useState<JobCategoryId>('it');
-  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [selectedIndustryId, setSelectedIndustryId] = useState<string>('');
+  const [categories, setCategories] = useState<JobCategoryDTO[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(new Set());
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const selected = JOB_CATEGORIES.find((c) => c.id === selectedId);
-  const count = selectedRoles.size;
+  const count = selectedCategoryIds.size;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -33,21 +36,38 @@ export function JobsDropdown({ isOpen, onClose, anchorRef }: JobsDropdownProps) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose, anchorRef]);
 
-  const toggleRole = (role: string) => {
-    setSelectedRoles((prev) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    getIndustriesList()
+      .then((list) => {
+        setIndustries(list);
+        setSelectedIndustryId((prev) => prev || list[0]?.id || '');
+      })
+      .catch(() => setIndustries([]));
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!selectedIndustryId) return;
+    getJobCategoriesByIndustry(Number(selectedIndustryId))
+      .then((list) => setCategories(list))
+      .catch(() => setCategories([]));
+  }, [selectedIndustryId]);
+
+  const toggleCategory = (categoryId: number) => {
+    setSelectedCategoryIds((prev) => {
       const next = new Set(prev);
-      if (next.has(role)) next.delete(role);
-      else next.add(role);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
       return next;
     });
   };
 
-  const handleClear = () => setSelectedRoles(new Set());
+  const handleClear = () => setSelectedCategoryIds(new Set());
 
   const handleApply = () => {
     const params = new URLSearchParams();
-    if (selectedRoles.size) {
-      params.set('roles', Array.from(selectedRoles).join(','));
+    if (selectedCategoryIds.size) {
+      Array.from(selectedCategoryIds).forEach((id) => params.append('categoryIds', String(id)));
     }
     navigate(`/jobs${params.toString() ? `?${params.toString()}` : ''}`);
     onClose();
@@ -58,43 +78,44 @@ export function JobsDropdown({ isOpen, onClose, anchorRef }: JobsDropdownProps) 
   return (
     <div
       ref={panelRef}
-      className="absolute left-0 top-full mt-0 z-[100] w-[min(90vw,720px)] rounded-lg border border-gray-200 bg-white shadow-xl"
+      className="absolute left-0 top-full mt-0 z-[100] flex h-[420px] w-[min(90vw,720px)] flex-col rounded-lg border border-gray-200 bg-white shadow-xl"
     >
-      <div className="flex min-h-[320px]">
-        {/* Left: categories */}
-        <div className="w-48 shrink-0 border-r border-gray-200 bg-gray-50/50 py-2">
-          {JOB_CATEGORIES.map((cat) => (
+      <div className="flex min-h-0 flex-1">
+        {/* Left: industries */}
+        <div className="w-48 shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50/50 py-2">
+          {industries.map((ind) => (
             <button
-              key={cat.id}
+              key={ind.id}
               type="button"
-              onClick={() => setSelectedId(cat.id as JobCategoryId)}
+              onClick={() => setSelectedIndustryId(ind.id)}
               className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-colors ${
-                selectedId === cat.id
+                selectedIndustryId === ind.id
                   ? 'bg-[#81d1f3]/20 text-[#0ea5e9]'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              {cat.label}
+              {ind.name}
             </button>
           ))}
         </div>
-        {/* Right: roles */}
-        <div className="flex-1 overflow-auto p-4">
+        {/* Right: categories */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="flex flex-wrap gap-2">
-            {selected?.roles.map((role) => {
-              const active = selectedRoles.has(role);
+            {categories.map((cat) => {
+              const id = cat.categoryId ?? 0;
+              const active = selectedCategoryIds.has(id);
               return (
                 <button
-                  key={role}
+                  key={id}
                   type="button"
-                  onClick={() => toggleRole(role)}
+                  onClick={() => toggleCategory(id)}
                   className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
                     active
                       ? 'bg-[#81d1f3] text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {role}
+                  {cat.categoryName}
                 </button>
               );
             })}

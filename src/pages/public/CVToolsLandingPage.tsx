@@ -23,7 +23,7 @@ export function CVToolsLandingPage() {
       ? 'Chuyển đổi CV hiện có của bạn về định dạng chuẩn ATS, thân thiện nhà tuyển dụng.'
       : 'Xây dựng sự nghiệp với công cụ tạo CV chuyên nghiệp—chỉ vài phút, CV định dạng chuẩn, thân thiện ATS.';
   const ctaLabel = mode === 'chuan-hoa-cv' ? 'Chuẩn hóa CV ngay' : 'Tạo CV ngay';
-  const primaryCtaHref = mode === 'chuan-hoa-cv' ? '/tools/chuan-hoa-cv' : '/tools/tao-cv/builder';
+  const primaryCtaHref = mode === 'chuan-hoa-cv' ? '/tools/chuan-hoa-cv/analyze' : '/tools/tao-cv/builder';
 
   const cvSections = [
     {

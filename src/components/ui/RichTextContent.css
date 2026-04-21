@@ -1,0 +1,200 @@
+.rich-text-content {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #374151;
+  word-wrap: break-word;
+}
+
+.rich-text-content p {
+  margin: 0 0 0.75em;
+}
+
+.rich-text-content p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 1em 0 0.5em;
+  line-height: 1.3;
+}
+
+.rich-text-content h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0.875em 0 0.4em;
+  line-height: 1.35;
+}
+
+.rich-text-content strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.rich-text-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text-content ul {
+  list-style-type: disc;
+  padding-left: 1.75em;
+  margin: 0.5em 0;
+}
+
+.rich-text-content ol {
+  list-style-type: decimal;
+  padding-left: 1.75em;
+  margin: 0.5em 0;
+}
+
+.rich-text-content li {
+  margin-bottom: 0.35em;
+}
+
+.rich-text-content blockquote {
+  margin: 0.75em 0;
+  padding-left: 1em;
+  border-left: 3px solid #e5e7eb;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.rich-text-content pre {
+  margin: 0.75em 0;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  font-size: 0.875em;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+}
+
+.rich-text-content code {
+  font-size: 0.9em;
+  background: #f3f4f6;
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.rich-text-content pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.rich-text-content hr {
+  margin: 1em 0;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.rich-text-content h1,
+.rich-text-content h4,
+.rich-text-content h5,
+.rich-text-content h6 {
+  font-weight: 600;
+  color: #111827;
+  margin: 0.875em 0 0.4em;
+  line-height: 1.3;
+}
+
+.rich-text-content h1 {
+  font-size: 1.5rem;
+}
+
+/* Bảng — đồng bộ với Tiptap */
+.rich-text-content .tableWrapper {
+  overflow-x: auto;
+  margin: 0.75em 0;
+  max-width: 100%;
+}
+
+.rich-text-content table.rich-table,
+.rich-text-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.rich-text-content th,
+.rich-text-content td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em 0.65em;
+  vertical-align: top;
+}
+
+.rich-text-content th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Ảnh trong bài */
+.rich-text-content img.rich-inline-image,
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.75em 0;
+}
+
+/* Nút CTA */
+.rich-text-content .rich-cta {
+  margin: 1em 0;
+}
+
+.rich-text-content .rich-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55em 1.25em;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #fff !important;
+  text-decoration: none !important;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rich-text-content .rich-cta__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+}
+
+/* Link mạng xã hội (toolbar chèn class) */
+.rich-text-content a.rich-link-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.2em 0.65em;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none !important;
+  border: 1px solid transparent;
+}
+
+.rich-text-content a.rich-link-linkedin {
+  background: #0a66c2;
+  color: #fff !important;
+}
+
+.rich-text-content a.rich-link-twitter {
+  background: #0f1419;
+  color: #fff !important;
+}
+
+.rich-text-content a.rich-link-facebook {
+  background: #1877f2;
+  color: #fff !important;
+}
+
+.rich-text-content a.rich-link-telegram {
+  background: #229ed9;
+  color: #fff !important;
+}

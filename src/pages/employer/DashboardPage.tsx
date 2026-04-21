@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
@@ -7,56 +8,116 @@ import { useJobs } from '@/modules/jobs/hooks';
 import { useCompanyApplications } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { Link } from 'react-router-dom';
-import { Briefcase, Users, FileText, ArrowRight, Plus } from 'lucide-react';
+import { Briefcase, FileText, ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { getJobTypeLabel } from '@/constants/jobEnums';
+import { getJobStatusBadge } from '@/utils/jobStatus';
+import { getApplicationStatusBadge } from '@/utils/applicationStatus';
+import { getSubscriptionStatus, type CompanySubscriptionStatus } from '@/services/subscription-plan.service';
+import type { DashboardPreset } from '@/types/employer-dashboard';
+import { useEmployerDashboardMetrics } from '@/modules/employer-dashboard/hooks';
+import { AnalyticsDateFilter, type AnalyticsDateFilterValue } from '@/components/employer/dashboard/AnalyticsDateFilter';
+import { DashboardKpiGrid, type RecruiterTrendMetric } from '@/components/employer/dashboard/DashboardKpiGrid';
+import { DashboardTrendChart } from '@/components/employer/dashboard/DashboardTrendChart';
+import { TopJobsTableCard } from '@/components/employer/dashboard/TopJobsTableCard';
+import { DashboardDonutChart } from '@/components/employer/dashboard/DashboardDonutChart';
+import { DashboardRatingBarChart } from '@/components/employer/dashboard/DashboardRatingBarChart';
 
 export function RecruiterDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
-  
+  const [subscriptionStatus, setSubscriptionStatus] = useState<CompanySubscriptionStatus | null>(null);
+  const [filter, setFilter] = useState<AnalyticsDateFilterValue>({
+    preset: 'month',
+    comparePrevious: true,
+  });
+  const [selectedTrendMetrics, setSelectedTrendMetrics] = useState<RecruiterTrendMetric[]>([
+    'applications',
+    'followers',
+  ]);
+
   // Lấy company của recruiter hiện tại
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const companyId = company?.id;
-  
+
   // Lấy jobs của company này
-  const { data: companyJobsData, isLoading: jobsLoading } = useJobs({ 
-    company_id: companyId, 
-    limit: 100 
+  const { data: companyJobsData, isLoading: jobsLoading } = useJobs({
+    company_id: companyId,
+    limit: 100
   });
-  
+
   // Lấy applications của company này
   const { data: companyApplications = [], isLoading: applicationsLoading } = useCompanyApplications(companyId);
-  
+
   // Filter jobs chỉ của company này (đảm bảo chắc chắn)
   const companyJobs = companyJobsData?.items?.filter(job => job.company_id === companyId) || [];
-  
+  const canLoadMetrics = filter.preset !== 'custom' || (!!filter.from && !!filter.to);
+  const metricsQuery = useMemo(
+    () => ({
+      preset: filter.preset as DashboardPreset,
+      from: filter.from,
+      to: filter.to,
+      tz: 'Asia/Ho_Chi_Minh',
+      comparePrevious: filter.comparePrevious,
+    }),
+    [filter],
+  );
+  const {
+    data: metrics,
+    isLoading: metricsLoading,
+    isError: metricsError,
+    error: metricsErrorData,
+  } = useEmployerDashboardMetrics(metricsQuery, !!companyId && canLoadMetrics);
+
   const isLoading = companyLoading || jobsLoading || applicationsLoading;
 
-  const stats = [
-    {
-      title: 'Việc làm đang hoạt động',
-      value: companyJobs.length,
-      icon: Briefcase,
-      link: '/employer/jobs',
-      color: 'text-primary'
-    },
-    {
-      title: 'Tổng đơn ứng tuyển',
-      value: companyApplications.length,
-      icon: FileText,
-      link: '/employer/applications',
-      color: 'text-accent'
-    },
-    {
-      title: 'Ứng viên mới',
-      value: companyApplications.filter(
-        (app) => new Date(app.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      ).length,
-      icon: Users,
-      link: '/employer/applications',
-      color: 'text-primary'
+  useEffect(() => {
+    getSubscriptionStatus()
+      .then((data) => setSubscriptionStatus(data || null))
+      .catch(() => setSubscriptionStatus(null));
+  }, []);
+
+  const accountStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'PENDING_PAYMENT':
+        return 'Đang chờ thanh toán';
+      case 'PAID_ACTIVE':
+        return 'Gói trả phí đang hoạt động';
+      case 'TRIAL_ACTIVE':
+        return 'Dùng thử đang hoạt động';
+      case 'EXPIRED':
+        return 'Gói đã hết hạn';
+      case 'TRIAL_EXPIRED':
+        return 'Dùng thử đã hết hạn';
+      default:
+        return 'Không xác định';
     }
-  ];
-  
+  };
+
+  const mapStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      PENDING: 'Đang chờ',
+      REVIEWING: 'Đang xem',
+      SHORTLISTED: 'Vào shortlist',
+      INTERVIEWING: 'Phỏng vấn',
+      HIRED: 'Tuyển',
+      REJECTED: 'Từ chối',
+      DRAFT: 'Nháp',
+      PENDING_REVIEW: 'Chờ duyệt',
+      PUBLISHED: 'Đã đăng',
+    };
+    return labels[status] ?? status;
+  };
+
+  const toggleTrendMetric = (metric: RecruiterTrendMetric) => {
+    setSelectedTrendMetrics((prev) => {
+      if (prev.includes(metric)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((item) => item !== metric);
+      }
+      return [...prev, metric];
+    });
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
@@ -66,8 +127,7 @@ export function RecruiterDashboardPage() {
       </DashboardLayout>
     );
   }
-  
-  // Nếu recruiter chưa có company, hiển thị thông báo
+
   if (!company) {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
@@ -92,42 +152,106 @@ export function RecruiterDashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Chào mừng trở lại, {user?.full_name}!
+              Chào mừng trở lại, {user?.fullName}!
             </h1>
             <p className="text-gray-600 mt-1">
               Quản lý tin tuyển dụng và đơn ứng tuyển của bạn
             </p>
           </div>
-          <Link to="/employer/jobs/create">
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Đăng tin tuyển dụng
-            </Button>
-          </Link>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Link key={stat.title} to={stat.link}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">
-                      {stat.title}
-                    </CardTitle>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                    <p className="text-xs text-gray-500 mt-1">Xem tất cả →</p>
-                  </CardContent>
-                </Card>
+        <AnalyticsDateFilter value={filter} onChange={setFilter} />
+
+        {!canLoadMetrics && (
+          <Card>
+            <CardContent className="py-6 text-sm text-gray-600">
+              Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc để xem dữ liệu theo tùy chọn.
+            </CardContent>
+          </Card>
+        )}
+
+        {canLoadMetrics && (
+          <>
+            {metricsLoading && (
+              <Card>
+                <CardContent className="flex justify-center py-12">
+                  <LoadingSpinner />
+                </CardContent>
+              </Card>
+            )}
+
+            {metricsError && (
+              <Card>
+                <CardContent className="py-6 text-sm text-red-600">
+                  {(metricsErrorData as { message?: string })?.message ?? 'Không thể tải dữ liệu dashboard.'}
+                </CardContent>
+              </Card>
+            )}
+
+            {metrics && !metricsLoading && !metricsError && (
+              <>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                  <div className="xl:col-span-2">
+                    <DashboardKpiGrid
+                      kpis={metrics.kpis}
+                      selectedTrendMetrics={selectedTrendMetrics}
+                      onToggleTrendMetric={toggleTrendMetric}
+                    />
+                  </div>
+                  <div className="xl:col-span-3">
+                    <DashboardTrendChart
+                      trend={metrics.trend}
+                      showComparison={filter.comparePrevious}
+                      selectedMetrics={selectedTrendMetrics}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                  <div className="xl:col-span-5">
+                    <TopJobsTableCard data={metrics.topJobs} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <DashboardDonutChart
+                      title="Phễu ứng tuyển"
+                      data={metrics.applicationPipeline.map((item) => ({
+                        status: mapStatusLabel(item.status),
+                        count: item.count,
+                      }))}
+                    />
+                    <DashboardDonutChart
+                      title="Trạng thái bài viết"
+                      data={metrics.postStatus.map((item) => ({
+                        status: mapStatusLabel(item.status),
+                        count: item.count,
+                      }))}
+                    />
+                </div>
+
+                <DashboardRatingBarChart data={metrics.ratingDistribution} />
+              </>
+            )}
+          </>
+        )}
+
+        {subscriptionStatus && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-bold">Trạng thái tài khoản</CardTitle>
+              <Link to="/employer/pricing">
+                <Button variant="outline" size="sm">Quản lý gói</Button>
               </Link>
-            );
-          })}
-        </div>
+            </CardHeader>
+            <CardContent className="text-sm text-gray-700 space-y-1">
+              <p>Trạng thái: {accountStatusLabel(subscriptionStatus.accountStatus)}</p>
+              <p>Gói hiện tại: {subscriptionStatus.currentPlanName || 'Chưa có gói trả phí'}</p>
+              <p>Còn lại: {subscriptionStatus.remainingJobPosts} lượt đăng, {subscriptionStatus.remainingAiScans} AI scan</p>
+              <p>AI CV Builder trial: {subscriptionStatus.remainingAiCvBuilderTrials ?? 0}</p>
+              <p>Hết hạn: {subscriptionStatus.expiresAt ? new Date(subscriptionStatus.expiresAt).toLocaleDateString('vi-VN') : 'N/A'}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Applications */}
         <Card>
@@ -146,31 +270,21 @@ export function RecruiterDashboardPage() {
                 {companyApplications.slice(0, 5).map((application) => (
                   <div
                     key={application.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex flex-col items-start justify-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors md:flex-row md:items-start md:justify-between"
                   >
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">
                         {application.job?.title}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {application.user?.full_name} • {application.user?.email}
+                        {application.user?.fullName} • {application.user?.email}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Ứng tuyển ngày {new Date(application.created_at).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
-                    <div className="ml-4 flex items-center gap-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          application.status === 'approved'
-                            ? 'bg-accent-light text-gray-900'
-                            : application.status === 'rejected'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {application.status === 'approved' ? 'Đã duyệt' : application.status === 'rejected' ? 'Đã từ chối' : application.status === 'pending' ? 'Đang chờ' : application.status}
-                      </span>
+                    <div className="ml-0 mt-1 flex items-center gap-3 md:ml-4 md:mt-0">
+                      {getApplicationStatusBadge(application.status)}
                       <Link to={`/employer/applications/${application.id}`}>
                         <Button variant="outline" size="sm">
                           Xem
@@ -214,18 +328,14 @@ export function RecruiterDashboardPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{job.title}</h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {job.location} • {job.job_type}
+                        {job.location} • {getJobTypeLabel(job.job_type)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Đăng ngày {new Date(job.created_at).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
                     <div className="ml-4">
-                      <Link to={`/employer/jobs/${job.id}`}>
-                        <Button variant="outline" size="sm">
-                          Quản lý
-                        </Button>
-                      </Link>
+                      {getJobStatusBadge(job)}
                     </div>
                   </div>
                 ))}

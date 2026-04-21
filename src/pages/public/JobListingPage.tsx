@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { JobCard } from '@/components/common/JobCard';
 import { useJobs } from '@/modules/jobs/hooks';
@@ -8,21 +8,64 @@ import { Select } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { JobListParams } from '@/types';
 import { Search } from 'lucide-react';
+import { JOB_TYPE_OPTIONS } from '@/constants/jobEnums';
+import { useSearchParams } from 'react-router-dom';
 
 export function JobListingPage() {
   const [filters, setFilters] = useState<JobListParams>({
     page: 1,
     limit: 12
   });
+  const [searchInput, setSearchInput] = useState('');
+  const [locationInput, setLocationInput] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const ids = searchParams.getAll('categoryIds');
+    const queryFromUrl = (searchParams.get('q') ?? searchParams.get('search') ?? '').trim();
+    const locationFromUrl = (searchParams.get('location') ?? '').trim();
+    const categoryIds = ids.length ? ids : undefined;
+
+    setSearchInput(queryFromUrl);
+    setLocationInput(locationFromUrl);
+
+    setFilters((prev) => ({
+      ...prev,
+      category_ids: categoryIds,
+      search: queryFromUrl || undefined,
+      location: locationFromUrl || undefined,
+      page: 1,
+    }));
+  }, [searchParams]);
 
   const { data, isLoading, error } = useJobs(filters);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const nextSearch = searchInput.trim();
+    const nextLocation = locationInput.trim();
+    if (nextSearch.length === 1) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextSearch) {
+      nextParams.set('q', nextSearch);
+    } else {
+      nextParams.delete('q');
+      nextParams.delete('search');
+    }
+    if (nextLocation) {
+      nextParams.set('location', nextLocation);
+    } else {
+      nextParams.delete('location');
+    }
+    setSearchParams(nextParams);
+
     setFilters((prev) => ({
       ...prev,
-      search: formData.get('search') as string,
+      search: nextSearch || undefined,
+      location: nextLocation || undefined,
       page: 1
     }));
   };
@@ -34,6 +77,18 @@ export function JobListingPage() {
       page: 1
     }));
   };
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setFilters((prev) => ({
+        ...prev,
+        location: locationInput.trim() || undefined,
+        page: 1,
+      }));
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [locationInput]);
 
   return (
     <AppLayout>
@@ -50,11 +105,15 @@ export function JobListingPage() {
                     name="search"
                     placeholder="Tìm kiếm việc làm, công ty, kỹ năng..."
                     className="pl-10"
-                    defaultValue={filters.search}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                   />
                 </div>
-                <Button type="submit">Tìm kiếm</Button>
+                <Button type="submit" disabled={searchInput.trim().length === 1}>Tìm kiếm</Button>
               </div>
+              {searchInput.trim().length === 1 && (
+                <p className="mt-2 text-xs text-gray-500">Vui lòng nhập tối thiểu 2 ký tự để tìm kiếm.</p>
+              )}
             </form>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -67,10 +126,9 @@ export function JobListingPage() {
                   onChange={(e) => handleFilterChange('job_type', e.target.value || undefined)}
                 >
                   <option value="">Tất cả</option>
-                  <option value="full-time">Toàn thời gian</option>
-                  <option value="part-time">Bán thời gian</option>
-                  <option value="contract">Hợp đồng</option>
-                  <option value="remote">Làm việc từ xa</option>
+                  {JOB_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </Select>
               </div>
 
@@ -80,8 +138,8 @@ export function JobListingPage() {
                 </label>
                 <Input
                   placeholder="Thành phố hoặc Quốc gia"
-                  value={filters.location || ''}
-                  onChange={(e) => handleFilterChange('location', e.target.value || undefined)}
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
                 />
               </div>
             </div>

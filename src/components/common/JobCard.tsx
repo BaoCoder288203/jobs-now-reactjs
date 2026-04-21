@@ -4,6 +4,8 @@ import { MapPin } from 'lucide-react';
 import { useAppSelector } from '@/app/hooks';
 import { useAuthModal } from '@/contexts/AuthModalContext';
 import { cn } from '@/lib/utils';
+import { extractBenefitItemsFromHtml } from '@/lib/htmlUtils';
+import { HotTagBadge } from '@/components/common/HotTagBadge';
 
 interface JobCardProps {
   job: Job;
@@ -22,6 +24,11 @@ export function JobCard({ job, className }: JobCardProps) {
 
   const hasThumb = !!job.thumbnail_url;
 
+  const benefitItems =
+    typeof job.benefits === 'string' ? extractBenefitItemsFromHtml(job.benefits) : [];
+  const benefitChips = benefitItems.slice(0, 4);
+  const benefitMore = benefitItems.length > 4 ? benefitItems.length - 4 : 0;
+
   return (
     <Link to={`/jobs/${job.id}`} className={cn('block h-full', className)}>
       <article
@@ -29,20 +36,27 @@ export function JobCard({ job, className }: JobCardProps) {
           'relative h-full min-h-[320px] rounded-xl overflow-hidden',
           'flex flex-col justify-between p-6',
           'hover:shadow-xl transition-all duration-200 cursor-pointer',
-          hasThumb ? 'bg-cover bg-center bg-no-repeat' : 'bg-white/65'
+          hasThumb ? 'bg-cover bg-center bg-no-repeat border border-transparent' : (
+            (job as any).hotTag === 'SUPER_HOT' ? 'bg-orange-50/40 border border-orange-400' :
+            (job as any).hotTag === 'HOT' ? 'bg-orange-50/10 border border-orange-300' :
+            'bg-white/65 border border-gray-100'
+          )
         )}
-        style={
-          hasThumb
-            ? { backgroundImage: `url(${job.thumbnail_url})` }
-            : undefined
-        }
+        style={hasThumb ? { backgroundImage: `url(${job.thumbnail_url})` } : undefined}
       >
-        {/* Overlay tối chỉ khi có thumbnail (để chữ trắng đọc rõ) */}
+        {/* Overlay tối chỉ khi có thumbnail*/}
         {hasThumb && (
           <div
             className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/40 pointer-events-none"
             aria-hidden
           />
+        )}
+
+        {/* Hot Badges */}
+        {(job as any).hotTag && (job as any).hotTag !== 'NORMAL' && (
+          <div className="absolute top-3 right-3 z-20 flex">
+            <HotTagBadge tag={(job as any).hotTag} hasThumb={hasThumb} />
+          </div>
         )}
 
         <div className="relative z-10 flex flex-col items-center text-center flex-1">
@@ -92,31 +106,31 @@ export function JobCard({ job, className }: JobCardProps) {
           </h2>
         </div>
 
-        {/* Salary */}
+          {/* Salary */}
         <div className="relative z-10 mt-2 text-center">
-          {isAuthenticated ? (
+            {isAuthenticated ? (
             <p
               className={cn(
                 'text-sm font-medium',
                 hasThumb ? 'text-white' : 'text-gray-800'
               )}
             >
-              {formatSalary()}
-            </p>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openLoginModal('job_seeker');
-              }}
+                {formatSalary()}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openLoginModal('job_seeker');
+                }}
               className="text-sm font-semibold text-[#0ea5e9] hover:text-[#38bdf8] hover:underline focus:outline-none"
-            >
+              >
               Đăng nhập để xem lương
-            </button>
-          )}
-        </div>
+              </button>
+            )}
+          </div>
 
         {/* Location */}
         {job.location && (
@@ -131,30 +145,29 @@ export function JobCard({ job, className }: JobCardProps) {
           </div>
         )}
 
-        {/* Benefits - dưới địa chỉ */}
-        {job.benefits && job.benefits.length > 0 && (
+          {benefitChips.length > 0 && (
           <div className="relative z-10 mt-2 flex flex-wrap gap-1.5 justify-center">
-            {job.benefits.slice(0, 4).map((b, i) => (
-              <span
-                key={i}
-                className={cn(
-                  'text-xs px-2 py-0.5 rounded-md border',
-                  hasThumb
+              {benefitChips.map((b, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                  'text-xs px-2 py-0.5 rounded-md border max-w-full break-words [overflow-wrap:anywhere] line-clamp-1',
+                    hasThumb
                     ? 'text-white/90 border-white/40 bg-white/10'
                     : 'text-gray-600 border-gray-300 bg-gray-50'
-                )}
-              >
-                {b}
-              </span>
-            ))}
-            {job.benefits.length > 4 && (
+                  )}
+                >
+                  {b}
+                </span>
+              ))}
+              {benefitMore > 0 && (
               <span
                 className={cn(
                   'text-xs px-2 py-0.5',
                   hasThumb ? 'text-white/70' : 'text-gray-500'
                 )}
               >
-                +{job.benefits.length - 4}
+                +{benefitMore}
               </span>
             )}
           </div>

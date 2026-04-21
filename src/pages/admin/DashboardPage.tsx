@@ -1,48 +1,70 @@
+import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useJobs } from '@/modules/jobs/hooks';
+import { useAdminJobs } from '@/modules/jobs/hooks';
+import { useAdminDashboardMetrics } from '@/modules/admin/hooks';
 import { useCompanies } from '@/modules/companies/hooks';
 import { Link } from 'react-router-dom';
-import { Users, Building2, Briefcase, Sparkles, ArrowRight } from 'lucide-react';
+import { Building2, Briefcase, ArrowRight } from 'lucide-react';
+import { getJobStatusBadge } from '@/utils/jobStatus';
+import {
+  AdminAnalyticsDateFilter,
+  type AdminAnalyticsDateFilterValue,
+} from '@/components/admin/dashboard/AdminAnalyticsDateFilter';
+import { AdminDashboardKpiGrid, type AdminTrendMetric } from '@/components/admin/dashboard/AdminDashboardKpiGrid';
+import { AdminDashboardTrendChart } from '@/components/admin/dashboard/AdminDashboardTrendChart';
+import { AdminDashboardDonutChart } from '@/components/admin/dashboard/AdminDashboardDonutChart';
+import { AdminTopPlansTableCard } from '@/components/admin/dashboard/AdminTopPlansTableCard';
+import type { AdminDashboardPreset } from '@/types/admin-dashboard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export function AdminDashboardPage() {
-  // const { user } = useAppSelector((state) => state.auth);
+  const [filter, setFilter] = useState<AdminAnalyticsDateFilterValue>({
+    preset: 'month',
+    comparePrevious: true,
+  });
+  const [selectedTrendMetrics, setSelectedTrendMetrics] = useState<AdminTrendMetric[]>(['paidRevenue', 'paidOrders']);
 
-  const { data: jobsData } = useJobs({ limit: 10 });
+  const { data: adminJobs = [], isLoading: jobsLoading } = useAdminJobs();
   const { data: companiesData } = useCompanies({ limit: 10 });
+  const canLoadMetrics = filter.preset !== 'custom' || (!!filter.from && !!filter.to);
+  const metricsQuery = useMemo(
+    () => ({
+      preset: filter.preset as AdminDashboardPreset,
+      from: filter.from,
+      to: filter.to,
+      tz: 'Asia/Ho_Chi_Minh',
+      comparePrevious: filter.comparePrevious,
+    }),
+    [filter],
+  );
+  const {
+    data: metrics,
+    isLoading: metricsLoading,
+    isError: metricsError,
+    error: metricsErrorData,
+  } = useAdminDashboardMetrics(metricsQuery, canLoadMetrics);
 
-  const stats = [
-    {
-      title: 'Tổng người dùng',
-      value: '1,234', // Mock data - in real app, get from API
-      icon: Users,
-      link: '/admin/users',
-      color: 'text-primary'
-    },
-    {
-      title: 'Công ty',
-      value: companiesData?.items?.length || 0,
-      icon: Building2,
-      link: '/admin/companies',
-      color: 'text-accent'
-    },
-    {
-      title: 'Việc làm đang hoạt động',
-      value: jobsData?.items?.length || 0,
-      icon: Briefcase,
-      link: '/admin/jobs',
-      color: 'text-primary'
-    },
-    {
-      title: 'Kỹ năng',
-      value: '156', // Mock data
-      icon: Sparkles,
-      link: '/admin/skills',
-      color: 'text-accent'
-    }
-  ];
+  const statusLabel: Record<string, string> = {
+    PENDING: 'Pending',
+    PAID: 'Paid',
+    FAILED: 'Failed',
+    CANCELLED: 'Cancelled',
+  };
+
+  const toggleTrendMetric = (metric: AdminTrendMetric) => {
+    setSelectedTrendMetrics((prev) => {
+      if (prev.includes(metric)) {
+        if (prev.length === 1) {
+          return prev;
+        }
+        return prev.filter((item) => item !== metric);
+      }
+      return [...prev, metric];
+    });
+  };
 
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
@@ -57,28 +79,72 @@ export function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Link key={stat.title} to={stat.link}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">
-                      {stat.title}
-                    </CardTitle>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                    <p className="text-xs text-gray-500 mt-1">Xem tất cả →</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+        <AdminAnalyticsDateFilter value={filter} onChange={setFilter} />
+
+        {!canLoadMetrics && (
+          <Card>
+            <CardContent className="py-6 text-sm text-gray-600">
+              Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc để xem dữ liệu theo tùy chọn.
+            </CardContent>
+          </Card>
+        )}
+
+        {canLoadMetrics && (
+          <>
+            {metricsLoading && (
+              <Card>
+                <CardContent className="flex justify-center py-12">
+                  <LoadingSpinner />
+                </CardContent>
+              </Card>
+            )}
+
+            {metricsError && (
+              <Card>
+                <CardContent className="py-6 text-sm text-red-600">
+                  {(metricsErrorData as { message?: string })?.message ?? 'Không thể tải dữ liệu dashboard admin.'}
+                </CardContent>
+              </Card>
+            )}
+
+            {metrics && !metricsLoading && !metricsError && (
+              <>
+                <AdminDashboardKpiGrid
+                  kpis={metrics.kpis}
+                  selectedTrendMetrics={selectedTrendMetrics}
+                  onToggleTrendMetric={toggleTrendMetric}
+                />
+
+                <div className="grid grid-cols-1">
+                  <div className="col-span-5">
+                    <AdminDashboardTrendChart
+                      trend={metrics.trend}
+                      showComparison={filter.comparePrevious}
+                      selectedMetrics={selectedTrendMetrics}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                  <AdminDashboardDonutChart
+                    title="Phân bổ trạng thái đơn hàng"
+                    data={metrics.orderStatusDistribution.map((item) => ({
+                      label: statusLabel[item.status] ?? item.status,
+                      value: item.count,
+                    }))}
+                  />
+                  <AdminDashboardDonutChart
+                    title="Phân bổ theo scope"
+                    data={metrics.scopeDistribution.map((item) => ({
+                      label: item.scope,
+                      value: item.orders,
+                    }))}
+                  />
+                </div>
+                <AdminTopPlansTableCard data={metrics.topPlans} />
+              </>
+            )}
+          </>
+        )}
 
         {/* Recent Companies */}
         <Card>
@@ -104,7 +170,7 @@ export function AdminDashboardPage() {
                         {company.name}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {company.industry?.name} • {company.address}
+                        {company.industries?.map((i) => i.name).join(', ') || company.industry?.name || '—'} • {company.address}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Tạo ngày {new Date(company.created_at).toLocaleDateString('vi-VN')}
@@ -141,12 +207,14 @@ export function AdminDashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            {jobsData?.items && jobsData.items.length > 0 ? (
+            {jobsLoading ? (
+              <div className="text-center py-8 text-gray-500">Đang tải...</div>
+            ) : adminJobs.length > 0 ? (
               <div className="space-y-4">
-                {jobsData.items.slice(0, 5).map((job) => (
+                {adminJobs.slice(0, 5).map((job) => (
                   <div
                     key={job.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex flex-col items-start justify-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors md:flex-row md:items-center md:justify-between"
                   >
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{job.title}</h3>
@@ -157,12 +225,8 @@ export function AdminDashboardPage() {
                         Đăng ngày {new Date(job.created_at).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
-                    <div className="ml-4">
-                      <Link to={`/admin/jobs/${job.id}`}>
-                        <Button variant="outline" size="sm">
-                          Quản lý
-                        </Button>
-                      </Link>
+                    <div className="ml-0 md:ml-4">
+                      {getJobStatusBadge(job)}
                     </div>
                   </div>
                 ))}

@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { useAppSelector } from '@/app/hooks';
-import { useProfile, useProfileSkills } from '@/modules/profile/hooks';
-import { useCreateCV, useUpdateCV } from '@/modules/cv/hooks';
+import { useProfile, useProfileSkills, useUpdateProfile } from '@/modules/profile/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CVPreview } from './CVPreview';
+import { CVContentForm } from './CVContentForm';
+import { CVCreateForm } from './CVCreateForm';
 import type { ExtractedCVData } from '@/types';
+import { toast } from 'sonner';
 
 const emptyCVData: ExtractedCVData = {
   work_experiences: [],
@@ -27,50 +30,72 @@ interface ManualCVFormProps {
 export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFormProps) {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
-  const userId = user?.id ?? '';
+  const userId = user?.userId ? String(user.userId) : '';
   const [cvData, setCvData] = useState<ExtractedCVData>(initialData ?? emptyCVData);
   const [showPreview, setShowPreview] = useState(false);
 
   const { data: profile } = useProfile(userId);
   const { data: profileSkills } = useProfileSkills(userId);
-  const createMutation = useCreateCV();
-  const updateMutation = useUpdateCV();
+  const updateProfile = useUpdateProfile();
 
   useEffect(() => {
     if (profile && !initialData) {
       setCvData((prev) => ({
         ...prev,
-        headline: profile.headline,
-        summary: profile.summary,
-        skills: profileSkills?.map((ps) => ({ name: ps.skill?.name ?? '', level: ps.level })) ?? prev.skills,
+        fullName: user?.fullName ?? prev.fullName,
+        email: user?.email ?? prev.email,
+        phone: profile.phone ?? prev.phone,
+        address: profile.address ?? prev.address,
+        title: profile.title ?? prev.title,
+        headline: profile.title ?? profile.headline ?? prev.headline,
+        summary: profile.bio ?? profile.summary ?? prev.summary,
+        skills:
+          profileSkills?.map((ps) => ({
+            name: ps.skillName ?? (ps as { skill?: { name?: string } }).skill?.name ?? '',
+            level: ps.level,
+          })) ?? prev.skills,
       }));
     }
-  }, [profile, profileSkills, initialData]);
+  }, [profile, profileSkills, initialData, user]);
 
   const handleSave = async () => {
     if (isGuest) {
-      alert('Đăng nhập để lưu CV');
+      toast.info('Đăng nhập để lưu CV');
       return;
     }
-    if (editResumeId) {
-      await updateMutation.mutateAsync({ resumeId: editResumeId, cvData });
-    } else {
-      const resumeName = `CV_${cvData.headline ?? 'Manual'}_${Date.now()}.pdf`;
-      await createMutation.mutateAsync({
-        userId,
-        cvData,
-        resumeName,
-        isAiGenerated: false,
-      });
-    }
+    await updateProfile.mutateAsync({
+      userId,
+      data: {
+        title: cvData.headline ?? '',
+        bio: cvData.summary ?? '',
+      },
+    });
     navigate('/user/resumes');
   };
 
+  const canSave = !isGuest && !updateProfile.isPending && showPreview;
+  useHotkey('Mod+S', (e) => {
+    e.preventDefault();
+    if (canSave) handleSave();
+  }, { enabled: canSave });
+
+  if (!isGuest && userId) {
+    if (editResumeId) {
+      return (
+        <div className="space-y-8 max-w-4xl mx-auto">
+          <CVContentForm userId={userId} resumeId={editResumeId} />
+        </div>
+      );
+    }
+    // Create mode: chưa có resumeId → dùng CVCreateForm (save-all on submit)
+    return <CVCreateForm userId={userId} />;
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-xl mx-auto">
       {!showPreview ? (
         <>
-          <div className="space-y-4 max-w-xl mx-auto">
+          <div className="space-y-4">
             <div>
               <Label>Tiêu đề</Label>
               <Input
@@ -80,7 +105,7 @@ export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFor
               />
             </div>
             <div>
-              <Label>Giới thiệu</Label>
+              <Label>Giới thiệu (Summary)</Label>
               <textarea
                 value={cvData.summary ?? ''}
                 onChange={(e) => setCvData((p) => ({ ...p, summary: e.target.value }))}
@@ -115,8 +140,8 @@ export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFor
             <Button variant="outline" onClick={() => setShowPreview(false)}>
               Quay lại chỉnh sửa
             </Button>
-            <Button onClick={handleSave} disabled={isGuest || createMutation.isPending || updateMutation.isPending}>
-              {isGuest ? 'Đăng nhập để lưu' : editResumeId ? 'Cập nhật CV' : 'Lưu CV'}
+            <Button onClick={handleSave} disabled={isGuest || updateProfile.isPending}>
+              {isGuest ? 'Đăng nhập để lưu' : updateProfile.isPending ? 'Đang lưu...' : editResumeId ? 'Cập nhật CV' : 'Lưu CV'}
             </Button>
           </div>
         </>

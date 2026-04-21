@@ -2,48 +2,429 @@ import type { Job, JobListParams, PaginatedResponse } from '@/types';
 import { USE_MOCK } from './api';
 import * as mockJobs from '@/mocks/handlers/jobs.mock';
 import { apiClient } from './api';
+import { algoliasearch } from 'algoliasearch';
+
+const algoliaAppId = (import.meta.env.VITE_ALGOLIA_APP_ID || '').trim();
+const algoliaSearchKey = (import.meta.env.VITE_ALGOLIA_SEARCH_KEY || '').trim();
+const hasAlgoliaConfig = Boolean(algoliaAppId && algoliaSearchKey);
+const algoliaClient = hasAlgoliaConfig ? algoliasearch(algoliaAppId, algoliaSearchKey) : null;
+
+interface JobSkillDTOItem {
+  skillId?: number;
+  skillName?: string;
+  isRequired?: boolean;
+  level?: string;
+}
+
+interface MajorDTOItem {
+  majorId?: number;
+  name?: string;
+}
+
+interface JobDTO {
+  jobId?: number;
+  title?: string;
+  description?: string;
+  requirements?: string;
+  benefits?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryType?: string;
+  salaryCurrency?: string;
+  yearsOfExperience?: string;
+  educationLevel?: string;
+  jobType?: string;
+  location?: string;
+  postedAt?: string;
+  deadline?: string;
+  isActive?: boolean;
+  isApproved?: boolean;
+  isPending?: boolean;
+  isDeleted?: boolean;
+  isExpired?: boolean;
+  thumbnailUrl?: string;
+  note?: string;
+  companyId?: number;
+  companyName?: string;
+  companyLogo?: string;
+  categoryId?: number;
+  categoryName?: string;
+  jobSkills?: JobSkillDTOItem[];
+  majors?: MajorDTOItem[];
+  applicationLanguage?: string;
+  genderRequirement?: string;
+  minAge?: number;
+  maxAge?: number;
+  contactPersonName?: string;
+  contactTutorial?: string;
+  companyAddress?: string;
+  companySocials?: {
+    id?: number;
+    platform?: string;
+    url?: string;
+    logoUrl?: string;
+  }[];
+  baseScore?: number;
+  boostScore?: number;
+  finalScore?: number;
+  hotTag?: string;
+  boostActive?: boolean;
+  activeBoostPlanType?: string;
+  activeBoostEndAt?: string;
+}
+
+function mapJobDTOToJob(dto: JobDTO): Job {
+  return {
+    id: String(dto.jobId ?? ''),
+    company_id: String(dto.companyId ?? ''),
+    title: dto.title ?? '',
+    description: dto.description ?? '',
+    requirements: dto.requirements,
+    benefits: dto.benefits,
+    salary_min: dto.salaryMin,
+    salary_max: dto.salaryMax,
+    salary_type: dto.salaryType as Job['salary_type'],
+    salary_currency: dto.salaryCurrency as Job['salary_currency'],
+    yearsOfExperience: dto.yearsOfExperience,
+    educationLevel: dto.educationLevel,
+    location: dto.location,
+    job_type: dto.jobType,
+    status: dto.isActive ? 'open' : 'closed',
+    isActive: dto.isActive,
+    isApproved: dto.isApproved,
+    isPending: dto.isPending,
+    isDeleted: dto.isDeleted,
+    isExpired: dto.isExpired,
+    note: dto.note,
+    expired_at: dto.deadline,
+    deadline: dto.deadline,
+    created_at: dto.postedAt ?? new Date().toISOString(),
+    updated_at: dto.postedAt ?? new Date().toISOString(),
+    thumbnail_url: dto.thumbnailUrl,
+    category_id: dto.categoryId != null ? dto.categoryId : undefined,
+    categoryName: dto.categoryName,
+    company:
+      dto.companyId != null || dto.companyName || dto.companyLogo
+        ? {
+            id: String(dto.companyId ?? ''),
+            name: dto.companyName ?? '',
+            logo_url: dto.companyLogo,
+            owner_user_id: '',
+            created_at: '',
+            updated_at: '',
+            address: dto.companyAddress,
+            name_user_contact: dto.contactPersonName,
+            tutorial_apply: dto.contactTutorial,
+            socials: dto.companySocials?.map((s) => ({
+              id: s.id ?? 0,
+              platform: s.platform ?? '',
+              url: s.url ?? '',
+              logoUrl: s.logoUrl,
+            })),
+          }
+        : undefined,
+    jobSkills: dto.jobSkills?.map((js) => ({
+      id: '',
+      job_id: String(dto.jobId ?? ''),
+      skill_id: String(js.skillId ?? ''),
+      skillName: js.skillName,
+      isRequired: js.isRequired,
+      level: js.level,
+    })),
+    majors: dto.majors?.map((m) => ({ majorId: m.majorId ?? 0, name: m.name ?? '' })),
+    applicationLanguage: dto.applicationLanguage,
+    genderRequirement: dto.genderRequirement,
+    minAge: dto.minAge,
+    maxAge: dto.maxAge,
+    contactPersonName: dto.contactPersonName,
+    contactTutorial: dto.contactTutorial,
+    companyAddress: dto.companyAddress,
+    companySocials: dto.companySocials?.map((s) => ({
+      id: s.id ?? 0,
+      platform: s.platform ?? '',
+      url: s.url ?? '',
+      logoUrl: s.logoUrl,
+    })),
+    baseScore: dto.baseScore,
+    boostScore: dto.boostScore,
+    finalScore: dto.finalScore,
+    hotTag: dto.hotTag,
+    boostActive: dto.boostActive,
+    activeBoostPlanType: dto.activeBoostPlanType,
+    activeBoostEndAt: dto.activeBoostEndAt,
+  };
+}
+
+export async function getRelatedJobs(jobId: string, limit = 8): Promise<Job[]> {
+  if (USE_MOCK) {
+    const all = await getJobs({});
+    return (all.items ?? []).filter((j) => j.id !== jobId).slice(0, limit);
+  }
+  const res = (await apiClient.get(`/job/${jobId}/related`, { params: { limit } })) as {
+    data?: JobDTO[];
+  };
+  const list = (res.data ?? res) as JobDTO[] | JobDTO;
+  const arr = Array.isArray(list) ? list : list ? [list] : [];
+  return arr.map(mapJobDTOToJob);
+}
 
 export async function getJobs(params?: JobListParams): Promise<PaginatedResponse<Job>> {
   if (USE_MOCK) {
     return mockJobs.mockGetJobs(params);
   }
-  
-  const response = await apiClient.get('/jobs', { params });
-  return response.data;
+
+  if (params?.company_id) {
+    const res = (await apiClient.get(`/job/company/${params.company_id}`)) as { data?: JobDTO[] };
+    const list = (res.data ?? res) as JobDTO[] | JobDTO;
+    const arr = Array.isArray(list) ? list : [list];
+    const items = arr.map(mapJobDTOToJob);
+    return {
+      items,
+      pagination: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 10,
+        total: items.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+  }
+
+  const rawKeyword = params?.search?.trim() || undefined;
+  const keyword = rawKeyword && rawKeyword.length >= 2 ? rawKeyword : undefined;
+  const categoryIds =
+    params?.category_ids?.map((v) => parseInt(String(v), 10)).filter((n) => !Number.isNaN(n)) ??
+    (params?.category_id ? [parseInt(params.category_id, 10)].filter((n) => !Number.isNaN(n)) : undefined);
+  const location = params?.location?.trim() || undefined;
+  const jobType = params?.job_type?.trim() ? params.job_type.trim().toUpperCase().replace('-', '_') : undefined;
+
+  const page = params?.page ? Number(params.page) : 1;
+  const limit = params?.limit ? Number(params.limit) : 10;
+
+  if (algoliaClient) {
+    try {
+      let filters = '';
+      if (jobType) {
+        filters += `jobType:${jobType}`;
+      }
+      if (categoryIds && categoryIds.length > 0) {
+        if (filters) filters += ' AND ';
+        filters += `(${categoryIds.map((id) => `categoryId:${id}`).join(' OR ')})`;
+      }
+      if (location) {
+        if (filters) filters += ' AND ';
+        filters += `location:'${location}'`;
+      }
+
+      const algoliaParams = [
+        filters ? `filters=${encodeURIComponent(filters)}` : '',
+        `page=${page - 1}`,
+        `hitsPerPage=${limit}`
+      ].filter(Boolean).join('&');
+
+      const { results } = await algoliaClient.search({
+        requests: [
+          {
+            indexName: 'jobs_now_index',
+            query: keyword || '',
+            params: algoliaParams,
+          },
+        ],
+      });
+
+      const resultObj = results[0] as any;
+      const list = resultObj?.hits || [];
+      const nbHits = resultObj?.nbHits || 0;
+      const nbPages = resultObj?.nbPages || 1;
+
+      const arr = Array.isArray(list) ? list : [list];
+      const items = arr.map(mapJobDTOToJob);
+
+      return {
+        items,
+        pagination: {
+          page,
+          limit,
+          total: nbHits,
+          totalPages: nbPages,
+          hasNext: page < nbPages,
+          hasPrev: page > 1,
+        },
+      };
+    } catch (e) {
+      console.error('Algolia search failed, falling back to backend search', e);
+    }
+  }
+
+  // Fallback to old Search if Algolia fails or config is missing
+  if (keyword || location || (categoryIds && categoryIds.length > 0) || jobType) {
+    const res = (await apiClient.get('/job/searchJobs', {
+      params: { keyword, location, categoryIds, jobType },
+    })) as { data?: JobDTO[] };
+    const list = (res.data ?? res) as JobDTO[] | JobDTO;
+    const arr = Array.isArray(list) ? list : [list];
+    const items = arr.map(mapJobDTOToJob);
+    // Note: Old searchJobs hasn't implemented pagination on BE, so we just mock it for array slice wrapper
+    const start = (page - 1) * limit;
+    return {
+      items: items.slice(start, start + limit),
+      pagination: {
+        page,
+        limit,
+        total: items.length,
+        totalPages: Math.ceil(items.length / limit),
+        hasNext: start + limit < items.length,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  // Fallback to get all jobs if no filters
+  const res = (await apiClient.get('/job')) as { data?: JobDTO[] };
+  const list = (res.data ?? res) as JobDTO[] | JobDTO;
+  const arr = Array.isArray(list) ? list : [list];
+  const items = arr.map(mapJobDTOToJob);
+  const start = (page - 1) * limit;
+  return {
+    items: items.slice(start, start + limit),
+    pagination: {
+      page,
+      limit,
+      total: items.length,
+      totalPages: Math.ceil(items.length / limit),
+      hasNext: start + limit < items.length,
+      hasPrev: page > 1,
+    },
+  };
 }
 
 export async function getJobDetail(jobId: string): Promise<Job> {
   if (USE_MOCK) {
     return mockJobs.mockGetJobDetail(jobId);
   }
-  
-  const response = await apiClient.get(`/jobs/${jobId}`);
-  return response.data;
+
+  const res = (await apiClient.get(`/job/${jobId}`)) as { data?: JobDTO };
+  const dto = (res.data ?? res) as JobDTO;
+  return mapJobDTOToJob(dto);
+}
+
+function toJobTypeBE(value: string | undefined): string {
+  if (!value) return 'FULL_TIME';
+  const upper = value.toUpperCase().replace('-', '_');
+  if (upper === 'FREELANCE') return 'FREELANCE';
+  return upper;
 }
 
 export async function createJob(data: Partial<Job>): Promise<Job> {
   if (USE_MOCK) {
     return mockJobs.mockCreateJob(data);
   }
-  
-  const response = await apiClient.post('/jobs', data);
-  return response.data;
+
+  const deadline =
+    data.deadline ?? data.expired_at
+      ? new Date((data.deadline ?? data.expired_at) as string).toISOString().slice(0, 10)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const body = {
+    companyId: data.company_id ? parseInt(String(data.company_id), 10) : undefined,
+    title: data.title,
+    description: data.description,
+    requirements: data.requirements ?? '',
+    benefits: data.benefits ?? '',
+    salaryMin: data.salary_type === 'RANGE' ? (data.salary_min ?? 0) : undefined,
+    salaryMax: data.salary_type === 'RANGE' ? (data.salary_max ?? 0) : undefined,
+    salaryType: (data as { salary_type?: string }).salary_type?.toUpperCase() ?? 'RANGE',
+    salaryCurrency: (data as { salary_currency?: string }).salary_currency?.toUpperCase() ?? 'VND',
+    yearsOfExperience: data.yearsOfExperience ?? '0',
+    educationLevel: (data.educationLevel ?? 'OTHER').toUpperCase(),
+    jobType: toJobTypeBE(data.job_type),
+    location: data.location ?? '',
+    deadline,
+    categoryId: data.category_id != null ? parseInt(String(data.category_id), 10) : null,
+    jobSkills: (data as { jobSkills?: { skillId: number; isRequired?: boolean; level?: string }[] }).jobSkills ?? [],
+    majorIds: (data as { majorIds?: number[] }).majorIds ?? [],
+    thumbnailUrl: data.thumbnail_url ?? undefined,
+    isActive: false,
+    applicationLanguage: (data as { applicationLanguage?: string }).applicationLanguage?.toUpperCase(),
+    genderRequirement: (data as { genderRequirement?: string }).genderRequirement?.toUpperCase(),
+    minAge: (data as { minAge?: number }).minAge,
+    maxAge: (data as { maxAge?: number }).maxAge,
+  };
+  await apiClient.post('/job/create', body);
+  return { ...data, id: 'new', created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as Job;
 }
 
 export async function updateJob(jobId: string, data: Partial<Job>): Promise<Job> {
   if (USE_MOCK) {
     return mockJobs.mockUpdateJob(jobId, data);
   }
-  
-  const response = await apiClient.put(`/jobs/${jobId}`, data);
-  return response.data;
+
+  const deadline =
+    data.deadline ?? data.expired_at
+      ? new Date((data.deadline ?? data.expired_at) as string).toISOString().slice(0, 10)
+      : undefined;
+
+  const body = {
+    title: data.title,
+    description: data.description,
+    requirements: data.requirements ?? '',
+    benefits: data.benefits ?? '',
+    salaryMin: data.salary_type === 'RANGE' ? data.salary_min : undefined,
+    salaryMax: data.salary_type === 'RANGE' ? data.salary_max : undefined,
+    salaryType: (data as { salary_type?: string }).salary_type?.toUpperCase(),
+    salaryCurrency: (data as { salary_currency?: string }).salary_currency?.toUpperCase(),
+    yearsOfExperience: data.yearsOfExperience ?? undefined,
+    educationLevel: data.educationLevel?.toUpperCase(),
+    jobType: data.job_type ? toJobTypeBE(data.job_type) : undefined,
+    location: data.location ?? undefined,
+    deadline,
+    categoryId: data.category_id != null ? parseInt(String(data.category_id), 10) : undefined,
+    jobSkills: (data as { jobSkills?: { skillId: number; isRequired?: boolean; level?: string }[] }).jobSkills,
+    majorIds: (data as { majorIds?: number[] }).majorIds,
+    isActive: data.status === 'open',
+    thumbnailUrl: data.thumbnail_url ?? undefined,
+    applicationLanguage: (data as { applicationLanguage?: string }).applicationLanguage?.toUpperCase(),
+    genderRequirement: (data as { genderRequirement?: string }).genderRequirement?.toUpperCase(),
+    minAge: (data as { minAge?: number }).minAge,
+    maxAge: (data as { maxAge?: number }).maxAge,
+  };
+  await apiClient.put(`/job/${jobId}`, body);
+  return getJobDetail(jobId);
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
   if (USE_MOCK) {
     return mockJobs.mockDeleteJob(jobId);
   }
-  
-  await apiClient.delete(`/jobs/${jobId}`);
+  await apiClient.delete(`/admin/jobs/${jobId}`);
 }
 
+/** Admin: get all jobs (optional filter: pending | approved | rejected | all) */
+export async function getAdminJobs(status?: string): Promise<Job[]> {
+  if (USE_MOCK) {
+    const res = await mockJobs.mockGetJobs({});
+    return res.items ?? [];
+  }
+  const res = (await apiClient.get('/admin/jobs', {
+    params: status ? { status } : undefined,
+  })) as { data?: JobDTO[] };
+  const list = (res?.data ?? res) as JobDTO[] | JobDTO;
+  const arr = Array.isArray(list) ? list : list ? [list] : [];
+  return arr.map(mapJobDTOToJob);
+}
+
+export async function unpublishJob(jobId: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put(`/admin/jobs/${jobId}/unpublish`);
+}
+
+export async function approveJob(jobId: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put(`/job/approve/${jobId}`);
+}
+
+export async function rejectJob(jobId: string, reason: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiClient.put('/job/reject', { jobId: parseInt(jobId, 10), reason });
+}

@@ -1,30 +1,67 @@
 import { useParams, Link } from 'react-router-dom';
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { useApplicationDetail, useUpdateApplicationStatus } from '@/modules/applications/hooks';
+import { useCalculateJobMatch } from '@/modules/cv/hooks';
+import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target } from 'lucide-react';
+import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
+import { RichTextContent } from '@/components/ui/RichTextContent';
+import { toast } from 'sonner';
+import type { JobMatchResponse } from '@/services/ai.service';
 
 export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
-  // const { user } = useAppSelector((state) => state.auth);
-  
+  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
+
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();
+  const calculateMatch = useCalculateJobMatch();
+  const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleCheckMatch = async () => {
+    if (!application) return;
+    const jobId = Number(application.job_id);
+    const profileId = application.user?.profileId ?? undefined;
+    const resumeId = application.resume_id ? Number(application.resume_id) : undefined;
+    if (!jobId || (!profileId && !resumeId)) {
+      toast.error('Không đủ dữ liệu để kiểm tra');
+      return;
+    }
+    try {
+      const data = await calculateMatch.mutateAsync({ jobId, profileId: profileId ?? undefined, resumeId });
+      setMatchResult(data);
+    } catch {
+      toast.error('Kiểm tra thất bại');
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string, interviewDetailsHtml?: string) => {
     if (!id) return;
     try {
       await updateStatus.mutateAsync({
         applicationId: id,
-        status: newStatus
+        status: newStatus,
+        interviewDetailsHtml,
       });
+      toast.success('Đã cập nhật trạng thái');
     } catch (error) {
       console.error('Failed to update status:', error);
+      toast.error('Không thể cập nhật trạng thái');
     }
+  };
+
+  const onSelectStatus = (newStatus: string) => {
+    if (newStatus === 'interviewing') {
+      setInterviewModalOpen(true);
+      return;
+    }
+    void handleStatusChange(newStatus);
   };
 
   if (isLoading) {
@@ -41,10 +78,10 @@ export function EmployerApplicationDetailPage() {
     return (
       <DashboardLayout sidebar={<RecruiterSidebar />}>
         <div className="text-center py-12">
-          <p className="text-gray-600">Application not found</p>
+          <p className="text-gray-600">Không tìm thấy đơn ứng tuyển</p>
           <Link to="/employer/applications">
             <Button variant="outline" className="mt-4">
-              Back to Applications
+              Quay lại
             </Button>
           </Link>
         </div>
@@ -59,13 +96,13 @@ export function EmployerApplicationDetailPage() {
           <Link to="/employer/applications">
             <Button variant="ghost" size="sm" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Quay lại
             </Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Application Details</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Chi tiết đơn ứng tuyển</h1>
             <p className="text-gray-600 mt-1">
-              Review application for {application.job?.title}
+              Xem xét đơn ứng tuyển cho vị trí {application.job?.title}
             </p>
           </div>
         </div>
@@ -76,7 +113,7 @@ export function EmployerApplicationDetailPage() {
             {/* Job Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Job Information</CardTitle>
+                <CardTitle>Thông tin việc làm</CardTitle>
               </CardHeader>
               <CardContent>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -97,12 +134,12 @@ export function EmployerApplicationDetailPage() {
             {/* Candidate Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Candidate Information</CardTitle>
+                <CardTitle>Thông tin ứng viên</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">
-                    {application.user?.full_name}
+                    {application.user?.fullName}
                   </h3>
                   {application.user?.email && (
                     <div className="flex items-center gap-2 text-gray-600 mb-1">
@@ -127,7 +164,7 @@ export function EmployerApplicationDetailPage() {
                       className="inline-flex items-center gap-2 text-primary hover:underline"
                     >
                       <Download className="h-4 w-4" />
-                      Download Resume: {application.resume.file_name}
+                      Tải CV: {application.resume.file_name}
                     </a>
                   </div>
                 )}
@@ -138,7 +175,7 @@ export function EmployerApplicationDetailPage() {
             {application.cover_letter && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Cover Letter</CardTitle>
+                  <CardTitle>Thư xin việc</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-700 whitespace-pre-wrap">
@@ -154,22 +191,24 @@ export function EmployerApplicationDetailPage() {
             {/* Status */}
             <Card>
               <CardHeader>
-                <CardTitle>Application Status</CardTitle>
+                <CardTitle>Trạng thái đơn</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Current Status
+                    Trạng thái hiện tại
                   </label>
                   <Select
                     value={application.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
+                    onChange={(e) => onSelectStatus(e.target.value)}
                     disabled={updateStatus.isPending}
                   >
-                    <option value="pending">Pending</option>
-                    <option value="reviewing">Reviewing</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="pending">Đang chờ</option>
+                    <option value="reviewing">Đang xem xét</option>
+                    <option value="shortlisted">Đạt vòng hồ sơ</option>
+                    <option value="interviewing">Phỏng vấn</option>
+                    <option value="rejected">Đã từ chối</option>
+                    <option value="hired">Đã tuyển</option>
                   </Select>
                 </div>
 
@@ -177,10 +216,10 @@ export function EmployerApplicationDetailPage() {
                   <div className="text-sm text-gray-600">
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="h-4 w-4" />
-                      <span>Applied on</span>
+                      <span>Ngày ứng tuyển</span>
                     </div>
                     <p className="font-medium text-gray-900">
-                      {new Date(application.created_at).toLocaleDateString('en-US', {
+                      {new Date(application.created_at).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
@@ -188,32 +227,74 @@ export function EmployerApplicationDetailPage() {
                     </p>
                   </div>
                 </div>
+                {application.status === 'interviewing' && application.interview_details_html && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Nội dung đã gửi ứng viên</p>
+                    <div className="prose prose-sm max-w-none text-gray-700 border rounded-lg p-3 bg-gray-50">
+                      <RichTextContent html={application.interview_details_html
+                        .replace(/\{\{name\}\}/g, application.user?.fullName ?? 'Ứng viên')
+                        .replace(/\{\{jobTitle\}\}/g, application.job?.title ?? '')
+                        .replace(/\{\{companyName\}\}/g, application.job?.company?.name ?? '')
+                      } />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle>Thao tác nhanh</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Link to={`/jobs/${application.job_id}`}>
-                  <Button variant="outline" className="w-full">
-                    View Job Posting
+                  <Button variant="outline" className="w-full mb-2">
+                    Xem tin tuyển dụng
                   </Button>
                 </Link>
+                <Button
+                  variant="outline"
+                  className="w-full mb-2 gap-2"
+                  onClick={handleCheckMatch}
+                  disabled={calculateMatch.isPending}
+                >
+                  <Target className="h-4 w-4" />
+                  {calculateMatch.isPending ? 'Đang phân tích...' : 'Kiểm tra độ phù hợp AI'}
+                </Button>
                 {application.user?.email && (
                   <a href={`mailto:${application.user.email}`}>
                     <Button variant="outline" className="w-full">
-                      Send Email
+                      Gửi email
                     </Button>
                   </a>
                 )}
               </CardContent>
             </Card>
+
+            {matchResult && (
+              <Card className="border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-base">Phân tích AI</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <JobMatchResultCard result={matchResult} />
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
+
+      <InterviewStatusModal
+        open={interviewModalOpen}
+        onOpenChange={setInterviewModalOpen}
+        isSubmitting={updateStatus.isPending}
+        onConfirm={async (html) => {
+          await handleStatusChange('interviewing', html);
+          setInterviewModalOpen(false);
+        }}
+      />
     </DashboardLayout>
   );
 }

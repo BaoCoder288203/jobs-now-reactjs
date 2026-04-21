@@ -1,5 +1,6 @@
 import type { Company } from './company.d';
 import type { Skill } from './skill.d';
+import type { User } from './user.d';
 
 export interface Industry {
   id: string;
@@ -13,50 +14,100 @@ export interface JobCategory {
   description?: string;
 }
 
-export interface Job {
-  id: string;
-  company_id: string;
-  title: string;
-  description: string;
-  requirements?: string;
-  salary_min?: number;
-  salary_max?: number;
-  location?: string;
-  job_type?: string;
-  experience_level?: string;
-  industry_id?: string;
-  category_id?: string;
-  status: string;
-  expired_at?: string;
-  created_at: string;
-  updated_at: string;
-  thumbnail_url?: string;
-  benefits?: string[];
-
-  company?: Company;
-  industry?: Industry;
-  category?: JobCategory;
-  skills?: JobSkill[];
+export interface JobSkillItemRequest {
+  skillId: number;
+  isRequired?: boolean;
+  level?: string;
 }
 
 export interface JobSkill {
   id: string;
   job_id: string;
   skill_id: string;
-  
+  skillName?: string;
+  isRequired?: boolean;
+  level?: string;
   job?: Job;
   skill?: Skill;
 }
 
-// Forward declaration
-import type { User } from './user.d';
+export interface Major {
+  majorId: number;
+  name: string;
+}
+
+export interface Job {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string;
+  requirements?: string;
+  benefits?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_type?: 'RANGE' | 'NEGOTIABLE' | 'COMPETITIVE';
+  salary_currency?: 'VND' | 'USD' | 'EUR' | 'JPY' | 'SGD' | 'KRW' | 'OTHER';
+  yearsOfExperience?: string;
+  educationLevel?: string;
+  job_type?: string;
+  location?: string;
+  expired_at?: string;
+  deadline?: string;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  thumbnail_url?: string;
+  category_id?: string | number;
+  categoryName?: string;
+  jobSkills?: JobSkill[];
+  majors?: Major[];
+
+  isActive?: boolean;
+  isApproved?: boolean;
+  isPending?: boolean;
+  isDeleted?: boolean;
+  isExpired?: boolean;
+  note?: string;
+
+  applicationLanguage?: string;
+  genderRequirement?: string;
+  minAge?: number;
+  maxAge?: number;
+
+  contactPersonName?: string;
+  contactTutorial?: string;
+  companyAddress?: string;
+  companySocials?: {
+    id: number;
+    platform: string;
+    url: string;
+    logoUrl?: string;
+  }[];
+
+  baseScore?: number;
+  boostScore?: number;
+  finalScore?: number;
+  hotTag?: string;
+  boostActive?: boolean;
+  activeBoostPlanType?: string;
+  activeBoostEndAt?: string;
+
+  company?: Company;
+  category?: JobCategory;
+}
 
 export interface SavedJob {
-  id: string;
-  user_id: string;
-  job_id: string;
-  created_at: string;
-  
-  user?: User;
-  job?: Job;
+  savedJobId: number;
+  jobId: number;
+  jobTitle: string;
+  companyName: string;
+  companyLogo: string;
+  location: string;
+  salaryMin: number;
+  salaryMax: number;
+  salaryType?: 'RANGE' | 'NEGOTIABLE' | 'COMPETITIVE';
+  salaryCurrency?: 'VND' | 'USD' | 'EUR' | 'JPY' | 'SGD' | 'KRW' | 'OTHER';
+  jobType: string;
+  savedAt: string;
+  isSaved?: boolean;
 }
