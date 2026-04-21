@@ -2,7 +2,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useAppSelector } from '@/app/hooks';
 import { SearchBar } from '@/components/home/SearchBar';
 import { BannerSlider } from '@/components/home/BannerSlider';
-import { FeaturedCompaniesSection } from '@/components/home/FeaturedCompaniesSection';
 import { CompanyCarousel } from '@/components/home/CompanyCarousel';
 import { JobCarousel } from '@/components/home/JobCarousel';
 import { AIFeaturesSection } from '@/components/home/AIFeaturesSection';
@@ -17,7 +16,6 @@ export function HomePage() {
   return (
     <AppLayout>
       <BannerSlider />
-      <FeaturedCompaniesSection />
       {isJobSeeker && (
         <section className="bg-gradient-to-b from-gray-50 to-white py-20">
           <div className="container mx-auto px-4">

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Company } from '@/types';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Crown, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CompanyTopCardProps {
@@ -11,15 +11,24 @@ interface CompanyTopCardProps {
 export function CompanyTopCard({ company, className }: CompanyTopCardProps) {
   const category = company.category ?? (company.industries?.map((i) => i.name).join(', ') || company.industry?.name) ?? 'Công ty';
   const jobCount = company.create_job_count ?? 0;
+  const priorityLevel = company.priority_level ?? 0;
 
   return (
     <Link to={`/companies/${company.id}`} className={cn('block h-full', className)}>
       <article
         className={cn(
-          'bg-[#EBF0FA] rounded-xl p-4 flex gap-4',
-          'hover:shadow-lg transition-all duration-200 cursor-pointer h-full'
+          'relative overflow-hidden rounded-xl p-4 flex gap-4 transition-all duration-300 cursor-pointer h-full group',
+          priorityLevel === 3 
+            ? 'bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border border-amber-200 shadow-md hover:shadow-xl hover:shadow-amber-200/50 hover:-translate-y-1' 
+            : priorityLevel === 2 
+              ? 'bg-gradient-to-b from-[#EBF0FA] to-blue-50/50 border border-blue-200 shadow-sm hover:shadow-lg hover:border-blue-400 hover:-translate-y-0.5' 
+              : 'bg-[#EBF0FA] border border-transparent hover:shadow-md hover:-translate-y-0.5'
         )}
       >
+        {/* Shimmer Effect for VIP on hover */}
+        {priorityLevel === 3 && (
+          <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-12 group-hover:animate-[shimmer_1.5s_infinite] transition-transform duration-1000 ease-in-out group-hover:translate-x-full z-10" />
+        )}
         {/* Left: Visuals - Logo + 2 Thumbnails */}
         <div className="flex flex-col gap-2 shrink-0">
           {/* Logo - white container */}
@@ -67,9 +76,23 @@ export function CompanyTopCard({ company, className }: CompanyTopCardProps) {
 
           {/* Middle: Name + Slogan */}
           <div className="flex-1 flex flex-col justify-center min-w-0">
-            <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-2">
-              {company.name}
-            </h3>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className="text-xl font-bold text-gray-900 line-clamp-2">
+                {company.name}
+              </h3>
+              {priorityLevel === 3 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold text-amber-800 bg-gradient-to-r from-amber-200 to-yellow-400 shadow-sm whitespace-nowrap">
+                  <Crown className="h-3.5 w-3.5" />
+                  Top Employer
+                </span>
+              )}
+              {priorityLevel === 2 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-blue-700 bg-blue-100 border border-blue-200 whitespace-nowrap">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Verified
+                </span>
+              )}
+            </div>
             {company.slogan && (
               <p className="text-sm text-gray-700 line-clamp-1">
                 {company.slogan}

@@ -106,22 +106,22 @@ function mapJobDTOToJob(dto: JobDTO): Job {
     company:
       dto.companyId != null || dto.companyName || dto.companyLogo
         ? {
-            id: String(dto.companyId ?? ''),
-            name: dto.companyName ?? '',
-            logo_url: dto.companyLogo,
-            owner_user_id: '',
-            created_at: '',
-            updated_at: '',
-            address: dto.companyAddress,
-            name_user_contact: dto.contactPersonName,
-            tutorial_apply: dto.contactTutorial,
-            socials: dto.companySocials?.map((s) => ({
-              id: s.id ?? 0,
-              platform: s.platform ?? '',
-              url: s.url ?? '',
-              logoUrl: s.logoUrl,
-            })),
-          }
+          id: String(dto.companyId ?? ''),
+          name: dto.companyName ?? '',
+          logo_url: dto.companyLogo,
+          owner_user_id: '',
+          created_at: '',
+          updated_at: '',
+          address: dto.companyAddress,
+          name_user_contact: dto.contactPersonName,
+          tutorial_apply: dto.contactTutorial,
+          socials: dto.companySocials?.map((s) => ({
+            id: s.id ?? 0,
+            platform: s.platform ?? '',
+            url: s.url ?? '',
+            logoUrl: s.logoUrl,
+          })),
+        }
         : undefined,
     jobSkills: dto.jobSkills?.map((js) => ({
       id: '',
@@ -394,6 +394,13 @@ export async function updateJob(jobId: string, data: Partial<Job>): Promise<Job>
 }
 
 export async function deleteJob(jobId: string): Promise<void> {
+  if (USE_MOCK) {
+    return mockJobs.mockDeleteJob(jobId);
+  }
+  await apiClient.delete(`/job/${jobId}`);
+}
+
+export async function adminDeleteJob(jobId: string): Promise<void> {
   if (USE_MOCK) {
     return mockJobs.mockDeleteJob(jobId);
   }

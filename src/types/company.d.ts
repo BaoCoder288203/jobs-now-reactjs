@@ -35,6 +35,7 @@ export interface Company {
   create_job_count?: number;
   is_verified?: boolean;
   follower_count?: number;
+  priority_level?: number;
   created_at: string;
   updated_at: string;
 

@@ -11,7 +11,8 @@ export function CompanyCarousel() {
   const [itemsPerView, setItemsPerView] = useState(4);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const companies = companiesData?.items || [];
+  const rawCompanies = companiesData?.items || [];
+  const companies = [...rawCompanies].sort((a, b) => (b.priority_level ?? 0) - (a.priority_level ?? 0));
   const maxIndex = Math.max(0, companies.length - itemsPerView);
 
   useEffect(() => {

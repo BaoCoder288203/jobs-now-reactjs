@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { useMatchedCandidates, useRecalculateForJob } from '@/modules/cv/hooks';
@@ -91,16 +92,18 @@ export function EmployerJobsPage() {
   const deleteJob = useDeleteJob();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [boostModalJobInfo, setBoostModalJobInfo] = useState<{ id: number; title: string } | null>(null);
+  const [jobToDelete, setJobToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const companyJobs = jobsData?.items?.filter(job => job.company_id === companyId) || [];
 
   const isLoading = companyLoading || jobsLoading;
 
-  const handleDelete = async (jobId: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa việc làm này?')) return;
+  const handleConfirmDelete = async () => {
+    if (!jobToDelete) return;
     try {
-      await deleteJob.mutateAsync(jobId);
-      toast.success('Đã xóa việc làm');
+      await deleteJob.mutateAsync(jobToDelete.id);
+      toast.success('Đã xóa việc làm thành công');
+      setJobToDelete(null);
     } catch {
       toast.error('Xóa việc làm thất bại');
     }
@@ -233,9 +236,9 @@ export function EmployerJobsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(job.id)}
+                        onClick={() => setJobToDelete({ id: job.id, title: job.title })}
                         disabled={deleteJob.isPending}
-                        className="gap-2 w-full text-red-600 hover:text-red-700"
+                        className="gap-2 w-full"
                       >
                         <Trash2 className="h-4 w-4" />
                         Xóa
@@ -272,6 +275,38 @@ export function EmployerJobsPage() {
         jobId={boostModalJobInfo?.id || null}
         jobTitle={boostModalJobInfo?.title}
       />
+
+      <Dialog open={jobToDelete !== null} onOpenChange={(open) => !open && setJobToDelete(null)}>
+        <DialogContent className="max-w-md p-6" onClose={() => setJobToDelete(null)}>
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <AlertCircle className="h-6 w-6 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Xác nhận xóa việc làm</h3>
+            <p className="text-gray-600 mb-6">
+              Bạn có chắc chắn muốn xóa việc làm <span className="font-semibold text-gray-900 border-b border-gray-300 pb-0.5">{jobToDelete?.title}</span> không?
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3 w-full">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setJobToDelete(null)}
+                disabled={deleteJob.isPending}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleConfirmDelete}
+                disabled={deleteJob.isPending}
+              >
+                {deleteJob.isPending ? 'Đang xóa...' : 'Xóa việc làm'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

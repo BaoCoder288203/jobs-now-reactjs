@@ -25,6 +25,7 @@ interface CompanyDTO {
   isVerified?: boolean;
   jobPostCount?: number;
   followerCount?: number;
+  priorityLevel?: number;
   createdAt?: string;
   email?: string;
   phone?: string;
@@ -57,6 +58,7 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
     is_verified: dto.isVerified ?? false,
     create_job_count: dto.jobPostCount,
     follower_count: dto.followerCount,
+    priority_level: dto.priorityLevel ?? 0,
     owner_user_id: dto.ownerUserId != null ? String(dto.ownerUserId) : '',
     created_at: dto.createdAt ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -77,6 +79,8 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
   };
 }
 
+
+
 export async function getCompanies(params?: PaginationParams): Promise<PaginatedResponse<Company>> {
   if (USE_MOCK) {
     return mockCompanies.mockGetCompanies(params);
@@ -85,7 +89,11 @@ export async function getCompanies(params?: PaginationParams): Promise<Paginated
   const response = (await apiClient.get('/company/all')) as { data?: CompanyDTO[] };
   const items = (response.data ?? response) as CompanyDTO[] | CompanyDTO;
   const listRaw = Array.isArray(items) ? items : [items];
-  const list = listRaw.map(mapCompanyDTOToCompany).filter((c): c is Company => c != null);
+  let list = listRaw.map(mapCompanyDTOToCompany).filter((c): c is Company => c != null);
+  
+  // Sắp xếp ưu tiên VIP/Premium lên đầu tiên (3 -> 2 -> 0)
+  list.sort((a, b) => (b.priority_level ?? 0) - (a.priority_level ?? 0));
+
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 10;
   const start = (page - 1) * limit;
