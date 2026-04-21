@@ -3,13 +3,15 @@ import {
   getPlans,
   createPaymentUrl,
   getSubscriptionStatus,
+  cancelPendingPayment,
   type SubscriptionPlan,
   type CompanySubscriptionStatus,
 } from '@/services/subscription-plan.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Check, Zap, Crown, Star, FileText, ScanLine, Clock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Check, Zap, Crown, Star, FileText, ScanLine, Clock, AlertCircle, ArrowRight, BadgeCheck, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 
@@ -58,6 +60,8 @@ export default function PricingPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<CompanySubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
+  const [canceling, setCanceling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [reveal, setReveal] = useState(false);
 
   useEffect(() => {
@@ -90,6 +94,27 @@ export default function PricingPage() {
       toast.error(error?.message || 'Tạo thanh toán thất bại');
     } finally {
       setPurchasing(null);
+    }
+  };
+
+  const handleRequestCancel = () => {
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    try {
+      setCanceling(true);
+      await cancelPendingPayment('SUBSCRIPTION');
+      toast.success('Đã hủy giao dịch kẹt. Bạn có thể mua gói mới ngay bây giờ!');
+      
+      // Reload status
+      const statusData = await getSubscriptionStatus();
+      setSubscriptionStatus(statusData || null);
+    } catch (error: any) {
+      toast.error(error?.message || 'Hủy giao dịch thất bại');
+    } finally {
+      setCanceling(false);
+      setShowCancelModal(false);
     }
   };
 
@@ -178,11 +203,22 @@ export default function PricingPage() {
 
             {/* Pending Order Warning */}
             {subscriptionStatus.hasPendingOrder && (
-              <div className="bg-amber-50 px-6 py-4 flex items-start gap-3 border-t border-amber-100">
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800">
-                  <span className="font-semibold">Bạn đang có giao dịch chờ thanh toán.</span> Vui lòng hoàn tất thanh toán hoặc chờ hệ thống cập nhật trước khi mua gói mới.
-                </p>
+              <div className="bg-amber-50 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-amber-100">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800">
+                    <span className="font-semibold">Bạn đang có giao dịch chờ thanh toán.</span> Vui lòng thanh toán hoặc hủy nó để mua gói mới.
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRequestCancel}
+                  disabled={canceling}
+                  className="shrink-0 bg-white border-amber-300 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                >
+                  {canceling ? 'Đang hủy...' : 'Hủy giao dịch cũ'}
+                </Button>
               </div>
             )}
             </div>
@@ -251,6 +287,38 @@ export default function PricingPage() {
                       <span className="text-sm text-slate-700 font-medium">Mở khóa tính năng <strong className="text-slate-900">AI CV Builder</strong></span>
                     </li>
                   )}
+                  {plan.type === 'VIP' && (
+                    <>
+                      <li className="flex items-start gap-3">
+                        <div className="rounded-full bg-amber-100 p-1 shrink-0 mt-0.5">
+                          <Crown className="h-3 w-3 text-amber-600 stroke-[3]" />
+                        </div>
+                        <span className="text-sm text-slate-700 font-medium">Huy hiệu <strong className="text-amber-600 border-b border-amber-300 pb-0.5">Top Employer</strong> với hiệu ứng thẻ lấp lánh (Shimmer Effect)</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="rounded-full bg-amber-100 p-1 shrink-0 mt-0.5">
+                          <TrendingUp className="h-3 w-3 text-amber-600 stroke-[3]" />
+                        </div>
+                        <span className="text-sm text-slate-700 font-medium"><strong className="text-slate-900">Ưu tiên hiển thị:</strong> Xếp hạng tối đa, luôn nằm trên cùng các kết quả tìm kiếm công ty</span>
+                      </li>
+                    </>
+                  )}
+                  {plan.type === 'PREMIUM' && (
+                    <>
+                      <li className="flex items-start gap-3">
+                        <div className="rounded-full bg-blue-100 p-1 shrink-0 mt-0.5">
+                          <BadgeCheck className="h-3 w-3 text-blue-600 stroke-[3]" />
+                        </div>
+                        <span className="text-sm text-slate-700 font-medium">Tích xanh xác thực <strong className="text-blue-600">Verified</strong> chuẩn chuyên nghiệp</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="rounded-full bg-blue-100 p-1 shrink-0 mt-0.5">
+                          <TrendingUp className="h-3 w-3 text-blue-600 stroke-[3]" />
+                        </div>
+                        <span className="text-sm text-slate-700 font-medium"><strong className="text-slate-900">Ưu tiên hiển thị:</strong> Nổi bật tinh tế, xếp thứ hạng rất cao (chỉ sau VIP)</span>
+                      </li>
+                    </>
+                  )}
                   {plan.description && (
                     <li className="flex items-start gap-3">
                       <div className="rounded-full bg-emerald-100 p-1 shrink-0 mt-0.5">
@@ -289,6 +357,37 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+        <DialogContent className="max-w-md p-6" onClose={() => setShowCancelModal(false)}>
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+              <AlertCircle className="h-6 w-6 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Hủy giao dịch cũ</h3>
+            <p className="text-gray-600 mb-6">
+              Bạn có chắc chắn muốn hủy bỏ đơn hàng đang kẹt để tiến hành đăng ký gói mới không? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3 w-full">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowCancelModal(false)}
+                disabled={canceling}
+              >
+                Giữ lại
+              </Button>
+              <Button
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={handleConfirmCancel}
+                disabled={canceling}
+              >
+                {canceling ? 'Đang xử lý...' : 'Đồng ý hủy'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

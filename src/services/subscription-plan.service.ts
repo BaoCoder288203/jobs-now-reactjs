@@ -93,6 +93,10 @@ export const createPaymentUrl = async (planId: number, jobId?: number): Promise<
   return res.data.paymentUrl;
 };
 
+export const cancelPendingPayment = async (scope: string = 'SUBSCRIPTION'): Promise<void> => {
+  await apiClient.post('/payment/cancel-pending', null, { params: { scope } });
+};
+
 export const getPaymentHistory = async (): Promise<PaymentHistory[]> => {
   const res = await apiClient.get('/payment/history');
   return res.data;
