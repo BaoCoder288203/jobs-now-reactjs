@@ -38,6 +38,7 @@ export interface JobListParams extends PaginationParams {
   company_id?: string;
   category_id?: string;
   category_ids?: string[];
+  categories?: string[];
   industry_id?: string;
   min_salary?: number;
   max_salary?: number;
