@@ -149,7 +149,7 @@ const jobSchema = z
     });
   });
 
-type JobFormData = z.infer<typeof jobSchema>;
+type JobFormData = z.input<typeof jobSchema>;
 
 function defaultDeadline() {
   const d = new Date();
