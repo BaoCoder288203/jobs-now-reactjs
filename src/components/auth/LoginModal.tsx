@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useNavigate } from 'react-router-dom';
 import * as authService from '@/services/auth.service';
+import linkedinIcon from '@/assets/icons-socials/linkedin.svg';
 
 type RoleMode = 'job_seeker' | 'employer';
 
@@ -448,12 +449,16 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                     <div className="flex justify-center">
                       <Button
                         type="button"
-                        variant="outline"
-                        className="w-[272px]"
+                        className="h-10 w-[272px] rounded-[2px] bg-[#0A66C2] p-0 font-semibold text-white hover:bg-[#004182]"
                         onClick={handleLinkedInLogin}
                         disabled={isLoading}
                       >
-                        Đăng nhập với LinkedIn
+                        <span className="flex h-full w-10 items-center justify-center rounded-l-[2px] bg-white">
+                          <img src={linkedinIcon} alt="" className="h-5 w-5" />
+                        </span>
+                        <span className="flex-1 text-center text-[15px] leading-none">
+                          {isLoading ? 'Đang xử lý...' : 'Đăng nhập bằng LinkedIn'}
+                        </span>
                       </Button>
                     </div>
                   </div>

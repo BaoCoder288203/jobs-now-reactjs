@@ -1,4 +1,4 @@
-import { User, LayoutDashboard, Briefcase, FileText, Bookmark, Settings, Bell, MessageCircle, Building2, UserCog } from "lucide-react";
+import { User, LayoutDashboard, Briefcase, FileText, Bookmark, Settings, Bell, Building2, UserCog, MessageCircle } from "lucide-react";
 import { useAppSelector } from "@/app/hooks";
 import { Navigate, NavLink, Outlet } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -7,7 +7,6 @@ import { Footer } from "@/components/layout/Footer";
 const commonItems = [
   { title: "Thông tin", icon: User, href: "info" },
   { title: "Thông báo", icon: Bell, href: "notifications" },
-  { title: "Tin nhắn", icon: MessageCircle, href: "chat" },
   { title: "Cài đặt", icon: Settings, href: "settings" },
 ];
 
@@ -16,6 +15,7 @@ const jobSeekerItems = [
   { title: "Hồ sơ nghề nghiệp", icon: UserCog, href: "profile" },
   { title: "Ứng tuyển", icon: Briefcase, href: "applications" },
   { title: "CV của tôi", icon: FileText, href: "resumes" },
+  { title: "Tin nhắn", icon: MessageCircle, href: "chat" },
   { title: "Việc làm đã lưu", icon: Bookmark, href: "saved-jobs" },
   { title: "Công ty theo dõi", icon: Building2, href: "followed-companies" },
 ];

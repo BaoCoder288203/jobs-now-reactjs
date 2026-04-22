@@ -17,7 +17,9 @@ export function SupportWidget() {
 
   const userRole = user?.role;
   const canUseInAppSupport = userRole === 'ROLE_JOBSEEKER' || userRole === 'ROLE_COMPANY';
-  const shouldHideWidget = userRole === 'ROLE_ADMIN' || location.pathname.startsWith('/user/chat') || location.pathname.startsWith('/admin/support');
+  const chatPath = userRole === 'ROLE_COMPANY' ? '/employer/chat' : '/user/chat';
+  const isOnChatPage = location.pathname.startsWith('/user/chat') || location.pathname.startsWith('/employer/chat');
+  const shouldHideWidget = userRole === 'ROLE_ADMIN' || isOnChatPage || location.pathname.startsWith('/admin/support');
 
   useHotkey('Escape', () => setIsOpen(false), {
     enabled: isOpen,
@@ -41,7 +43,7 @@ export function SupportWidget() {
     try {
       const supportConversation = await createSupportConversation();
       setIsOpen(false);
-      navigate('/user/chat', {
+      navigate(chatPath, {
         state: {
           openConversationId: supportConversation.conversationId,
           openConversation: supportConversation,
