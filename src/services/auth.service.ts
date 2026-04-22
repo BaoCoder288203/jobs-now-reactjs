@@ -1,6 +1,9 @@
 import type { AuthResponse, BaseResponse } from '@/types';
 import { apiClient } from './api';
 
+const LINKEDIN_AUTH_URL = 'https://www.linkedin.com/oauth/v2/authorization';
+const LINKEDIN_SCOPE = 'openid profile email';
+
 export async function login(email: string, password: string): Promise<AuthResponse> {
   localStorage.removeItem('token');
 
@@ -82,6 +85,46 @@ export async function googleLogin(idToken: string, roleName: string): Promise<Au
 
   if (response.code !== 200 || !response.data) {
     throw new Error(response.message || 'Đăng nhập Google thất bại');
+  }
+
+  localStorage.setItem('token', response.data.token);
+  return response.data;
+}
+
+export function getLinkedInAuthorizeUrl(state: string): string {
+  const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID;
+  const redirectUri = import.meta.env.VITE_LINKEDIN_REDIRECT_URI;
+
+  if (!clientId || !redirectUri) {
+    throw new Error('Thiếu cấu hình LinkedIn OAuth');
+  }
+
+  const query = new URLSearchParams({
+    response_type: 'code',
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    scope: LINKEDIN_SCOPE,
+    state,
+  });
+
+  return `${LINKEDIN_AUTH_URL}?${query.toString()}`;
+}
+
+export async function linkedinLogin(
+  code: string,
+  roleName: string,
+  redirectUri?: string
+): Promise<AuthResponse> {
+  localStorage.removeItem('token');
+
+  const response: BaseResponse<AuthResponse> = await apiClient.post('/auth/linkedin-login', {
+    code,
+    roleName,
+    redirectUri: redirectUri || import.meta.env.VITE_LINKEDIN_REDIRECT_URI,
+  });
+
+  if (response.code !== 200 || !response.data) {
+    throw new Error(response.message || 'Đăng nhập LinkedIn thất bại');
   }
 
   localStorage.setItem('token', response.data.token);
