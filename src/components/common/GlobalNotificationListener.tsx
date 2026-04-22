@@ -13,6 +13,8 @@ export function GlobalNotificationListener() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const chatPath = user?.role === 'ROLE_COMPANY' ? '/employer/chat' : '/user/chat';
+  const isOnChatPage = location.pathname.startsWith('/user/chat') || location.pathname.startsWith('/employer/chat');
 
   useEffect(() => {
     if (!user?.userId) return;
@@ -30,9 +32,9 @@ export function GlobalNotificationListener() {
 
         notifSub = subscribeToNotifications(user.userId, (notif: any) => {
           if (notif.type === 'CHAT') {
-            if (!location.pathname.startsWith('/user/chat')) {
+            if (!isOnChatPage) {
               toast(
-                <div className="flex flex-col gap-1 cursor-pointer" onClick={() => navigate('/user/chat')}>
+                <div className="flex flex-col gap-1 cursor-pointer" onClick={() => navigate(chatPath)}>
                   <p className="font-semibold text-sm">Tin nhắn mới từ {notif.senderName || 'Ai đó'}</p>
                   <p className="text-sm text-gray-600 line-clamp-1">{notif.content}</p>
                 </div>,
@@ -54,7 +56,7 @@ export function GlobalNotificationListener() {
       isMounted = false;
       if (notifSub) notifSub.unsubscribe();
     };
-  }, [user?.userId, location.pathname, navigate, dispatch, queryClient]);
+  }, [user?.userId, location.pathname, navigate, dispatch, queryClient, chatPath, isOnChatPage]);
 
   return null;
 }

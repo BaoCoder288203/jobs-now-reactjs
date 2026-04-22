@@ -57,6 +57,8 @@ import UserInfoPage from '@/pages/user/UserInfoPage';
 import { NotificationsPage } from '@/pages/user/NotificationsPage';
 import { AdminSupportPage } from '@/pages/admin/SupportPage';
 import ChatPage from '@/pages/user/ChatPage';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 
 export function AppRoutes() {
   return (
@@ -100,6 +102,18 @@ export function AppRoutes() {
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_COMPANY']}>
               <EmployerJobsPage />
+            </RoleGuard>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/employer/chat"
+        element={
+          <RequireAuth>
+            <RoleGuard allowedRoles={['ROLE_COMPANY']}>
+              <DashboardLayout sidebar={<RecruiterSidebar />}>
+                <ChatPage />
+              </DashboardLayout>
             </RoleGuard>
           </RequireAuth>
         }

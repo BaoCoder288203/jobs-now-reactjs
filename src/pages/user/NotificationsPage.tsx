@@ -25,6 +25,7 @@ export function NotificationsPage() {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const chatPath = user?.role === 'ROLE_COMPANY' ? '/employer/chat' : '/user/chat';
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['notifications', user?.userId],
@@ -106,7 +107,7 @@ export function NotificationsPage() {
                     className={cn("flex items-start justify-between gap-3", n.type === 'CHAT' ? "cursor-pointer" : "")}
                     onClick={() => {
                       if (n.type === 'CHAT') {
-                        navigate('/user/chat', { state: { openConversationId: n.conversationId } });
+                        navigate(chatPath, { state: { openConversationId: n.conversationId } });
                       }
                     }}
                   >

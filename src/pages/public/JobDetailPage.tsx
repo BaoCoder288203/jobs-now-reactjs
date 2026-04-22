@@ -303,7 +303,6 @@ export function JobDetailPage() {
   const contactAddress = job.companyAddress || companyDetail?.address || job.location;
   const contactTutorial = job.contactTutorial || companyDetail?.tutorial_apply;
   const socials = (companyDetail?.socials?.length ? companyDetail.socials : job.companySocials) ?? [];
-
   const skillsLine =
     job.jobSkills?.length ?
       job.jobSkills
@@ -338,8 +337,8 @@ export function JobDetailPage() {
     j.company?.name ?? companyDetail?.name ?? job.company?.name ?? '—';
 
   const jobPageUrl = `${window.location.origin}/jobs/${job.id}`;
-  const facebookShareHref = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobPageUrl)}`;
-  const linkedInShareHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobPageUrl)}`;
+  const facebookShareHref = `https://www.facebook.com/sharer/sharer.php?u=${jobPageUrl}`;
+  const linkedInShareHref = `https://www.linkedin.com/sharing/share-offsite/?url=${jobPageUrl}`;
 
   const footerApplyDisabled = !defaultResume && resumes.length === 0;
 
@@ -382,6 +381,7 @@ export function JobDetailPage() {
 
                   <div className="flex flex-wrap gap-2">
                     {job.job_type && <Badge variant="outline">{getJobTypeLabelVi(job.job_type)}</Badge>}
+                    {job.location && <Badge variant="outline">{job.location}</Badge>}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50 rounded-xl px-4 py-3">
