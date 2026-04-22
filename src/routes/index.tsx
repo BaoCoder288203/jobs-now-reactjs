@@ -14,6 +14,7 @@ import { CVImprovePage } from '@/pages/public/CVImprovePage';
 import { HandbookHubPage } from '@/pages/public/HandbookHubPage';
 import { HandbookCategoryPage } from '@/pages/public/HandbookCategoryPage';
 import { HandbookPostDetailPage } from '@/pages/public/HandbookPostDetailPage';
+import { LinkedInCallbackPage } from '@/pages/public/LinkedInCallbackPage';
 
 // Job Seeker Pages
 import { JobSeekerDashboardPage } from '@/pages/job-seeker/DashboardPage';
@@ -80,6 +81,7 @@ export function AppRoutes() {
       <Route path="/tools/tinh-luong-gross-net" element={<ToolsPlaceholderPage />} />
       <Route path="/tools/phong-van" element={<ToolsPlaceholderPage />} />
       <Route path="/payment-result" element={<PaymentResultPage />} />
+      <Route path="/callbacks" element={<LinkedInCallbackPage />} />
 
       {/* Recruiter/Employer Routes */}
       <Route

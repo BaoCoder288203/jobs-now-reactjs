@@ -62,6 +62,21 @@ export const googleLoginAsync = createAsyncThunk(
   }
 );
 
+export const linkedinLoginAsync = createAsyncThunk(
+  'auth/linkedinLogin',
+  async (
+    { code, roleName, redirectUri }: { code: string; roleName: string; redirectUri?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const result = await authService.linkedinLogin(code, roleName, redirectUri);
+      return result;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Đăng nhập LinkedIn thất bại');
+    }
+  }
+);
+
 export const loginByOtpAsync = createAsyncThunk(
   'auth/loginByOtp',
   async (
@@ -184,6 +199,22 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(googleLoginAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+        state.isAuthenticated = false;
+      })
+      .addCase(linkedinLoginAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(linkedinLoginAsync.fulfilled, (state, action: PayloadAction<AuthResponse>) => {
+        state.isLoading = false;
+        state.user = toUser(action.payload);
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(linkedinLoginAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
         state.isAuthenticated = false;

@@ -4,7 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useAppDispatch } from '@/app/hooks';
-import { loginAsync, loginByOtpAsync, googleLoginAsync, registerAsync, verifyOtpAsync } from '@/auth/authSlice';
+import {
+  loginAsync,
+  loginByOtpAsync,
+  googleLoginAsync,
+  registerAsync,
+  verifyOtpAsync,
+} from '@/auth/authSlice';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -312,6 +318,24 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
     }
   };
 
+  const handleLinkedInLogin = () => {
+    try {
+      setError(null);
+      const state = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const roleName = mode === 'employer' ? 'ROLE_COMPANY' : 'ROLE_JOBSEEKER';
+      const redirectUri = import.meta.env.VITE_LINKEDIN_REDIRECT_URI || `${window.location.origin}/callbacks`;
+
+      localStorage.setItem('linkedin_oauth_state', state);
+      localStorage.setItem('linkedin_oauth_role', roleName);
+      localStorage.setItem('linkedin_oauth_redirect_uri', redirectUri);
+
+      const authUrl = authService.getLinkedInAuthorizeUrl(state);
+      window.location.href = authUrl;
+    } catch (err: any) {
+      setError(err.message || 'Không thể khởi tạo đăng nhập LinkedIn');
+    }
+  };
+
   const handleResendLoginOtp = async () => {
     try {
       setError(null);
@@ -420,6 +444,17 @@ export function LoginModal({ open, onOpenChange, mode }: LoginModalProps) {
                         shape="rectangular"
                         width={272}
                       />
+                    </div>
+                    <div className="flex justify-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-[272px]"
+                        onClick={handleLinkedInLogin}
+                        disabled={isLoading}
+                      >
+                        Đăng nhập với LinkedIn
+                      </Button>
                     </div>
                   </div>
                 </div>
