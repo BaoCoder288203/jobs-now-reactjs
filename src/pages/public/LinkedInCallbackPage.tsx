@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '@/app/hooks';
 import { linkedinLoginAsync } from '@/auth/authSlice';
@@ -36,10 +36,12 @@ export function LinkedInCallbackPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const hasSubmittedRef = useRef(false);
 
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const oauthError = searchParams.get('error');
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
   const redirectUri = useMemo(
     () => localStorage.getItem(LINKEDIN_REDIRECT_KEY) || import.meta.env.VITE_LINKEDIN_REDIRECT_URI,
@@ -47,6 +49,10 @@ export function LinkedInCallbackPage() {
   );
 
   useEffect(() => {
+    if (hasSubmittedRef.current) {
+      return;
+    }
+
     const expectedState = localStorage.getItem(LINKEDIN_STATE_KEY);
     const roleName = localStorage.getItem(LINKEDIN_ROLE_KEY) || 'ROLE_JOBSEEKER';
 
@@ -74,9 +80,24 @@ export function LinkedInCallbackPage() {
       return;
     }
 
+    if (
+      window.location.hostname !== 'localhost' &&
+      (apiBaseUrl.includes('localhost') || apiBaseUrl.includes('127.0.0.1'))
+    ) {
+      setError('Cấu hình API chưa đúng cho môi trường production. Vui lòng liên hệ quản trị viên.');
+      clearOAuthStorage();
+      return;
+    }
+
+    hasSubmittedRef.current = true;
+    const timeoutId = window.setTimeout(() => {
+      setError('Hết thời gian xác thực LinkedIn. Vui lòng thử lại.');
+    }, 15000);
+
     void (async () => {
       try {
         const result = await dispatch(linkedinLoginAsync({ code, roleName, redirectUri })).unwrap();
+        window.clearTimeout(timeoutId);
         clearOAuthStorage();
 
         if (result.role === 'ROLE_COMPANY') {
@@ -89,10 +110,11 @@ export function LinkedInCallbackPage() {
         }
         navigate('/user/dashboard', { replace: true });
       } catch (err: unknown) {
+        window.clearTimeout(timeoutId);
         setError(resolveLinkedInErrorMessage(err));
       }
     })();
-  }, [code, dispatch, navigate, oauthError, redirectUri, state]);
+  }, [apiBaseUrl, code, dispatch, navigate, oauthError, redirectUri, state]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">

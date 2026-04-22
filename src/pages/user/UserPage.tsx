@@ -7,7 +7,6 @@ import { Footer } from "@/components/layout/Footer";
 const commonItems = [
   { title: "Thông tin", icon: User, href: "info" },
   { title: "Thông báo", icon: Bell, href: "notifications" },
-  { title: "Tin nhắn", icon: MessageCircle, href: "chat" },
   { title: "Cài đặt", icon: Settings, href: "settings" },
 ];
 

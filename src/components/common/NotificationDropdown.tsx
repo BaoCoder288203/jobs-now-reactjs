@@ -32,7 +32,8 @@ export function NotificationDropdown({
 }: NotificationDropdownProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { unreadMessageCount } = useAppSelector((state) => state.auth);
+  const { unreadMessageCount, user } = useAppSelector((state) => state.auth);
+  const chatPath = user?.role === 'ROLE_COMPANY' ? '/employer/chat' : '/user/chat';
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['notifications', userId],
@@ -92,7 +93,7 @@ export function NotificationDropdown({
               onClick={() => {
                 onClose();
                 if (n.type === 'CHAT') {
-                  navigate('/user/chat', { state: { openConversationId: n.conversationId } });
+                  navigate(chatPath, { state: { openConversationId: n.conversationId } });
                 } else {
                   navigate('/user/notifications');
                 }

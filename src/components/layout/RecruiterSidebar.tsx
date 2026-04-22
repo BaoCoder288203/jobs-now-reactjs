@@ -25,7 +25,7 @@ interface SidebarItem {
 const menuItems: SidebarItem[] = [
   { title: 'Tổng quan', href: '/employer/dashboard', icon: LayoutDashboard },
   { title: 'Việc làm', href: '/employer/jobs', icon: Briefcase },
-  { title: 'Tin nhắn', href: '/user/chat', icon: MessageCircle },
+  { title: 'Tin nhắn', href: '/employer/chat', icon: MessageCircle },
   { title: 'Đơn ứng tuyển', href: '/employer/applications', icon: Users },
   { title: 'Người theo dõi', href: '/employer/followers', icon: UserPlus },
   { title: 'Công ty', href: '/employer/company', icon: Building2 },
