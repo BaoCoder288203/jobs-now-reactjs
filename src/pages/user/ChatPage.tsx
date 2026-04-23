@@ -360,7 +360,7 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="h-[calc(100vh-170px)] min-h-[560px] flex flex-col bg-gray-50 overflow-hidden rounded-xl border border-gray-200">
+    <div className="h-[calc(100vh-60px)] min-h-[560px] flex flex-col bg-gray-50 overflow-hidden rounded-xl border border-gray-200">
       <div className="flex-1 flex overflow-hidden">
         <div
           className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col bg-white border-r border-gray-200`}
@@ -624,7 +624,7 @@ export default function ChatPage() {
                   <button
                     onClick={handleSend}
                     disabled={(!newMessage.trim() && !selectedFile) || isUploading}
-                    className="mr-16 p-2.5 rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="ml-2 p-2.5 rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     {isUploading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

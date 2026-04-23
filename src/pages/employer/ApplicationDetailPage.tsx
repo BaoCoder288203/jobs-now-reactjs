@@ -184,6 +184,24 @@ export function EmployerApplicationDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Interview Details */}
+            {application.status === 'interviewing' && application.interview_details_html && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nội dung phỏng vấn đã gửi</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-sm max-w-none text-gray-700 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                    <RichTextContent html={application.interview_details_html
+                      .replace(/\{\{name\}\}/g, application.user?.fullName ?? 'Ứng viên')
+                      .replace(/\{\{jobTitle\}\}/g, application.job?.title ?? '')
+                      .replace(/\{\{companyName\}\}/g, application.job?.company?.name ?? '')
+                    } />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -227,18 +245,6 @@ export function EmployerApplicationDetailPage() {
                     </p>
                   </div>
                 </div>
-                {application.status === 'interviewing' && application.interview_details_html && (
-                  <div className="pt-4 border-t border-gray-200">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Nội dung đã gửi ứng viên</p>
-                    <div className="prose prose-sm max-w-none text-gray-700 border rounded-lg p-3 bg-gray-50">
-                      <RichTextContent html={application.interview_details_html
-                        .replace(/\{\{name\}\}/g, application.user?.fullName ?? 'Ứng viên')
-                        .replace(/\{\{jobTitle\}\}/g, application.job?.title ?? '')
-                        .replace(/\{\{companyName\}\}/g, application.job?.company?.name ?? '')
-                      } />
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 

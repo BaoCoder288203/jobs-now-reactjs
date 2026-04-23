@@ -167,7 +167,7 @@ export function JobDetailPage() {
       }
       return;
     }
-    
+
     try {
       if (isSaved) {
         await unsaveJob.mutateAsync({ profileId: String(profileId), jobId: id });
@@ -312,14 +312,14 @@ export function JobDetailPage() {
         })
         .filter(Boolean)
         .join(', ')
-    : '—';
+      : '—';
 
   const majorsLine = job.majors?.length ? job.majors.map((m) => m.name).filter(Boolean).join(', ') : '—';
 
   const ageLine =
     job.minAge != null || job.maxAge != null ?
       `${job.minAge ?? '—'} - ${job.maxAge ?? '—'}`
-    : 'Không yêu cầu';
+      : 'Không yêu cầu';
 
   const relatedJobs = (relatedPage ?? []).filter((j) => j.id !== job.id).slice(0, 8);
   const companyJobs =
@@ -572,7 +572,7 @@ export function JobDetailPage() {
                             >
                               {s.logoUrl ?
                                 <img src={s.logoUrl} alt="" className="h-5 w-5 rounded object-cover" />
-                              : null}
+                                : null}
                               {SOCIAL_PLATFORM_LABELS_VI[s.platform] ?? s.platform}
                             </a>
                           ))}
@@ -779,13 +779,13 @@ export function JobDetailPage() {
                               error && typeof error === 'object' && 'message' in error
                                 ? String((error as { message?: string }).message)
                                 : '';
-                            toast.error(toAiMatchErrorMessage(message) || 'Kiểm tra độ phù hợp thất bại');
+                            toast.error(toAiMatchErrorMessage(message) || 'AI phân tích thất bại');
                           }
                         }}
                         disabled={calculateMatch.isPending}
                       >
                         <Target className="h-4 w-4" />
-                        {calculateMatch.isPending ? 'Đang phân tích...' : 'Kiểm tra độ phù hợp'}
+                        {calculateMatch.isPending ? 'Đang phân tích...' : 'AI Phân tích độ phù hợp'}
                       </Button>
                     </CardContent>
                   </Card>
@@ -804,7 +804,7 @@ export function JobDetailPage() {
                     <h3 className="font-semibold text-gray-900 mb-3">Việc làm liên quan</h3>
                     {relatedJobs.length === 0 ?
                       <p className="text-sm text-gray-500">Chưa có tin cùng ngành tuyển dụng.</p>
-                    : <ul className="space-y-3">
+                      : <ul className="space-y-3">
                         {relatedJobs.map((j) => (
                           <RelatedJobCard key={j.id} job={j} />
                         ))}
@@ -837,36 +837,36 @@ export function JobDetailPage() {
           <div className="flex gap-2 shrink-0">
             {!isAvailable ?
               <p className="text-sm text-amber-700 self-center">Tin không còn nhận hồ sơ</p>
-            : !isAuthenticated ?
-              <Button className="flex-1 sm:flex-initial" size="lg" onClick={() => openLoginModal('job_seeker')}>
-                Đăng nhập để ứng tuyển
-              </Button>
-            : user?.role !== 'ROLE_JOBSEEKER' ?
-              <span className="text-sm text-gray-600 self-center">Chỉ người tìm việc mới ứng tuyển được</span>
-            : hasApplied ?
-              <Link to="/user/applications" className="flex-1 sm:flex-initial">
-                <Button variant="outline" className="w-full" size="lg">
-                  Xem đơn ứng tuyển
+              : !isAuthenticated ?
+                <Button className="flex-1 sm:flex-initial" size="lg" onClick={() => openLoginModal('job_seeker')}>
+                  Đăng nhập để ứng tuyển
                 </Button>
-              </Link>
-            : <>
-                <Button variant="outline" size="lg" className="gap-2" onClick={handleSaveJob}>
-                  {isSaved ?
-                    <>
-                      <BookmarkCheck className="h-4 w-4" />
-                      Đã lưu
+                : user?.role !== 'ROLE_JOBSEEKER' ?
+                  <span className="text-sm text-gray-600 self-center">Chỉ người tìm việc mới ứng tuyển được</span>
+                  : hasApplied ?
+                    <Link to="/user/applications" className="flex-1 sm:flex-initial">
+                      <Button variant="outline" className="w-full" size="lg">
+                        Xem đơn ứng tuyển
+                      </Button>
+                    </Link>
+                    : <>
+                      <Button variant="outline" size="lg" className="gap-2" onClick={handleSaveJob}>
+                        {isSaved ?
+                          <>
+                            <BookmarkCheck className="h-4 w-4" />
+                            Đã lưu
+                          </>
+                          : <>
+                            <Bookmark className="h-4 w-4" />
+                            Lưu việc làm
+                          </>
+                        }
+                      </Button>
+                      <Button size="lg" className="gap-2 min-w-[160px]" onClick={() => setShowApplyModal(true)} disabled={footerApplyDisabled}>
+                        <Send className="h-4 w-4" />
+                        Ứng tuyển ngay
+                      </Button>
                     </>
-                  : <>
-                      <Bookmark className="h-4 w-4" />
-                      Lưu việc làm
-                    </>
-                  }
-                </Button>
-                <Button size="lg" className="gap-2 min-w-[160px]" onClick={() => setShowApplyModal(true)} disabled={footerApplyDisabled}>
-                  <Send className="h-4 w-4" />
-                  Ứng tuyển ngay
-                </Button>
-              </>
             }
           </div>
         </div>
