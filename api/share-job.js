@@ -1,5 +1,5 @@
 const SITE_URL = (process.env.SITE_URL || 'https://jobsnow.id.vn').replace(/\/+$/, '');
-const API_BASE_URL = 'https://jobsnow.onrender.com';
+const API_BASE_URL = (process.env.API_BASE_URL || 'https://jobsnow.onrender.com').replace(/\/+$/, '');
 const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
 
 function escapeHtml(input = '') {
@@ -32,6 +32,21 @@ function getFirstString(...candidates) {
   return '';
 }
 
+async function fetchJobDetail(jobId) {
+  const endpoint = `${API_BASE_URL}/job/${encodeURIComponent(jobId)}`;
+  const upstream = await fetch(endpoint, {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!upstream.ok) {
+    throw new Error(`Fetch failed with ${upstream.status}`);
+  }
+
+  // BE trả BaseResponse { code, message, data }
+  const payload = await upstream.json();
+  return payload?.data ?? payload ?? {};
+}
+
 export default async function handler(req, res) {
   const id = String(req.query?.id || '').trim();
   if (!id) {
@@ -46,28 +61,20 @@ export default async function handler(req, res) {
   const fallbackDescription = 'Cơ hội việc làm mới nhất trên JobsNow.';
 
   try {
-    if (!API_BASE_URL) {
-      throw new Error('Missing API_BASE_URL');
-    }
+    const raw = await fetchJobDetail(id);
 
-    const endpoint = `${API_BASE_URL}/job/${encodeURIComponent(id)}`;
-    const upstream = await fetch(endpoint, {
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!upstream.ok) {
-      throw new Error(`Fetch failed with ${upstream.status}`);
-    }
-
-    const payload = await upstream.json();
-    const raw = payload?.data ?? payload ?? {};
+    // map đúng BE JobsNow
     const jobTitle = getFirstString(raw.title);
-    const companyName = getFirstString(raw.company?.name, raw.companyName);
+    const companyName = getFirstString(raw.companyName);
     const title = jobTitle ? `${jobTitle} | JobsNow` : fallbackTitle;
+
+    // description: ưu tiên text ngắn, không html
     const descriptionSource = getFirstString(raw.description, raw.requirements, companyName);
     const description = truncate(stripHtml(descriptionSource || fallbackDescription), 180) || fallbackDescription;
+
+    // image: ưu tiên thumbnail job, rồi logo company
     const image = toAbsoluteUrl(
-      getFirstString(raw.company?.logo_url, raw.company?.logoUrl, raw.logo_url, raw.logoUrl)
+      getFirstString(raw.thumbnailUrl, raw.companyLogo)
     );
 
     const html = `<!doctype html>
@@ -77,16 +84,19 @@ export default async function handler(req, res) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
     <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="JobsNow" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:image" content="${escapeHtml(image)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(title)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(image)}" />
+
     <meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalUrl)}" />
   </head>
   <body>
@@ -99,7 +109,10 @@ export default async function handler(req, res) {
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('cache-control', 'public, s-maxage=300, stale-while-revalidate=86400');
     res.end(html);
-  } catch (_error) {
+  } catch (error) {
+    // Optional: bật tạm để debug trong Vercel logs
+    console.error('[share-job] failed', { id, message: error?.message });
+
     const fallbackHtml = `<!doctype html>
 <html lang="vi">
   <head>
