@@ -42,9 +42,22 @@ async function fetchJobDetail(jobId) {
     throw new Error(`Fetch failed with ${upstream.status}`);
   }
 
+  const contentType = upstream.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new Error(`Unexpected content-type: ${contentType || 'unknown'}`);
+  }
+
   // BE trả BaseResponse { code, message, data }
   const payload = await upstream.json();
-  return payload?.data ?? payload ?? {};
+  console.log(payload);
+  if (payload && typeof payload === 'object' && 'code' in payload && payload.code !== 200) {
+    throw new Error(`API error code: ${String(payload.code)}`);
+  }
+  const raw = payload?.data ?? payload ?? {};
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Invalid payload shape');
+  }
+  return raw;
 }
 
 export default async function handler(req, res) {
