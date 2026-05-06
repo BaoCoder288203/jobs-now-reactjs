@@ -50,8 +50,11 @@ async function fetchJobDetail(jobId) {
   // BE trả BaseResponse { code, message, data }
   const payload = await upstream.json();
   console.log(payload);
-  if (payload && typeof payload === 'object' && 'code' in payload && payload.code !== 200) {
-    throw new Error(`API error code: ${String(payload.code)}`);
+  if (payload && typeof payload === 'object' && 'code' in payload) {
+    const code = Number(payload.code);
+    if (!Number.isNaN(code) && code !== 200) {
+      throw new Error(`API error code: ${String(payload.code)}`);
+    }
   }
   const raw = payload?.data ?? payload ?? {};
   if (!raw || typeof raw !== 'object') {
@@ -72,6 +75,15 @@ export default async function handler(req, res) {
   const canonicalUrl = `${SITE_URL}/jobs/${encodeURIComponent(id)}`;
   const fallbackTitle = 'Việc làm | JobsNow';
   const fallbackDescription = 'Cơ hội việc làm mới nhất trên JobsNow.';
+  const userAgent = String(req.headers['user-agent'] || '').toLowerCase();
+  const isSocialBot =
+    userAgent.includes('facebookexternalhit') ||
+    userAgent.includes('facebot') ||
+    userAgent.includes('linkedinbot') ||
+    userAgent.includes('twitterbot') ||
+    userAgent.includes('slackbot') ||
+    userAgent.includes('discordbot') ||
+    userAgent.includes('whatsapp');
 
   try {
     const raw = await fetchJobDetail(id);
@@ -89,6 +101,13 @@ export default async function handler(req, res) {
     const image = toAbsoluteUrl(
       getFirstString(raw.thumbnailUrl, raw.companyLogo)
     );
+
+    if (!isSocialBot) {
+      res.statusCode = 302;
+      res.setHeader('Location', canonicalUrl);
+      res.end();
+      return;
+    }
 
     const html = `<!doctype html>
 <html lang="vi">
@@ -110,10 +129,8 @@ export default async function handler(req, res) {
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${escapeHtml(image)}" />
 
-    <meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalUrl)}" />
   </head>
   <body>
-    <script>location.replace(${JSON.stringify(canonicalUrl)});</script>
     <a href="${escapeHtml(canonicalUrl)}">Go to job detail</a>
   </body>
 </html>`;
@@ -135,7 +152,6 @@ export default async function handler(req, res) {
     <meta property="og:description" content="${escapeHtml(fallbackDescription)}" />
     <meta property="og:image" content="${escapeHtml(DEFAULT_IMAGE)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
-    <meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalUrl)}" />
   </head>
   <body></body>
 </html>`;
