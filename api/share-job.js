@@ -1,4 +1,4 @@
-const SITE_URL = (process.env.SITE_URL || 'https://jobsnow.id.vn').replace(/\/+$/, '');
+const SITE_URL = ('https://www.jobsnow.id.vn').replace(/\/+$/, '');
 const API_BASE_URL = (process.env.API_BASE_URL || 'https://jobsnow.onrender.com').replace(/\/+$/, '');
 const DEFAULT_IMAGE = `${SITE_URL}/og-default.jpg`;
 
