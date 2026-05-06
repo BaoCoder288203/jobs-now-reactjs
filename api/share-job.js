@@ -75,16 +75,6 @@ export default async function handler(req, res) {
   const canonicalUrl = `${SITE_URL}/jobs/${encodeURIComponent(id)}`;
   const fallbackTitle = 'Việc làm | JobsNow';
   const fallbackDescription = 'Cơ hội việc làm mới nhất trên JobsNow.';
-  const userAgent = String(req.headers['user-agent'] || '').toLowerCase();
-  const isSocialBot =
-    userAgent.includes('facebookexternalhit') ||
-    userAgent.includes('facebot') ||
-    userAgent.includes('linkedinbot') ||
-    userAgent.includes('twitterbot') ||
-    userAgent.includes('slackbot') ||
-    userAgent.includes('discordbot') ||
-    userAgent.includes('whatsapp');
-
   try {
     const raw = await fetchJobDetail(id);
 
@@ -102,13 +92,6 @@ export default async function handler(req, res) {
       getFirstString(raw.thumbnailUrl, raw.companyLogo)
     );
 
-    if (!isSocialBot) {
-      res.statusCode = 302;
-      res.setHeader('Location', canonicalUrl);
-      res.end();
-      return;
-    }
-
     const html = `<!doctype html>
 <html lang="vi">
   <head>
@@ -116,12 +99,14 @@ export default async function handler(req, res) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
     <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+    <meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalUrl)}" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="JobsNow" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:image" content="${escapeHtml(image)}" />
+    <meta property="og:image:secure_url" content="${escapeHtml(image)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -132,6 +117,7 @@ export default async function handler(req, res) {
   </head>
   <body>
     <a href="${escapeHtml(canonicalUrl)}">Go to job detail</a>
+    <script>window.location.replace(${JSON.stringify(canonicalUrl)});</script>
   </body>
 </html>`;
 
@@ -148,12 +134,17 @@ export default async function handler(req, res) {
   <head>
     <meta charset="utf-8" />
     <title>${escapeHtml(fallbackTitle)}</title>
+    <meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalUrl)}" />
     <meta property="og:title" content="${escapeHtml(fallbackTitle)}" />
     <meta property="og:description" content="${escapeHtml(fallbackDescription)}" />
     <meta property="og:image" content="${escapeHtml(DEFAULT_IMAGE)}" />
+    <meta property="og:image:secure_url" content="${escapeHtml(DEFAULT_IMAGE)}" />
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
   </head>
-  <body></body>
+  <body>
+    <a href="${escapeHtml(canonicalUrl)}">Go to job detail</a>
+    <script>window.location.replace(${JSON.stringify(canonicalUrl)});</script>
+  </body>
 </html>`;
     res.statusCode = 200;
     res.setHeader('content-type', 'text/html; charset=utf-8');
