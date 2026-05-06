@@ -5,6 +5,10 @@
       "destination": "/api/share-job?id=:id"
     },
     {
+      "source": "/robots.txt",
+      "destination": "/robots.txt"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }
