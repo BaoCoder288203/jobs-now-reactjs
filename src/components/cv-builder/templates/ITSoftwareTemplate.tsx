@@ -60,7 +60,7 @@ export function ITSoftwareTemplate({ data, palette, l, avatarLoadFailed, setAvat
         {renderSectionHeader(l.experience, '~/')}
         {data.work_experiences.map((exp, i) => (
           <div key={i} style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: '11pt', color: palette.title }}>{normalizeText(exp.position)}</span>
                 <span style={{ fontSize: '9.5pt', color: palette.muted, fontFamily: 'monospace' }}>
                     [{toTimeline(exp.duration, exp.start_date, exp.end_date, l.present)}]
@@ -88,7 +88,7 @@ export function ITSoftwareTemplate({ data, palette, l, avatarLoadFailed, setAvat
          {renderSectionHeader(l.projects, './')}
         {data.projects.map((prj, i) => (
           <div key={i} style={{ marginBottom: '20px', borderLeft: `2px solid ${palette.chipBorder}`, paddingLeft: '16px' }}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <span style={{ fontWeight: 700, fontSize: '11pt', color: projectColor }}>{normalizeText(prj.name)}</span>
                 {normalizeText(prj.duration) && (
                   <span style={{ fontSize: '9.5pt', color: palette.muted, fontFamily: 'monospace' }}>[{prj.duration}]</span>
@@ -122,7 +122,7 @@ export function ITSoftwareTemplate({ data, palette, l, avatarLoadFailed, setAvat
          {renderSectionHeader(l.education, '../')}
         {data.educations.map((edu, i) => (
           <div key={i} style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: '10.5pt', color: palette.title }}>{normalizeText(edu.school)}</span>
                 <span style={{ fontSize: '9.5pt', color: palette.muted, fontFamily: 'monospace' }}>
                     [{toTimeline(edu.duration, edu.start_date, edu.end_date, l.present)}]

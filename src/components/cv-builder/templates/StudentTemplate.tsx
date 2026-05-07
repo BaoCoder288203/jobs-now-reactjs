@@ -69,7 +69,7 @@ export function StudentTemplate({ data, palette, l, avatarLoadFailed, setAvatarL
         <h2 style={sectionHeaderStyle}>{l.projects}</h2>
         {data.projects.map((prj, i) => (
           <div key={i} style={{ marginBottom: '16px', backgroundColor: palette.chipBg, padding: '12px', borderRadius: '8px' }}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <span style={{ fontWeight: 800, fontSize: '10.5pt', color: palette.title }}>{normalizeText(prj.name)}</span>
                 {normalizeText(prj.duration) && (
                   <span style={{ fontSize: '9pt', color: palette.muted, backgroundColor: '#fff', padding: '2px 8px', borderRadius: '12px' }}>{prj.duration}</span>
@@ -103,7 +103,7 @@ export function StudentTemplate({ data, palette, l, avatarLoadFailed, setAvatarL
         <h2 style={sectionHeaderStyle}>{l.experience}</h2>
         {data.work_experiences.map((exp, i) => (
           <div key={i} style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: '10.5pt', color: palette.title }}>{normalizeText(exp.position)}</span>
                 <span style={{ fontSize: '9pt', color: palette.muted }}>
                     {toTimeline(exp.duration, exp.start_date, exp.end_date, l.present)}

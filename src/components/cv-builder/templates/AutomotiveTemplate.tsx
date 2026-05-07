@@ -41,7 +41,7 @@ export function AutomotiveTemplate({ data, palette, l, avatarLoadFailed, setAvat
         <h2 style={sectionHeaderStyle}>{l.experience}</h2>
         {data.work_experiences.map((exp, i) => (
           <div key={i} style={{ marginBottom: '14px', borderLeft: `2px solid ${palette.chipBorder}`, paddingLeft: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{ fontWeight: 700, fontSize: '11pt', color: palette.title }}>{normalizeText(exp.position)}</span>
                 {isMeaningfulCompany(exp.company) && (
@@ -71,7 +71,7 @@ export function AutomotiveTemplate({ data, palette, l, avatarLoadFailed, setAvat
         <h2 style={sectionHeaderStyle}>{l.education}</h2>
         {data.educations.map((edu, i) => (
           <div key={i} style={{ marginBottom: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{ fontWeight: 700, color: palette.title }}>{normalizeText(edu.school)}</span>
                 {normalizeText(edu.degree) && <span style={{ color: palette.muted }}> — {edu.degree}</span>}
@@ -136,7 +136,7 @@ export function AutomotiveTemplate({ data, palette, l, avatarLoadFailed, setAvat
 
                 return (
                   <React.Fragment>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontWeight: 600, color: palette.title, wordBreak: 'break-word' }}>{parsed.name}</span>
                       {parsed.issueDate && (
                         <span style={{ fontSize: '9pt', color: palette.muted, whiteSpace: 'nowrap' }}>{parsed.issueDate}</span>

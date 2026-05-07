@@ -59,6 +59,7 @@ export interface CompanyPostAdminItem {
   title: string;
   slug: string;
   excerpt?: string | null;
+  content?: string | null;
   categoryKey: string;
   createdAt?: string | null;
 }

@@ -17,6 +17,12 @@ export async function mockGetResumes(userId: string): Promise<Resume[]> {
   return getResumesByProfileId(profileId);
 }
 
+export async function mockGetResumesByProfileId(profileId: string | number): Promise<Resume[]> {
+  await delay(300);
+  if (!profileId) return [];
+  return getResumesByProfileId(String(profileId));
+}
+
 export async function mockUploadResume(
   userId: string,
   file: File

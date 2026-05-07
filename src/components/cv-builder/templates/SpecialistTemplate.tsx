@@ -71,7 +71,7 @@ export function SpecialistTemplate({ data, palette, l, avatarLoadFailed, setAvat
         <h2 style={sectionHeaderStyle}>{l.education}</h2>
         {data.educations.map((edu, i) => (
           <div key={i} style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{ fontWeight: 800, fontSize: '11pt', color: palette.title }}>{normalizeText(edu.school)}</span>
                 {normalizeText(edu.degree) && <span style={{ color: palette.muted }}> | {edu.degree}</span>}
@@ -93,7 +93,7 @@ export function SpecialistTemplate({ data, palette, l, avatarLoadFailed, setAvat
         <h2 style={sectionHeaderStyle}>{l.projects}</h2>
         {data.projects.map((prj, i) => (
           <div key={i} style={{ marginBottom: '20px' }}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <span style={{ fontWeight: 800, fontSize: '11pt', color: palette.title }}>{normalizeText(prj.name)}</span>
                 {normalizeText(prj.duration) && (
                   <span style={{ fontSize: '9.5pt', color: palette.muted, fontWeight: 600 }}>{prj.duration}</span>

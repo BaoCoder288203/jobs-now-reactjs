@@ -108,3 +108,17 @@ export function useWithdrawApplication() {
   });
 }
 
+export function useSendCustomEmail() {
+  return useMutation({
+    mutationFn: ({
+      applicationId,
+      subject,
+      bodyHtml,
+    }: {
+      applicationId: string;
+      subject: string;
+      bodyHtml: string;
+    }) => applicationService.sendCustomEmail(applicationId, subject, bodyHtml)
+  });
+}
+

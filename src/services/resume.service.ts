@@ -45,6 +45,17 @@ export async function getResumes(userId: string): Promise<Resume[]> {
   return list.map(mapResumeFromBE);
 }
 
+export async function getResumesByProfileId(profileId: number): Promise<Resume[]> {
+  if (USE_MOCK) {
+    return mockResume.mockGetResumesByProfileId(profileId);
+  }
+  if (!profileId) return [];
+  const listRes = await apiClient.get(`/resume/profile/${profileId}`);
+  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean }[]>(listRes);
+  if (!Array.isArray(list)) return [];
+  return list.map(mapResumeFromBE);
+}
+
 export async function uploadResume(userId: string, file: File, resumeName?: string): Promise<Resume> {
   if (USE_MOCK) {
     return mockResume.mockUploadResume(userId, file);

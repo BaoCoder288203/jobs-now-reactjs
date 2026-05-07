@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import {
 } from '@/modules/handbook/hooks';
 import { getHandbookCategoryLabel } from '@/constants/handbookCategories';
 import { TableData, type TableDataColumn } from '@/components/common/TableData';
+import { RichTextContent } from '@/components/ui/RichTextContent';
 import { toast } from 'sonner';
 import type { CompanyPostAdminItem } from '@/types/handbook';
 
@@ -65,16 +67,21 @@ function AdminPostActions({
   onApprove,
   onOpenReject,
   onTrash,
+  onPreview,
   approvePending,
 }: {
   postId: number;
   onApprove: (id: number) => void;
   onOpenReject: (id: number) => void;
   onTrash: (id: number) => void;
+  onPreview: (id: number) => void;
   approvePending: boolean;
 }) {
   return (
     <div className="flex flex-row flex-wrap justify-end gap-1.5">
+      <Button size="sm" variant="secondary" onClick={() => onPreview(postId)}>
+        Xem bài
+      </Button>
       <Button size="sm" onClick={() => onApprove(postId)} disabled={approvePending}>
         Duyệt
       </Button>
@@ -98,6 +105,7 @@ export function AdminCompanyPostsPage() {
 
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectNote, setRejectNote] = useState('');
+  const [previewPost, setPreviewPost] = useState<CompanyPostAdminItem | null>(null);
 
   const handleApprove = useCallback(
     async (postId: number) => {
@@ -208,6 +216,7 @@ export function AdminCompanyPostsPage() {
             onApprove={handleApprove}
             onOpenReject={handleOpenReject}
             onTrash={handleTrash}
+            onPreview={(id) => setPreviewPost(post)}
             approvePending={approveMut.isPending}
           />
         ),
@@ -281,6 +290,59 @@ export function AdminCompanyPostsPage() {
                   </Button>
                   <Button onClick={handleReject} disabled={rejectMut.isPending}>
                     Gửi từ chối
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {previewPost != null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <Card className="w-full max-w-2xl border shadow-lg overflow-y-auto max-h-[90vh]">
+              <CardContent className="space-y-4 p-6">
+                <div className="flex justify-between items-start border-b pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">{previewPost.title}</h2>
+                    <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                      <p><strong>Công ty đăng:</strong> {previewPost.companyName}</p>
+                      <p><strong>Chuyên mục:</strong> {getHandbookCategoryLabel(previewPost.categoryKey)}</p>
+                      <p><strong>Thời gian tạo:</strong> {previewPost.createdAt ? new Date(previewPost.createdAt).toLocaleString('vi-VN') : '—'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <h3 className="font-semibold text-foreground mb-2">Mô tả ngắn:</h3>
+                  <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-100">
+                    {previewPost.excerpt || 'Không có mô tả.'}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <h3 className="font-semibold text-foreground mb-2">Nội dung bài viết:</h3>
+                  <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-800 border border-gray-100 overflow-hidden">
+                    {previewPost.content ? (
+                      previewPost.content.includes('<') ? (
+                        <RichTextContent html={previewPost.content} className="max-w-none prose-sm" />
+                      ) : (
+                        <div className="whitespace-pre-wrap leading-relaxed">{previewPost.content}</div>
+                      )
+                    ) : (
+                      'Không có nội dung chi tiết.'
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-50">
+                  <Button variant="outline" onClick={() => setPreviewPost(null)}>
+                    Đóng xem trước
+                  </Button>
+                  <Button onClick={() => {
+                    handleApprove(previewPost.postId);
+                    setPreviewPost(null);
+                  }} disabled={approveMut.isPending}>
+                    Duyệt bài này
                   </Button>
                 </div>
               </CardContent>
