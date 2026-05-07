@@ -110,6 +110,7 @@ export function JobDetailPage() {
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   const [coverLetter, setCoverLetter] = useState('');
   const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
+  const [showAllRelated, setShowAllRelated] = useState(false);
   const companyJobsScrollRef = useRef<HTMLDivElement>(null);
 
   const hasApplied = myApplications.some((app) => app.job_id === id);
@@ -322,6 +323,7 @@ export function JobDetailPage() {
       : 'Không yêu cầu';
 
   const relatedJobs = (relatedPage ?? []).filter((j) => j.id !== job.id).slice(0, 8);
+  const visibleRelatedJobs = showAllRelated ? relatedJobs : relatedJobs.slice(0, 5);
   const companyJobs =
     (companyJobsPage?.items ?? []).filter((j) => {
       if (j.id === job.id) return false;
@@ -806,11 +808,23 @@ export function JobDetailPage() {
                     <h3 className="font-semibold text-gray-900 mb-3">Việc làm liên quan</h3>
                     {relatedJobs.length === 0 ?
                       <p className="text-sm text-gray-500">Chưa có tin cùng ngành tuyển dụng.</p>
-                      : <ul className="space-y-3">
-                        {relatedJobs.map((j) => (
+                      : <>
+                        <ul className="space-y-3">
+                          {visibleRelatedJobs.map((j) => (
                           <RelatedJobCard key={j.id} job={j} />
-                        ))}
-                      </ul>
+                          ))}
+                        </ul>
+                        {relatedJobs.length > 4 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="mt-3 w-full"
+                            onClick={() => setShowAllRelated((prev) => !prev)}
+                          >
+                            {showAllRelated ? 'Thu gọn' : 'Xem thêm'}
+                          </Button>
+                        )}
+                      </>
                     }
                   </CardContent>
                 </Card>
