@@ -5,11 +5,7 @@
       "destination": "/api/share-job?id=:id"
     },
     {
-      "source": "/robots.txt",
-      "destination": "/robots.txt"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api|s|assets|favicon.ico|robots.txt|sitemap.xml).*)",
       "destination": "/"
     }
   ]
