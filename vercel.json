@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/s/jobs/:id",
+      "destination": "/api/share-job?id=:id"
+    },
+    {
+      "source": "/((?!api|s|assets|favicon.ico|robots.txt|sitemap.xml).*)",
+      "destination": "/"
+    }
+  ]
+}

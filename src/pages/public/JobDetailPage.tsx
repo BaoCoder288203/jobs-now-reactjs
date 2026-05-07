@@ -336,9 +336,10 @@ export function JobDetailPage() {
   const companyNameForJob = (j: Job) =>
     j.company?.name ?? companyDetail?.name ?? job.company?.name ?? '—';
 
-  const jobPageUrl = `${window.location.origin}/jobs/${job.id}`;
-  const facebookShareHref = `https://www.facebook.com/sharer/sharer.php?u=${jobPageUrl}`;
-  const linkedInShareHref = `https://www.linkedin.com/sharing/share-offsite/?url=${jobPageUrl}`;
+  const shareTargetUrl = `${window.location.origin}/s/jobs/${job.id}`;
+  const encodedShareTargetUrl = encodeURIComponent(shareTargetUrl);
+  const facebookShareHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedShareTargetUrl}`;
+  const linkedInShareHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedShareTargetUrl}`;
 
   const footerApplyDisabled = !defaultResume && resumes.length === 0;
 
