@@ -336,7 +336,8 @@ export function JobDetailPage() {
   const companyNameForJob = (j: Job) =>
     j.company?.name ?? companyDetail?.name ?? job.company?.name ?? '—';
 
-  const shareTargetUrl = `${window.location.origin}/s/jobs/${job.id}`;
+  const shareBaseUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin).replace(/\/+$/, '');
+  const shareTargetUrl = `${shareBaseUrl}/s/jobs/${job.id}`;
   const encodedShareTargetUrl = encodeURIComponent(shareTargetUrl);
   const facebookShareHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedShareTargetUrl}`;
   const linkedInShareHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedShareTargetUrl}`;
