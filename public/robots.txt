@@ -1,13 +1,4 @@
 User-agent: *
 Allow: /
 
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: Facebot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
 Sitemap: https://jobsnow.id.vn/sitemap.xml
