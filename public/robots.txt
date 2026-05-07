@@ -10,4 +10,4 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
-Sitemap: https://www.jobsnow.id.vn/sitemap.xml
+Sitemap: https://jobsnow.id.vn/sitemap.xml
