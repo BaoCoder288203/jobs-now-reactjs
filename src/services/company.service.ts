@@ -184,6 +184,19 @@ export async function deleteCompanyImage(imageId: number): Promise<void> {
   await apiClient.delete(`/company/images/${imageId}`);
 }
 
+export async function addCompanyImage(companyId: string, imageFile: File, type: string = 'OTHER'): Promise<any> {
+  if (USE_MOCK) return;
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  formData.append('type', type);
+  const response = await apiClient.post(`/company/${companyId}/images`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data ?? response;
+}
+
 export async function getCompanyReviews(
   companyId: string,
   page = 1,

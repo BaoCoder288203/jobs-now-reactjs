@@ -208,10 +208,8 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
       if (jobType) {
         filters += `jobType:${jobType}`;
       }
-      if (location) {
-        if (filters) filters += ' AND ';
-        filters += `location:'${location}'`;
-      }
+
+      const searchQuery = [combinedKeyword, location].filter(Boolean).join(' ').trim();
 
       const algoliaParams = [
         filters ? `filters=${encodeURIComponent(filters)}` : '',
@@ -223,7 +221,7 @@ export async function getJobs(params?: JobListParams): Promise<PaginatedResponse
         requests: [
           {
             indexName: 'jobs_now_index',
-            query: combinedKeyword,
+            query: searchQuery,
             params: algoliaParams,
           },
         ],

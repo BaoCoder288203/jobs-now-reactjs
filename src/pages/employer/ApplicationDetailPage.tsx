@@ -5,12 +5,13 @@ import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
-import { useApplicationDetail, useUpdateApplicationStatus } from '@/modules/applications/hooks';
+import { useApplicationDetail, useUpdateApplicationStatus, useSendCustomEmail } from '@/modules/applications/hooks';
 import { useCalculateJobMatch } from '@/modules/cv/hooks';
 import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target } from 'lucide-react';
 import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
+import { SendEmailModal } from '@/components/employer/SendEmailModal';
 import { RichTextContent } from '@/components/ui/RichTextContent';
 import { toast } from 'sonner';
 import type { JobMatchResponse } from '@/services/ai.service';
@@ -18,9 +19,11 @@ import type { JobMatchResponse } from '@/services/ai.service';
 export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [interviewModalOpen, setInterviewModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();
+  const sendEmail = useSendCustomEmail();
   const calculateMatch = useCalculateJobMatch();
   const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
 
@@ -155,19 +158,31 @@ export function EmployerApplicationDetailPage() {
                   )}
                 </div>
 
-                {application.resume && (
+                {application.resume ? (
                   <div className="pt-4 border-t border-gray-200">
                     <a
-                      href={application.resume.file_url}
+                      href={application.resume.file_url || `/cv/${application.user?.profileId}?resumeId=${application.resume.resume_id || application.resume.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-primary hover:underline"
                     >
                       <Download className="h-4 w-4" />
-                      Tải CV: {application.resume.file_name}
+                      {application.resume.file_url ? `Tải CV: ${application.resume.file_name}` : `Xem CV Online: ${application.resume.file_name || 'CV Tạo từ hệ thống'}`}
                     </a>
                   </div>
-                )}
+                ) : application.user?.profileId ? (
+                  <div className="pt-4 border-t border-gray-200">
+                    <a
+                      href={`/cv/${application.user.profileId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-primary hover:underline"
+                    >
+                      <Download className="h-4 w-4" />
+                      Xem CV Online
+                    </a>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -181,6 +196,24 @@ export function EmployerApplicationDetailPage() {
                   <p className="text-gray-700 whitespace-pre-wrap">
                     {application.cover_letter}
                   </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Interview Details */}
+            {application.status === 'interviewing' && application.interview_details_html && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nội dung phỏng vấn đã gửi</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-sm max-w-none text-gray-700 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                    <RichTextContent html={application.interview_details_html
+                      .replace(/\{\{name\}\}/g, application.user?.fullName ?? 'Ứng viên')
+                      .replace(/\{\{jobTitle\}\}/g, application.job?.title ?? '')
+                      .replace(/\{\{companyName\}\}/g, application.job?.company?.name ?? '')
+                    } />
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -227,18 +260,6 @@ export function EmployerApplicationDetailPage() {
                     </p>
                   </div>
                 </div>
-                {application.status === 'interviewing' && application.interview_details_html && (
-                  <div className="pt-4 border-t border-gray-200">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Nội dung đã gửi ứng viên</p>
-                    <div className="prose prose-sm max-w-none text-gray-700 border rounded-lg p-3 bg-gray-50">
-                      <RichTextContent html={application.interview_details_html
-                        .replace(/\{\{name\}\}/g, application.user?.fullName ?? 'Ứng viên')
-                        .replace(/\{\{jobTitle\}\}/g, application.job?.title ?? '')
-                        .replace(/\{\{companyName\}\}/g, application.job?.company?.name ?? '')
-                      } />
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -263,11 +284,13 @@ export function EmployerApplicationDetailPage() {
                   {calculateMatch.isPending ? 'Đang phân tích...' : 'Kiểm tra độ phù hợp AI'}
                 </Button>
                 {application.user?.email && (
-                  <a href={`mailto:${application.user.email}`}>
-                    <Button variant="outline" className="w-full">
-                      Gửi email
-                    </Button>
-                  </a>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setEmailModalOpen(true)}
+                  >
+                    Gửi email
+                  </Button>
                 )}
               </CardContent>
             </Card>
@@ -293,6 +316,27 @@ export function EmployerApplicationDetailPage() {
         onConfirm={async (html) => {
           await handleStatusChange('interviewing', html);
           setInterviewModalOpen(false);
+        }}
+      />
+
+      <SendEmailModal
+        open={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        isSubmitting={sendEmail.isPending}
+        onConfirm={async (subject, html) => {
+          if (!id) return;
+          try {
+            await sendEmail.mutateAsync({
+              applicationId: id,
+              subject,
+              bodyHtml: html
+            });
+            toast.success('Đã gửi email thành công');
+            setEmailModalOpen(false);
+          } catch (error) {
+            toast.error('Có lỗi xảy ra khi gửi email');
+            console.error(error);
+          }
         }}
       />
     </DashboardLayout>

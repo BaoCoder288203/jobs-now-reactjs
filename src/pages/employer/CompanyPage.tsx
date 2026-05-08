@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useMyCompany, useCreateMyCompany, useUpdateMyCompany } from '@/modules/companies/hooks';
+import { useMyCompany, useCreateMyCompany, useUpdateMyCompany, useAddCompanyImage, useDeleteCompanyImage } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CompanyForm } from '@/components/company/CompanyForm';
-import { Building2, MapPin, Users, Globe } from 'lucide-react';
+import { Building2, MapPin, Users, Globe, Image as ImageIcon, Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSubscriptionStatus, type CompanySubscriptionStatus } from '@/services/subscription-plan.service';
 
@@ -19,6 +19,9 @@ export function EmployerCompanyPage() {
   
   const createCompany = useCreateMyCompany();
   const updateCompany = useUpdateMyCompany();
+  const addCompanyImage = useAddCompanyImage();
+  const deleteCompanyImage = useDeleteCompanyImage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const accountStatusLabel = (status?: string) => {
     switch (status) {
@@ -56,6 +59,29 @@ export function EmployerCompanyPage() {
     } catch (error: any) {
       toast.error(error.message || 'Có lỗi xảy ra');
       throw error;
+    }
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!company?.id) return;
+    
+    try {
+      await addCompanyImage.mutateAsync({ companyId: company.id, imageFile: file, type: 'OTHER' });
+      toast.success('Tải ảnh lên thành công');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (error: any) {
+      toast.error(error.message || 'Lỗi tải ảnh lên');
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    try {
+      await deleteCompanyImage.mutateAsync(imageId);
+      toast.success('Đã xóa ảnh thành công');
+    } catch (error: any) {
+      toast.error(error.message || 'Lỗi xóa ảnh');
     }
   };
 
@@ -205,6 +231,62 @@ export function EmployerCompanyPage() {
               )}
             </CardContent>
           </Card>
+
+          {company && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-gray-500" />
+                    <h2 className="text-xl font-bold text-gray-900">Thư viện hình ảnh</h2>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleUploadImage}
+                      disabled={addCompanyImage.isPending}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={addCompanyImage.isPending}
+                      className="gap-2"
+                    >
+                      {addCompanyImage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Tải ảnh lên
+                    </Button>
+                  </div>
+                </div>
+                
+                {(!company.images || company.images.length === 0) ? (
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    Công ty chưa có hình ảnh nào trong thư viện.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {company.images.map((img) => (
+                      <div key={img.imageId} className="group relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-100">
+                        <img src={img.imageUrl} alt="Company image" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button 
+                            variant="destructive" 
+                            size="icon"
+                            onClick={() => handleDeleteImage(img.imageId)}
+                            disabled={deleteCompanyImage.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {subscriptionStatus && (
             <Card>

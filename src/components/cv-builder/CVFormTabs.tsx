@@ -30,11 +30,10 @@ export function CVFormTabs({ editResumeId, initialCVData }: CVFormTabsProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-                activeTab === tab.id
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${activeTab === tab.id
                   ? 'bg-primary text-white'
                   : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Icon className="h-5 w-5" />
               {tab.label}

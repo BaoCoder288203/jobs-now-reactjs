@@ -172,3 +172,18 @@ export async function withdrawApplication(applicationId: string, userId: string)
   await apiClient.delete(`/application/${applicationId}`);
 }
 
+export async function sendCustomEmail(
+  applicationId: string,
+  subject: string,
+  bodyHtml: string
+): Promise<void> {
+  if (USE_MOCK) {
+    console.log('Mock: Send custom email to application', applicationId, { subject, bodyHtml });
+    return;
+  }
+  await apiClient.post(`/application/${applicationId}/send-email`, {
+    subject,
+    bodyHtml
+  });
+}
+

@@ -184,12 +184,12 @@ export function CVPreview({
             useCORS: true,
             logging: false,
             backgroundColor: '#ffffff',
+            scrollY: 0,
             onclone: (clonedDoc: Document) => {
-              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => el.remove());
               const clonedRoot = clonedDoc.querySelector('[data-cv-root="true"]') as HTMLElement | null;
               if (clonedRoot) {
                 clonedRoot.style.boxShadow = 'none';
-                clonedRoot.style.border = '1px solid #e5e7eb';
+                clonedRoot.style.border = 'none';
                 clonedRoot.style.margin = '0';
               }
             },

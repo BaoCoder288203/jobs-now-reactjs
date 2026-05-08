@@ -129,6 +129,19 @@ export function useDeleteCompanyImage() {
   });
 }
 
+export function useAddCompanyImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ companyId, imageFile, type }: { companyId: string; imageFile: File; type?: string }) =>
+      companyService.addCompanyImage(companyId, imageFile, type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.myCompany() });
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+  });
+}
+
 export function useCompanyReviews(companyId: string, page = 1, limit = 5) {
   return useQuery({
     queryKey: companyReviewKeys.list(companyId, page, limit),

@@ -9,9 +9,10 @@ import { Select } from '@/components/ui/select';
 import { useCompanyApplications, useUpdateApplicationStatus } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User } from 'lucide-react';
+import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Application } from '@/types';
+import AiHeadhunterChat from '@/components/AiHeadhunterChat';
 import {
   APPLICATION_STATUS_OPTIONS,
   getApplicationStatusLabel,
@@ -33,6 +34,9 @@ export function EmployerApplicationsPage() {
   const [interviewModalOpen, setInterviewModalOpen] = useState(false);
   const [interviewApplicationId, setInterviewApplicationId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [aiChatJobId, setAiChatJobId] = useState<number | undefined>(undefined);
 
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const companyId = company?.id;
@@ -196,6 +200,16 @@ export function EmployerApplicationsPage() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </Select>
+            <Button 
+              className="gap-2 bg-sky-500 hover:bg-sky-600 text-white"
+              onClick={() => {
+                setAiChatJobId(undefined);
+                setAiChatOpen(true);
+              }}
+            >
+              <Bot className="h-4 w-4" />
+              Lọc hồ sơ AI
+            </Button>
             <Link to="/employer/jobs/create">
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -286,16 +300,31 @@ export function EmployerApplicationsPage() {
                           </p>
                         </div>
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          onClick={() => toggleGroup(group.groupKey)}
-                        >
-                          {isCollapsed ? 'Mở danh sách' : 'Thu gọn'}
-                          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 text-sky-600 border-sky-200 hover:bg-sky-50"
+                            onClick={() => {
+                              setAiChatJobId(Number(group.jobId));
+                              setAiChatOpen(true);
+                            }}
+                          >
+                            <Bot className="h-4 w-4" />
+                            Lọc bằng AI
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => toggleGroup(group.groupKey)}
+                          >
+                            {isCollapsed ? 'Mở danh sách' : 'Thu gọn'}
+                            {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
@@ -403,6 +432,12 @@ export function EmployerApplicationsPage() {
           setInterviewModalOpen(false);
           setInterviewApplicationId(null);
         }}
+      />
+
+      <AiHeadhunterChat 
+        isOpen={aiChatOpen} 
+        onClose={() => setAiChatOpen(false)} 
+        defaultJobId={aiChatJobId} 
       />
     </DashboardLayout>
   );

@@ -6,6 +6,7 @@ import { useMyApplications } from '@/modules/applications/hooks';
 import { useSavedJobs } from '@/modules/savedJobs/hooks';
 import { useProfile } from '@/modules/profile/hooks';
 import { useMyMatches, useRecalculateForProfile } from '@/modules/cv/hooks';
+import { useResumes } from '@/modules/resumes/hooks';
 import { JobCard } from '@/components/common/JobCard';
 import { Link } from 'react-router-dom';
 import { Briefcase, FileText, Bookmark, TrendingUp, ArrowRight, Sparkles, RefreshCw, Target } from 'lucide-react';
@@ -34,8 +35,9 @@ export function JobSeekerDashboardPage() {
   const { data: profile } = useProfile(userId);
   const resolvedProfileId = profile?.profileId ?? authProfileId;
   const { data: applicationsData } = useMyApplications(resolvedProfileId, userId);
-  const { data: savedJobs } = useSavedJobs(userId);
+  const { data: savedJobs } = useSavedJobs(resolvedProfileId ? String(resolvedProfileId) : '');
   const { data: myMatches, isLoading: matchesLoading } = useMyMatches(resolvedProfileId);
+  const { data: resumes } = useResumes(userId);
   const recalculate = useRecalculateForProfile();
   const queryClient = useQueryClient();
 
@@ -71,7 +73,7 @@ export function JobSeekerDashboardPage() {
     },
     {
       title: 'CV của tôi',
-      value: profile ? '1' : '0',
+      value: resumes?.length || 0,
       icon: FileText,
       link: '/user/resumes',
       color: 'text-primary'
