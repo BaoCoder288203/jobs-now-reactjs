@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Search, Loader2, RefreshCw, Users, FileText, ChevronDown, Briefcase } from 'lucide-react';
+import { Bot, Send, Loader2, RefreshCw, Users, FileText, ChevronDown, Briefcase } from 'lucide-react';
 import { ragService } from '@/services/rag.service';
 import type { CandidateMatch } from '@/services/rag.service';
 import { toast } from 'sonner';
@@ -154,7 +154,7 @@ export default function AiHeadhunterChat({ isOpen, onClose, defaultJobId }: AiHe
     }
   };
 
-  const renderCandidateCard = (candidate: CandidateMatch, index: number) => (
+  const renderCandidateCard = (candidate: CandidateMatch) => (
     <div
       key={candidate.profileId}
       className="bg-white border border-slate-200 rounded-lg p-3 mt-3 shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
@@ -340,7 +340,7 @@ export default function AiHeadhunterChat({ isOpen, onClose, defaultJobId }: AiHe
                   </div>
                   {msg.candidates && msg.candidates.length > 0 && (
                     <div className="mt-2">
-                      {msg.candidates.map((c, i) => renderCandidateCard(c, i))}
+                      {msg.candidates.map((c) => renderCandidateCard(c))}
                     </div>
                   )}
                 </div>

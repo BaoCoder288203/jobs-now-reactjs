@@ -161,7 +161,7 @@ export function EmployerApplicationDetailPage() {
                 {application.resume ? (
                   <div className="pt-4 border-t border-gray-200">
                     <a
-                      href={application.resume.file_url || `/cv/${application.user?.profileId}?resumeId=${application.resume.resume_id || application.resume.id}`}
+                      href={application.resume.file_url || `/cv/${application.user?.profileId}?resumeId=${application.resume.resumeId || application.resume.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-primary hover:underline"

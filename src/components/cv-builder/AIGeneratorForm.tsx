@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { CVPreview } from './CVPreview';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import type { GenerateCVResponse } from '@/services/ai.service';
-import { normalizeCVTemplateKey, CV_TEMPLATE_OPTIONS } from '@/constants/cvTemplates';
+import { normalizeCVTemplateKey, CV_TEMPLATE_OPTIONS, type CVTemplateKey } from '@/constants/cvTemplates';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -250,7 +250,9 @@ export function AIGeneratorForm() {
                 <div className="mt-3 animate-in fade-in slide-in-from-top-2">
                   <select
                     value={input.manualTemplate}
-                    onChange={(e) => setInput((p) => ({ ...p, manualTemplate: e.target.value }))}
+                    onChange={(e) =>
+                      setInput((p) => ({ ...p, manualTemplate: e.target.value as CVTemplateKey }))
+                    }
                     className="w-full h-11 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   >
                     {CV_TEMPLATE_OPTIONS.map((template) => (
