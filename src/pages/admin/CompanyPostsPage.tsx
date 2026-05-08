@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -216,7 +215,7 @@ export function AdminCompanyPostsPage() {
             onApprove={handleApprove}
             onOpenReject={handleOpenReject}
             onTrash={handleTrash}
-            onPreview={(id) => setPreviewPost(post)}
+            onPreview={() => setPreviewPost(post)}
             approvePending={approveMut.isPending}
           />
         ),

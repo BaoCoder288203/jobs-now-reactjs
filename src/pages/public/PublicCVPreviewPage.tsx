@@ -39,7 +39,7 @@ export function PublicCVPreviewPage() {
       );
       if (found) return found;
     }
-    return resumes.find((r) => r.is_primary) || resumes[0];
+    return resumes.find((r) => r.is_default) || resumes[0];
   }, [resumes, resumeIdParam]);
 
   const isManualCV = !!resumeToShow && !resumeToShow.extracted_text;
@@ -174,7 +174,7 @@ export function PublicCVPreviewPage() {
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm]">
         <CVPreview
           data={cvData}
-          templateKey={(resumeToShow.template_key as CVTemplateKey) || 'cvhay-industry-safety'}
+          templateKey={(resumeToShow.templateKey as CVTemplateKey) || 'cvhay-industry-safety'}
           showDownloadButton={true}
         />
       </div>
