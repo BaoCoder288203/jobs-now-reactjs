@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { useJobs, useDeleteJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { useMatchedCandidates, useRecalculateForJob } from '@/modules/cv/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle, Target, RefreshCw, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Briefcase, Plus, Edit2, Trash2, MapPin, Calendar, Users, AlertCircle, Target, RefreshCw, ChevronDown, ChevronUp, Zap, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getJobTypeLabel } from '@/constants/jobEnums';
 import { getJobStatusBadge } from '@/utils/jobStatus';
@@ -16,6 +16,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { HotTagBadge } from '@/components/common/HotTagBadge';
 import { BoostJobModal } from '@/components/common/BoostJobModal';
+import { RichTextContent } from '@/components/ui/RichTextContent';
+import { Input } from '@/components/ui/input';
+import { toLocalDateKey } from '@/utils/dateFilter';
 
 function MatchedCandidatesSection({ jobId }: { jobId: number }) {
   const { data: candidates, isLoading } = useMatchedCandidates(jobId);
@@ -93,8 +96,38 @@ export function EmployerJobsPage() {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [boostModalJobInfo, setBoostModalJobInfo] = useState<{ id: number; title: string } | null>(null);
   const [jobToDelete, setJobToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [jobSearch, setJobSearch] = useState('');
+  const [jobDateFrom, setJobDateFrom] = useState('');
+  const [jobDateTo, setJobDateTo] = useState('');
 
   const companyJobs = jobsData?.items?.filter(job => job.company_id === companyId) || [];
+
+  const filteredCompanyJobs = useMemo(() => {
+    let list = companyJobs;
+    const q = jobSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter((job) => {
+        const title = (job.title || '').toLowerCase();
+        const loc = (job.location || '').toLowerCase();
+        return title.includes(q) || loc.includes(q);
+      });
+    }
+    if (jobDateFrom) {
+      list = list.filter((job) => {
+        const key = toLocalDateKey(job.created_at);
+        return key >= jobDateFrom;
+      });
+    }
+    if (jobDateTo) {
+      list = list.filter((job) => {
+        const key = toLocalDateKey(job.created_at);
+        return key <= jobDateTo;
+      });
+    }
+    return list;
+  }, [companyJobs, jobSearch, jobDateFrom, jobDateTo]);
+
+  const hasActiveJobFilters = Boolean(jobSearch.trim() || jobDateFrom || jobDateTo);
 
   const isLoading = companyLoading || jobsLoading;
 
@@ -139,33 +172,146 @@ export function EmployerJobsPage() {
   return (
     <DashboardLayout sidebar={<RecruiterSidebar />}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tin tuyển dụng</h1>
-            <p className="text-gray-600 mt-1">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">
+              Tin tuyển dụng
+            </h1>
+            <p className="mt-1 text-sm text-gray-600 sm:text-base">
               Quản lý tin tuyển dụng của bạn
             </p>
           </div>
-          <Link to="/employer/jobs/create">
-            <Button className="gap-2">
+          <Link to="/employer/jobs/create" className="w-full shrink-0 sm:w-auto">
+            <Button className="w-full gap-2 sm:w-auto">
               <Plus className="h-4 w-4" />
               Đăng tin tuyển dụng
             </Button>
           </Link>
         </div>
 
-        {companyJobs.length > 0 ? (
+        {companyJobs.length > 0 && (
+          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4">
+            <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+              <div className="min-w-0 sm:col-span-2 lg:col-span-2">
+                <label htmlFor="employer-job-search" className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Tìm theo tên tin / địa điểm
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    id="employer-job-search"
+                    type="search"
+                    value={jobSearch}
+                    onChange={(e) => setJobSearch(e.target.value)}
+                    placeholder="Ví dụ: Developer, Hà Nội..."
+                    className="h-9 pl-9"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="employer-job-from" className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Đăng từ ngày
+                </label>
+                <Input
+                  id="employer-job-from"
+                  type="date"
+                  value={jobDateFrom}
+                  onChange={(e) => setJobDateFrom(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end lg:flex-col">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="employer-job-to" className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Đến ngày
+                  </label>
+                  <Input
+                    id="employer-job-to"
+                    type="date"
+                    value={jobDateTo}
+                    onChange={(e) => setJobDateTo(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                {hasActiveJobFilters && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 whitespace-nowrap"
+                    onClick={() => {
+                      setJobSearch('');
+                      setJobDateFrom('');
+                      setJobDateTo('');
+                    }}
+                  >
+                    Xóa lọc
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {companyJobs.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Briefcase className="h-16 w-16 text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-4">Chưa có tin tuyển dụng nào</p>
+              <Link to="/employer/jobs/create" className="w-full sm:w-auto">
+                <Button className="w-full gap-2 sm:w-auto">
+                  <Plus className="h-4 w-4" />
+                  Đăng tin tuyển dụng đầu tiên
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : filteredCompanyJobs.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10">
+              <Search className="mb-3 h-10 w-10 text-gray-400" />
+              <p className="text-center text-gray-600">Không có tin nào khớp bộ lọc</p>
+              <p className="mt-1 text-center text-sm text-gray-500">Thử đổi từ khóa hoặc khoảng ngày đăng tin</p>
+              {hasActiveJobFilters && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => {
+                    setJobSearch('');
+                    setJobDateFrom('');
+                    setJobDateTo('');
+                  }}
+                >
+                  Xóa lọc
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
           <div className="grid grid-cols-1 gap-6">
-            {companyJobs.map((job) => (
+            {filteredCompanyJobs.map((job) => (
               <Card key={job.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Briefcase className="h-5 w-5 text-accent" />
-                        <h3 className="text-xl font-semibold text-gray-900">
-                          {job.title}
-                        </h3>
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-start gap-2">
+                        <Briefcase className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+                        <div className="group relative min-w-0 flex-1">
+                          <h3
+                            title={job.title}
+                            className="line-clamp-2 break-words text-lg font-semibold text-gray-900 md:text-xl"
+                          >
+                            {job.title}
+                          </h3>
+                          <div
+                            role="tooltip"
+                            className="pointer-events-none absolute left-0 top-full z-50 mt-1.5 max-w-[min(100vw-3rem,24rem)] whitespace-normal rounded-md border border-gray-200 bg-gray-900 px-2.5 py-1.5 text-left text-xs font-medium text-white shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                          >
+                            {job.title}
+                          </div>
+                        </div>
                         {getJobStatusBadge(job)}
                         <HotTagBadge tag={(job as any).hotTag} compact />
                       </div>
@@ -202,12 +348,14 @@ export function EmployerJobsPage() {
                         )}
                       </div>
 
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {job.description}
-                      </p>
+                      <RichTextContent
+                        html={job.description ?? ''}
+                        className="text-sm text-gray-600 line-clamp-2 [&_p]:mb-1 [&_p:last-child]:mb-0"
+                        emptyPlaceholder=""
+                      />
                     </div>
 
-                    <div className="ml-6 flex flex-col gap-2">
+                    <div className="flex w-full shrink-0 flex-col gap-2 md:ml-6 md:w-auto">
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -253,19 +401,6 @@ export function EmployerJobsPage() {
               </Card>
             ))}
           </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Briefcase className="h-16 w-16 text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-4">Chưa có tin tuyển dụng nào</p>
-              <Link to="/employer/jobs/create">
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Đăng tin tuyển dụng đầu tiên
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
         )}
       </div>
 

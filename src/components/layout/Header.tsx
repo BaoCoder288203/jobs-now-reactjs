@@ -3,9 +3,9 @@ import { useAppSelector } from '@/app/hooks';
 import { UserDropdown } from '@/components/common/UserDropdown';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { RoleModeSelector } from '@/components/common/RoleModeSelector';
-import { JobsDropdown } from '@/components/layout/JobsDropdown';
+import { JobsDropdown, JobsFilterPanel } from '@/components/layout/JobsDropdown';
 import { ToolsDropdown } from '@/components/layout/ToolsDropdown';
-import { Bell, Search, Phone, Menu, X, ChevronDown, Wrench } from 'lucide-react';
+import { Bell, Search, Phone, Menu, X, ChevronDown, ChevronRight, Wrench } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useRef } from 'react';
 import { useHotkey } from '@tanstack/react-hotkeys';
@@ -20,6 +20,8 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [mobileJobsPanelOpen, setMobileJobsPanelOpen] = useState(false);
+  const [mobileToolsExpanded, setMobileToolsExpanded] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const jobsAnchorRef = useRef<HTMLButtonElement>(null);
   const toolsAnchorRef = useRef<HTMLButtonElement>(null);
@@ -58,6 +60,12 @@ export function Header() {
     }
   };
 
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    setMobileJobsPanelOpen(false);
+    setMobileToolsExpanded(false);
+  };
+
   return (
     <>
       <header
@@ -69,7 +77,13 @@ export function Header() {
             }`}
         >
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => {
+              if (isMobileMenuOpen) {
+                closeMobileMenu();
+                return;
+              }
+              setIsMobileMenuOpen(true);
+            }}
             className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
             aria-label="Toggle menu"
           >
@@ -280,90 +294,130 @@ export function Header() {
         <>
           <div
             className="fixed inset-0 bg-black/50 z-40 md:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={closeMobileMenu}
           />
-          <aside className="fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-80 bg-white shadow-xl md:hidden overflow-y-auto">
-            <div className="flex flex-col h-full p-4 space-y-4">
-              <div className="flex items-center relative">
-                <Input
-                  type="text"
-                  placeholder="Vị trí tuyển dụng, công ty..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="w-full h-12 pr-12 rounded-full border-2 border-[#81d1f3] focus:border-[#5bb8e8] focus:ring-2 focus:ring-[#a8dcf6]/50 outline-none"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#81d1f3] hover:bg-[#5bb8e8] rounded-full transition-colors cursor-pointer z-10"
+          <aside className="fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] w-full md:hidden" onClick={closeMobileMenu}>
+            <div
+              className="relative h-full w-80 overflow-hidden bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex h-full flex-col space-y-4 overflow-y-auto p-4">
+                <div className="relative flex items-center">
+                  <Input
+                    type="text"
+                    placeholder="Vị trí tuyển dụng, công ty..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="w-full h-12 pr-12 rounded-full border-2 border-[#81d1f3] focus:border-[#5bb8e8] focus:ring-2 focus:ring-[#a8dcf6]/50 outline-none"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-[#81d1f3] hover:bg-[#5bb8e8] rounded-full transition-colors cursor-pointer z-10"
+                  >
+                    <Search className="h-5 w-5 text-white" />
+                  </button>
+                </div>
+
+                <nav className="flex flex-col space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setMobileJobsPanelOpen(true)}
+                    className="flex items-center justify-between rounded-lg px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-[#81d1f3]"
+                  >
+                    Việc làm
+                    <ChevronRight className="h-5 w-5 text-gray-500" />
+                  </button>
+                  <Link
+                    to="/companies"
+                    onClick={closeMobileMenu}
+                    className="px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-[#81d1f3] rounded-lg transition-colors"
+                  >
+                    Công ty
+                  </Link>
+                  <div className="py-2">
+                    <button
+                      type="button"
+                      onClick={() => setMobileToolsExpanded((prev) => !prev)}
+                      className="flex w-full items-center justify-between rounded-lg px-4 py-2 text-left font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        Công cụ
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${mobileToolsExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    <div
+                      className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                        mobileToolsExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-70'
+                      }`}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        <div className="mt-1 flex flex-col">
+                          {TOOLS_MENU.map((item) => (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              onClick={closeMobileMenu}
+                              className="rounded-lg px-6 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#81d1f3]"
+                            >
+                              {item.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </nav>
+
+                <div className="border-t border-gray-200 my-2" />
+
+                <a
+                  href="tel:0332916529"
+                  onClick={closeMobileMenu}
+                  className="flex items-center space-x-3 px-4 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <Search className="h-5 w-5 text-white" />
-                </button>
+                  <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-primary-light">
+                    <Phone className="h-5 w-5 text-primary-dark animate-phone-ring" />
+                  </div>
+                  <span>(0332) 916 529</span>
+                </a>
+
+                <div className="border-t border-gray-200 my-2" />
+
+                <div className="mt-auto">
+                  {isAuthenticated && user ? (
+                    <div className="space-y-2">
+                      <Link
+                        to="/user/notifications"
+                        onClick={closeMobileMenu}
+                        className="w-full px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
+                      >
+                        <Bell className="h-5 w-5" />
+                        <span>Thông báo</span>
+                      </Link>
+                      <UserDropdown />
+                    </div>
+                  ) : (
+                    <RoleModeSelector stacked />
+                  )}
+                </div>
               </div>
 
-              <nav className="flex flex-col space-y-2">
-                <Link
-                  to="/jobs"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-[#81d1f3] rounded-lg transition-colors"
-                >
-                  Việc làm
-                </Link>
-                <Link
-                  to="/companies"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-[#81d1f3] rounded-lg transition-colors"
-                >
-                  Công ty
-                </Link>
-                <div className="py-2">
-                  <p className="px-4 pb-2 text-sm font-semibold text-gray-500">Công cụ</p>
-                  <div className="flex flex-col">
-                    {TOOLS_MENU.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="px-6 py-2.5 text-sm text-gray-600 hover:bg-gray-100 hover:text-[#81d1f3] rounded-lg"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </nav>
-
-              <div className="border-t border-gray-200 my-2" />
-
-              <a
-                href="tel:0332916529"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center space-x-3 px-4 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              <div
+                className={`absolute inset-0 z-20 bg-white will-change-transform transition-transform duration-300 ease-out ${
+                  mobileJobsPanelOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+                }`}
               >
-                <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-primary-light">
-                  <Phone className="h-5 w-5 text-primary-dark animate-phone-ring" />
-                </div>
-                <span>(0332) 916 529</span>
-              </a>
-
-              <div className="border-t border-gray-200 my-2" />
-
-              <div className="mt-auto">
-                {isAuthenticated && user ? (
-                  <div className="space-y-2">
-                    <Link
-                      to="/user/notifications"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-full px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Bell className="h-5 w-5" />
-                      <span>Thông báo</span>
-                    </Link>
-                    <UserDropdown />
-                  </div>
-                ) : (
-                  <RoleModeSelector />
-                )}
+                <JobsFilterPanel
+                  active={mobileJobsPanelOpen}
+                  variant="mobile"
+                  onClose={() => setMobileJobsPanelOpen(false)}
+                  onBack={() => setMobileJobsPanelOpen(false)}
+                  onApplied={closeMobileMenu}
+                />
               </div>
             </div>
           </aside>

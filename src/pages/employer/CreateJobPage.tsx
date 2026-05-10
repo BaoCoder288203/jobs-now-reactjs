@@ -435,7 +435,7 @@ export function CreateJobPage() {
               Back
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="min-w-0 text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">
             {isEditMode ? 'Edit Job' : 'Create New Job'}
           </h1>
         </div>

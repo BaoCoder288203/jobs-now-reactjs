@@ -53,7 +53,7 @@ export function EmployerFollowersPage() {
       <div className="mx-auto max-w-6xl space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Người theo dõi công ty</h1>
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Người theo dõi công ty</h1>
             <p className="mt-1 text-gray-600">Danh sách ứng viên đã theo dõi công ty của bạn.</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-right">
