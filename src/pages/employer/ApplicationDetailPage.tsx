@@ -103,7 +103,7 @@ export function EmployerApplicationDetailPage() {
             </Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">Chi tiết đơn ứng tuyển</h1>
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Chi tiết đơn ứng tuyển</h1>
             <p className="text-gray-600 mt-1">
               Xem xét đơn ứng tuyển cho vị trí {application.job?.title}
             </p>

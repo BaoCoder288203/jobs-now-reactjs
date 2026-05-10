@@ -108,14 +108,14 @@ export function AdminSidebar() {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex items-center justify-center rounded-lg px-2 py-2 text-sm font-medium transition-colors md:justify-start md:space-x-3 md:px-3",
+                  "flex items-center justify-center rounded-lg border px-2 py-2 text-sm font-medium transition-colors md:justify-start md:space-x-3 md:px-3",
                   isActive
-                    ? "bg-primary text-gray-900"
-                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    ? "border-blue-200 bg-blue-50 text-blue-700 shadow-sm"
+                    : "border-transparent text-gray-700 hover:border-gray-200 hover:bg-gray-100 hover:text-gray-900"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span className="hidden md:inline">{item.title}</span>
+                <Icon className={cn("h-5 w-5", isActive ? "text-blue-600" : "text-gray-500")} />
+                <span className={cn("hidden md:inline", isActive && "font-semibold")}>{item.title}</span>
               </Link>
             );
           })}

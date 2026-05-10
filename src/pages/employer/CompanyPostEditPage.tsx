@@ -160,7 +160,7 @@ export function CompanyPostEditPage() {
   return (
     <DashboardLayout sidebar={<RecruiterSidebar />}>
       <div className="mx-auto max-w-6xl space-y-6 px-4 pb-10">
-        <h1 className="text-2xl font-bold text-gray-900">{isNew ? 'Tạo bài viết' : 'Sửa bài viết'}</h1>
+        <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">{isNew ? 'Tạo bài viết' : 'Sửa bài viết'}</h1>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_minmax(280px,320px)] lg:items-start">
           <Card>

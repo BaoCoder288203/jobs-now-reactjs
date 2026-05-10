@@ -57,7 +57,7 @@ export function EmployerSettingsPage() {
     <DashboardLayout sidebar={<RecruiterSidebar />}>
       <div className="space-y-6 max-w-4xl">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Settings</h1>
           <p className="text-gray-600 mt-1">
             Manage your account settings and preferences
           </p>

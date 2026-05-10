@@ -6,10 +6,11 @@ import { RecruiterSidebar } from '@/components/layout/RecruiterSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { useCompanyApplications, useUpdateApplicationStatus } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User, Bot } from 'lucide-react';
+import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User, Bot, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Application } from '@/types';
 import AiHeadhunterChat from '@/components/AiHeadhunterChat';
@@ -18,6 +19,7 @@ import {
   getApplicationStatusLabel,
   getApplicationStatusBadge,
 } from '@/utils/applicationStatus';
+import { toLocalDateKey } from '@/utils/dateFilter';
 
 type ApplicationGroup = {
   groupKey: string;
@@ -37,6 +39,9 @@ export function EmployerApplicationsPage() {
   
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [aiChatJobId, setAiChatJobId] = useState<number | undefined>(undefined);
+  const [applicationSearch, setApplicationSearch] = useState('');
+  const [applicationDateFrom, setApplicationDateFrom] = useState('');
+  const [applicationDateTo, setApplicationDateTo] = useState('');
 
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const companyId = company?.id;
@@ -47,13 +52,40 @@ export function EmployerApplicationsPage() {
   const isLoading = companyLoading || applicationsLoading;
 
   const applications = useMemo(() => {
-    return (applicationsData || [])
-      .filter((app) => {
-        if (statusFilter === 'all') return true;
-        return app.status === statusFilter;
-      })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [applicationsData, statusFilter]);
+    let list = (applicationsData || []).filter((app) => {
+      if (statusFilter === 'all') return true;
+      return app.status === statusFilter;
+    });
+
+    const q = applicationSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter((app) => {
+        const jobTitle = (app.job?.title || '').toLowerCase();
+        const name = (app.user?.fullName || '').toLowerCase();
+        const email = (app.user?.email || '').toLowerCase();
+        return jobTitle.includes(q) || name.includes(q) || email.includes(q);
+      });
+    }
+
+    if (applicationDateFrom) {
+      list = list.filter((app) => toLocalDateKey(app.created_at) >= applicationDateFrom);
+    }
+    if (applicationDateTo) {
+      list = list.filter((app) => toLocalDateKey(app.created_at) <= applicationDateTo);
+    }
+
+    return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [
+    applicationsData,
+    statusFilter,
+    applicationSearch,
+    applicationDateFrom,
+    applicationDateTo,
+  ]);
+
+  const hasActiveApplicationFilters = Boolean(
+    applicationSearch.trim() || applicationDateFrom || applicationDateTo
+  );
 
   const groupedApplications = useMemo<ApplicationGroup[]>(() => {
     const groups = new Map<string, ApplicationGroup>();
@@ -182,18 +214,18 @@ export function EmployerApplicationsPage() {
     <DashboardLayout sidebar={<RecruiterSidebar />}>
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-col md:flex-row gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Đơn ứng tuyển</h1>
+          <div className="w-full">
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Đơn ứng tuyển</h1>
             <p className="text-gray-600 mt-1">
               Xem và quản lý đơn ứng tuyển
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid w-full min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-2 justify-items-stretch">
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 w-36 px-3"
+              className="h-9 w-full min-w-0 px-3"
             >
               <option value="all">Tất cả trạng thái</option>
               {APPLICATION_STATUS_OPTIONS.map((o) => (
@@ -201,7 +233,7 @@ export function EmployerApplicationsPage() {
               ))}
             </Select>
             <Button 
-              className="gap-2 bg-sky-500 hover:bg-sky-600 text-white"
+              className="w-full gap-2 bg-sky-500 hover:bg-sky-600 text-white"
               onClick={() => {
                 setAiChatJobId(undefined);
                 setAiChatOpen(true);
@@ -210,14 +242,78 @@ export function EmployerApplicationsPage() {
               <Bot className="h-4 w-4" />
               Lọc hồ sơ AI
             </Button>
-            <Link to="/employer/jobs/create">
-              <Button className="gap-2">
+            <Link to="/employer/jobs/create" className="min-w-0">
+              <Button className="w-full gap-2">
                 <Plus className="h-4 w-4" />
                 Tạo tin tuyển dụng
               </Button>
             </Link>
           </div>
         </div>
+
+        {(applicationsData || []).length > 0 && (
+          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4">
+            <div className="grid w-full min-w-0 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+              <div className="min-w-0 lg:col-span-1">
+                <label htmlFor="employer-app-search" className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Tìm theo tin tuyển dụng / tên ứng viên / email
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    id="employer-app-search"
+                    type="search"
+                    value={applicationSearch}
+                    onChange={(e) => setApplicationSearch(e.target.value)}
+                    placeholder="Ví dụ: Frontend, Nguyễn Văn..."
+                    className="h-9 pl-9"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="employer-app-from" className="mb-1.5 block text-xs font-medium text-gray-600">
+                  Ứng tuyển từ ngày
+                </label>
+                <Input
+                  id="employer-app-from"
+                  type="date"
+                  value={applicationDateFrom}
+                  onChange={(e) => setApplicationDateFrom(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end lg:flex-col">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="employer-app-to" className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Đến ngày
+                  </label>
+                  <Input
+                    id="employer-app-to"
+                    type="date"
+                    value={applicationDateTo}
+                    onChange={(e) => setApplicationDateTo(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                {hasActiveApplicationFilters && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 whitespace-nowrap"
+                    onClick={() => {
+                      setApplicationSearch('');
+                      setApplicationDateFrom('');
+                      setApplicationDateTo('');
+                    }}
+                  >
+                    Xóa lọc
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {totalApplications > 0 && (
           <Card>
@@ -409,11 +505,40 @@ export function EmployerApplicationsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-16 w-16 text-gray-400 mb-4" />
               <p className="text-gray-600 mb-2">Không tìm thấy đơn ứng tuyển</p>
-              <p className="text-sm text-gray-500">
-                {statusFilter !== 'all' 
-                  ? `Không có đơn ứng tuyển với trạng thái "${getApplicationStatusLabel(statusFilter)}"`
-                  : 'Đơn ứng tuyển sẽ xuất hiện ở đây khi ứng viên ứng tuyển vào việc làm của bạn'}
+              <p className="text-center text-sm text-gray-500 max-w-md">
+                {(applicationsData || []).length === 0 ? (
+                  <>Đơn ứng tuyển sẽ xuất hiện ở đây khi ứng viên ứng tuyển vào việc làm của bạn.</>
+                ) : (
+                  <>
+                    {statusFilter !== 'all' && (
+                      <>Không có đơn với trạng thái &quot;{getApplicationStatusLabel(statusFilter)}&quot;. </>
+                    )}
+                    {hasActiveApplicationFilters && (
+                      <>Không có đơn khớp tìm kiếm hoặc khoảng ngày ứng tuyển. </>
+                    )}
+                    {statusFilter === 'all' && !hasActiveApplicationFilters && (
+                      <>Không có đơn phù hợp.</>
+                    )}
+                  </>
+                )}
               </p>
+              {(hasActiveApplicationFilters || statusFilter !== 'all') &&
+                (applicationsData || []).length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setApplicationSearch('');
+                      setApplicationDateFrom('');
+                      setApplicationDateTo('');
+                    }}
+                  >
+                    Xóa bộ lọc (trạng thái + tìm kiếm + ngày)
+                  </Button>
+                )}
             </CardContent>
           </Card>
         )}

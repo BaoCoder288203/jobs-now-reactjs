@@ -114,7 +114,7 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <RoleGuard allowedRoles={['ROLE_COMPANY']}>
-              <DashboardLayout sidebar={<RecruiterSidebar />}>
+              <DashboardLayout sidebar={<RecruiterSidebar />} noPadding>
                 <ChatPage />
               </DashboardLayout>
             </RoleGuard>

@@ -44,7 +44,7 @@ export function AdminCompaniesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Company Management</h1>
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Company Management</h1>
             <p className="text-gray-600 mt-1">
               Manage all companies in the platform
             </p>

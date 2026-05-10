@@ -74,7 +74,7 @@ export function AdminSkillsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Quản lý kỹ năng</h1>
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Quản lý kỹ năng</h1>
             <p className="text-gray-600 mt-1">Quản lý tất cả kỹ năng trên nền tảng</p>
           </div>
           <Button onClick={() => setShowAddForm(!showAddForm)} className="gap-2">

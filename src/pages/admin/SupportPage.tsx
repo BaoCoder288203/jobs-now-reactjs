@@ -283,7 +283,7 @@ export function AdminSupportPage() {
     <DashboardLayout sidebar={<AdminSidebar />}>
       <div className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Hỗ trợ tin nhắn</h1>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Hỗ trợ tin nhắn</h1>
           <p className="mt-1 text-gray-600">Quản lý các hội thoại hỗ trợ khách hàng theo thời gian thực</p>
         </div>
 
