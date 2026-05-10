@@ -8,9 +8,10 @@ interface RoleModeSelectorProps {
   onModeChange?: (mode: RoleMode) => void;
   /** Thu gọn: chỉ hiện icon, ẩn text "Dành cho" / "Người tìm việc" */
   compact?: boolean;
+  stacked?: boolean;
 }
 
-export function RoleModeSelector({ onModeChange, compact = false }: RoleModeSelectorProps) {
+export function RoleModeSelector({ onModeChange, compact = false, stacked = false }: RoleModeSelectorProps) {
   const [mode, setMode] = useState<RoleMode>('job_seeker');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -23,8 +24,38 @@ export function RoleModeSelector({ onModeChange, compact = false }: RoleModeSele
     setIsModalOpen(true);
   };
 
+  const handleStackedLogin = (nextMode: RoleMode) => {
+    handleModeChange(nextMode);
+    setIsModalOpen(true);
+  };
+
   return (
     <>
+      {stacked ? (
+        <div className="flex w-full flex-col gap-2">
+          <button
+            onClick={() => handleStackedLogin('job_seeker')}
+            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:bg-gray-100"
+          >
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-gray-900" />
+              <p className="text-sm font-medium text-gray-900">Người tìm việc</p>
+            </div>
+            <p className="mt-1 text-xs font-medium text-gray-500">Đăng nhập / Đăng ký</p>
+          </button>
+
+          <button
+            onClick={() => handleStackedLogin('employer')}
+            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:bg-gray-100"
+          >
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-gray-900" />
+              <p className="text-sm font-medium text-gray-900">Nhà tuyển dụng</p>
+            </div>
+            <p className="mt-1 text-xs font-medium text-gray-500">Đăng nhập / Đăng ký</p>
+          </button>
+        </div>
+      ) : (
       <div className="flex items-center gap-3">
         {/* Left Side: Text with mode selector - Click to open modal */}
         <button
@@ -58,10 +89,11 @@ export function RoleModeSelector({ onModeChange, compact = false }: RoleModeSele
           )}
         </button>
       </div>
+      )}
 
       {/* Login Modal - Mode được truyền vào và tự động cập nhật */}
-      <LoginModal 
-        open={isModalOpen} 
+      <LoginModal
+        open={isModalOpen}
         onOpenChange={setIsModalOpen}
         mode={mode}
       />

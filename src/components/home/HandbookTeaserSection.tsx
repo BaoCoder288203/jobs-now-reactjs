@@ -10,9 +10,9 @@ export function HandbookTeaserSection() {
   return (
     <section className="border-t border-gray-200 bg-white py-14">
       <div className="container mx-auto max-w-6xl px-4">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-2xl font-bold text-gray-900 md:text-3xl">Cẩm nang tìm việc</h2>
-          <Button asChild variant="link" className="text-primary">
+        <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8 sm:gap-4">
+          <h2 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Cẩm nang tìm việc</h2>
+          <Button asChild variant="link" className="h-auto p-0 text-sm text-primary sm:text-base">
             <Link to="/cam-nang-viec-lam">Xem tất cả &gt;</Link>
           </Button>
         </div>

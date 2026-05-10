@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +19,7 @@ import { TableData, type TableDataColumn } from '@/components/common/TableData';
 import { RichTextContent } from '@/components/ui/RichTextContent';
 import { toast } from 'sonner';
 import type { CompanyPostAdminItem } from '@/types/handbook';
+import { toLocalCalendarDateKey } from '@/utils/dateFilter';
 
 function parseApiDate(value: unknown): Date | null {
   if (value == null) return null;
@@ -77,7 +80,7 @@ function AdminPostActions({
   approvePending: boolean;
 }) {
   return (
-    <div className="flex flex-row flex-wrap justify-end gap-1.5">
+    <div className="flex max-w-full flex-row flex-wrap justify-end gap-1.5">
       <Button size="sm" variant="secondary" onClick={() => onPreview(postId)}>
         Xem bài
       </Button>
@@ -97,6 +100,9 @@ function AdminPostActions({
 export function AdminCompanyPostsPage() {
   const [page, setPage] = useState(1);
   const limit = 10;
+  const [postSearch, setPostSearch] = useState('');
+  const [postDateFrom, setPostDateFrom] = useState('');
+  const [postDateTo, setPostDateTo] = useState('');
   const { data, isLoading, refetch } = useAdminPendingPosts(page, limit);
   const approveMut = useApproveCompanyPost();
   const rejectMut = useRejectCompanyPost();
@@ -158,14 +164,41 @@ export function AdminCompanyPostsPage() {
 
   const items = data?.items ?? [];
 
+  const hasActivePostFilters = Boolean(postSearch.trim() || postDateFrom || postDateTo);
+
+  const filteredItems = useMemo(() => {
+    let list = items;
+    const q = postSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (post) =>
+          (post.title || '').toLowerCase().includes(q) ||
+          (post.companyName || '').toLowerCase().includes(q),
+      );
+    }
+    if (postDateFrom) {
+      list = list.filter((post) => {
+        const key = toLocalCalendarDateKey(post.createdAt);
+        return key && key >= postDateFrom;
+      });
+    }
+    if (postDateTo) {
+      list = list.filter((post) => {
+        const key = toLocalCalendarDateKey(post.createdAt);
+        return key && key <= postDateTo;
+      });
+    }
+    return list;
+  }, [items, postSearch, postDateFrom, postDateTo]);
+
   const columns = useMemo<TableDataColumn<CompanyPostAdminItem>[]>(
     () => [
       {
         key: 'title',
         title: 'Tiêu đề',
         fixed: 'left',
-        minWidth: 200,
-        maxWidth: 300,
+        minWidth: 140,
+        maxWidth: 220,
         render: (_, post) => (
           <div>
             <p className="font-semibold text-foreground line-clamp-2">{post.title}</p>
@@ -188,8 +221,8 @@ export function AdminCompanyPostsPage() {
       {
         key: 'excerpt',
         title: 'Mô tả ngắn',
-        minWidth: 200,
-        maxWidth: 320,
+        minWidth: 120,
+        maxWidth: 200,
         render: (_, post) =>
           post.excerpt ? (
             <p className="line-clamp-4 whitespace-pre-wrap text-sm text-foreground/90">{post.excerpt}</p>
@@ -226,10 +259,10 @@ export function AdminCompanyPostsPage() {
 
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
-      <div className="mx-auto min-w-0 max-w-6xl space-y-6 px-3 sm:px-4 lg:px-1">
-        <h1 className="text-xl font-bold text-foreground sm:text-2xl">Duyệt bài viết công ty</h1>
+      <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6 px-3 sm:px-4 lg:px-1">
+        <h1 className="min-w-0 text-xl font-bold text-foreground sm:text-2xl md:text-3xl">Duyệt bài viết công ty</h1>
 
-        <Card className="min-w-0 max-w-full overflow-hidden border-0 shadow-sm">
+        <Card className="w-full min-w-0 max-w-full overflow-hidden border-0 shadow-sm">
           <CardContent className="min-w-0 p-0">
             {isLoading ? (
               <div className="flex justify-center py-16">
@@ -238,13 +271,82 @@ export function AdminCompanyPostsPage() {
             ) : items.length === 0 ? (
               <p className="px-6 py-12 text-center text-muted-foreground">Không có bài chờ duyệt.</p>
             ) : (
-              <TableData<CompanyPostAdminItem>
-                columns={columns}
-                data={items}
-                rowKey="postId"
-                minWidth={1040}
-                ariaLabel="Danh sách bài chờ duyệt — vuốt ngang để xem thêm cột"
-              />
+              <>
+                <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/30 p-3 sm:p-4">
+                  <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+                    <div className="min-w-0 sm:col-span-2 lg:col-span-2">
+                      <label htmlFor="admin-post-search" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Tìm theo tiêu đề / công ty
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="admin-post-search"
+                          type="search"
+                          value={postSearch}
+                          onChange={(e) => setPostSearch(e.target.value)}
+                          placeholder="Tiêu đề hoặc tên công ty…"
+                          className="h-9 pl-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <label htmlFor="admin-post-from" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Gửi từ ngày
+                      </label>
+                      <Input
+                        id="admin-post-from"
+                        type="date"
+                        value={postDateFrom}
+                        onChange={(e) => setPostDateFrom(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:col-span-2 lg:col-span-2 lg:flex-col">
+                      <div className="min-w-0 flex-1">
+                        <label htmlFor="admin-post-to" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                          Đến ngày
+                        </label>
+                        <Input
+                          id="admin-post-to"
+                          type="date"
+                          value={postDateTo}
+                          onChange={(e) => setPostDateTo(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      {hasActivePostFilters && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 shrink-0 whitespace-nowrap"
+                          onClick={() => {
+                            setPostSearch('');
+                            setPostDateFrom('');
+                            setPostDateTo('');
+                          }}
+                        >
+                          Xóa lọc
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {filteredItems.length === 0 ? (
+                  <p className="px-6 py-12 text-center text-muted-foreground">Không có bài viết khớp bộ lọc.</p>
+                ) : (
+                  <div className="min-w-0 w-full max-w-full">
+                    <TableData<CompanyPostAdminItem>
+                      columns={columns}
+                      data={filteredItems}
+                      rowKey="postId"
+                      minWidth={720}
+                      ariaLabel="Danh sách bài chờ duyệt — vuốt ngang để xem thêm cột"
+                    />
+                  </div>
+                )}
+              </>
             )}
             {data && data.totalCount > limit && (
               <div className="flex flex-wrap justify-center gap-2 px-3 py-4 sm:px-4">

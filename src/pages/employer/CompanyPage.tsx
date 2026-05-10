@@ -102,7 +102,7 @@ export function EmployerCompanyPage() {
           <div className="flex min-h-screen items-center justify-center bg-gradient-to-tr from-gray-50 via-white to-gray-100">
             <div className="flex flex-col items-center gap-4 rounded-xl border border-gray-200 bg-white/80 px-8 py-10 shadow-2xl">
               <Building2 className="h-12 w-12 text-gray-400" />
-              <h1 className="text-2xl font-bold text-gray-800">
+              <h1 className="text-xl font-bold text-gray-800 sm:text-2xl md:text-3xl">
                 Bạn chưa có công ty
               </h1>
               <p className="mb-2 text-center text-gray-500">
@@ -137,9 +137,9 @@ export function EmployerCompanyPage() {
     <>
       <DashboardLayout sidebar={<RecruiterSidebar />}>
         <div className="space-y-6 max-w-4xl mx-auto">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">Thông tin công ty</h1>
-            <Button onClick={() => setIsFormOpen(true)} className="gap-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Thông tin công ty</h1>
+            <Button onClick={() => setIsFormOpen(true)} className="w-full shrink-0 gap-2 sm:w-auto">
               <Building2 className="h-4 w-4" />
               Chỉnh sửa
             </Button>

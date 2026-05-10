@@ -107,7 +107,7 @@ export function AdminIndustriesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Quản lý ngành nghề</h1>
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Quản lý ngành nghề</h1>
             <p className="text-gray-600 mt-1">
               Quản lý danh mục ngành nghề để employer chọn khi cập nhật thông tin công ty
             </p>

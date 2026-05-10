@@ -360,16 +360,15 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="h-[calc(100vh-60px)] min-h-[560px] flex flex-col bg-gray-50 overflow-hidden rounded-xl border border-gray-200">
-      <div className="flex-1 flex overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 border-gray-200 bg-gray-50 max-md:m-2 max-md:rounded-xl max-md:border md:m-4 md:rounded-xl md:border">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <div
-          className={`${showSidebar ? 'flex' : 'hidden'} md:flex flex-col bg-white border-r border-gray-200`}
-          style={{ width: '360px', minWidth: '360px' }}
+          className={`${showSidebar ? 'flex' : 'hidden'} w-full min-w-0 max-w-full shrink-0 flex-col border-r border-gray-200 bg-white md:flex md:w-[360px] md:min-w-[360px] md:max-w-[360px]`}
         >
-          <div className="p-4 border-b border-gray-200">
+          <div className="border-b border-gray-200 p-3 md:p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-primary" />
+              <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800 md:text-xl">
+                <MessageCircle className="h-5 w-5 shrink-0 text-primary" />
                 Tin nhắn
               </h2>
               {canContactSupport && (

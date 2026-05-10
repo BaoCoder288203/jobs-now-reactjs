@@ -140,7 +140,7 @@ export default function PricingPage() {
         
           {/* Header Section */}
           <div className={`relative text-center mb-12 space-y-4 transition-all duration-700 ${reveal ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#14384c]">
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#14384c] sm:text-4xl md:text-5xl">
               Nâng tầm tuyển dụng với <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2f88b5] to-[#5bb8e8]">Gói Dịch Vụ</span>
             </h1>
             <p className="text-lg text-[#567082] max-w-2xl mx-auto">

@@ -23,10 +23,16 @@ export function DashboardLayout({
         {sidebar && sidebar}
         <main
           className={
-            sidebar ? 'ml-16 min-h-0 min-w-0 flex-1 max-w-full md:ml-64' : 'min-h-0 min-w-0 w-full max-w-full flex-1'
+            sidebar
+              ? 'ml-16 flex min-h-0 min-w-0 flex-1 flex-col max-w-full md:ml-64'
+              : 'flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col'
           }
         >
-          <div className={`min-w-0 max-w-full ${noPadding ? '' : 'p-6'}`}>{children}</div>
+          <div
+            className={`flex min-h-0 min-w-0 flex-1 flex-col ${noPadding ? '' : 'p-6'}`}
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>
