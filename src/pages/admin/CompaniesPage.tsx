@@ -21,7 +21,6 @@ export function AdminCompaniesPage() {
     () => companiesQuery.data?.pages.flatMap((p) => p.items) ?? [],
     [companiesQuery.data],
   );
-  const totalFromServer = companiesQuery.data?.pages[0]?.pagination.total ?? 0;
 
   const filteredCompanies = useMemo(
     () =>

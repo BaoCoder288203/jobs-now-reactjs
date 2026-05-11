@@ -10,7 +10,9 @@ export interface JobCategoryDTO {
 
 export async function getJobCategoriesAdminPage(page: number, limit: number): Promise<PagedList<JobCategoryDTO>> {
   const res = await apiClient.get('/admin/job-categories', { params: { page, limit } });
-  const raw = (res as { data?: PagedList<JobCategoryDTO> }).data ?? (res as PagedList<JobCategoryDTO>);
+  const raw =
+    (res as { data?: PagedList<JobCategoryDTO> }).data ??
+    (res as unknown as PagedList<JobCategoryDTO>);
   return {
     items: Array.isArray(raw.items) ? raw.items : [],
     totalCount: Number(raw.totalCount ?? 0),
