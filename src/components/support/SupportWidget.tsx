@@ -137,7 +137,7 @@ export function SupportWidget() {
         </div>
       )}
 
-      <a
+      {/* <a
         href={SUPPORT_CONFIG.zaloLink}
         target="_blank"
         rel="noopener noreferrer"
@@ -149,7 +149,7 @@ export function SupportWidget() {
           alt="Zalo"
           className="w-full h-full object-contain p-1.5"
         />
-      </a>
+      </a> */}
 
       <button
         type="button"

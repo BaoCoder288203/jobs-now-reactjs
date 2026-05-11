@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
 import { Users, Search, Edit2, Mail } from 'lucide-react';
-import { useAdminUsers, useUpdateAdminUser } from '@/modules/admin/hooks';
+import { useAdminUsersInfinite, useUpdateAdminUser } from '@/modules/admin/hooks';
 import type { AdminUserDTO } from '@/services/admin.service';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
+import { useIntersectionFetchNext } from '@/hooks/useIntersectionFetchNext';
 
 const ROLE_OPTIONS = [
   { value: 'ROLE_JOBSEEKER', label: 'Job seeker' },
@@ -27,8 +28,15 @@ export function AdminUsersPage() {
   const [draftRole, setDraftRole] = useState('');
   const [draftStatus, setDraftStatus] = useState<'ACTIVE' | 'DISABLED'>('ACTIVE');
 
-  const { data: users = [], isLoading, error } = useAdminUsers();
+  const usersQuery = useAdminUsersInfinite(10);
   const updateUserMutation = useUpdateAdminUser();
+
+  const allLoaded = useMemo(
+    () => usersQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [usersQuery.data],
+  );
+
+  const totalFromServer = usersQuery.data?.pages[0]?.totalCount ?? 0;
 
   useEffect(() => {
     if (editUser) {
@@ -37,16 +45,29 @@ export function AdminUsersPage() {
     }
   }, [editUser]);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.fullName ?? '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && user.status === 'ACTIVE') ||
-      (statusFilter === 'inactive' && user.status === 'DISABLED');
-    return matchesSearch && matchesStatus;
-  });
+  const filteredUsers = useMemo(
+    () =>
+      allLoaded.filter((user) => {
+        const matchesSearch =
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (user.fullName ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'active' && user.status === 'ACTIVE') ||
+          (statusFilter === 'inactive' && user.status === 'DISABLED');
+        return matchesSearch && matchesStatus;
+      }),
+    [allLoaded, searchTerm, statusFilter],
+  );
+
+  const fetchNext = useCallback(() => {
+    void usersQuery.fetchNextPage();
+  }, [usersQuery.fetchNextPage]);
+
+  const sentinelRef = useIntersectionFetchNext(
+    fetchNext,
+    Boolean(usersQuery.hasNextPage && !usersQuery.isFetchingNextPage),
+  );
 
   const getStatusBadge = (status: string) => {
     return status === 'ACTIVE' ? (
@@ -89,6 +110,9 @@ export function AdminUsersPage() {
     }
   };
 
+  const isLoading = usersQuery.isPending;
+  const error = usersQuery.error;
+
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
       <div className="space-y-6">
@@ -126,7 +150,11 @@ export function AdminUsersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Users ({filteredUsers.length})</CardTitle>
+            <CardTitle>
+              Users (tổng {totalFromServer}
+              {allLoaded.length < totalFromServer ? ` · đã tải ${allLoaded.length}` : ''}
+              {searchTerm.trim() || statusFilter !== 'all' ? ` · sau lọc: ${filteredUsers.length}` : ''})
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -137,7 +165,17 @@ export function AdminUsersPage() {
               <p className="text-center text-red-600 py-8">
                 Không tải được danh sách (cần đăng nhập Admin).
               </p>
-            ) : filteredUsers.length > 0 ? (
+            ) : allLoaded.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No users found</p>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No users match filters</p>
+              </div>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -154,11 +192,23 @@ export function AdminUsersPage() {
                       <tr key={user.userId} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shrink-0">
-                              <span className="text-sm font-medium text-gray-900">
-                                {(user.fullName ?? '?').charAt(0).toUpperCase()}
-                              </span>
-                            </div>
+                            {user.avatar ? (
+                              <img
+                                src={user.avatar}
+                                alt={user.fullName ?? user.email}
+                                className="h-10 w-10 rounded-full object-cover shrink-0 border border-gray-200 bg-gray-50"
+                                loading="lazy"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {(user.fullName ?? user.email ?? '?').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
                             <div>
                               <p className="font-medium text-gray-900">{user.fullName ?? '—'}</p>
                               <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -191,11 +241,14 @@ export function AdminUsersPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No users found</p>
+                {usersQuery.hasNextPage ? (
+                  <div className="flex flex-col items-center gap-2 py-3">
+                    {usersQuery.isFetchingNextPage ? (
+                      <LoadingSpinner size="sm" />
+                    ) : null}
+                    <div ref={sentinelRef} className="h-8 w-full shrink-0" aria-hidden />
+                  </div>
+                ) : null}
               </div>
             )}
           </CardContent>

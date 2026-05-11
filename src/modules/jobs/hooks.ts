@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Job, JobListParams } from '@/types';
 import * as jobService from '@/services/job.service';
 
@@ -8,6 +8,8 @@ export const jobKeys = {
   list: (params?: JobListParams) => [...jobKeys.lists(), params] as const,
   adminList: () => [...jobKeys.all, 'admin'] as const,
   adminListWithStatus: (status?: string) => [...jobKeys.adminList(), status ?? 'all'] as const,
+  adminJobsInfinite: (status: string | undefined, limit: number) =>
+    [...jobKeys.all, 'admin-jobs-infinite', status ?? 'all', limit] as const,
   details: () => [...jobKeys.all, 'detail'] as const,
   detail: (id: string) => [...jobKeys.details(), id] as const
 };
@@ -66,16 +68,25 @@ export function useDeleteJob() {
   return useMutation({
     mutationFn: (jobId: string) => jobService.deleteJob(jobId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
     }
   });
 }
 
-export function useAdminJobs(status?: string) {
+export function useAdminJobs(status?: string, previewLimit = 100) {
   return useQuery({
-    queryKey: jobKeys.adminListWithStatus(status),
-    queryFn: () => jobService.getAdminJobs(status),
-    enabled: true
+    queryKey: [...jobKeys.adminListWithStatus(status), 'preview', previewLimit],
+    queryFn: () => jobService.getAdminJobs(status, previewLimit),
+    enabled: true,
+  });
+}
+
+export function useAdminJobsInfinite(status: string | undefined, limit = 10) {
+  return useInfiniteQuery({
+    queryKey: jobKeys.adminJobsInfinite(status, limit),
+    queryFn: ({ pageParam }) => jobService.getAdminJobsPage(status, pageParam as number, limit),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
   });
 }
 
@@ -84,8 +95,7 @@ export function useApproveJob() {
   return useMutation({
     mutationFn: (jobId: string) => jobService.approveJob(jobId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: jobKeys.adminList() });
-      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
     }
   });
 }
@@ -96,8 +106,7 @@ export function useRejectJob() {
     mutationFn: ({ jobId, reason }: { jobId: string; reason: string }) =>
       jobService.rejectJob(jobId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: jobKeys.adminList() });
-      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
     }
   });
 }
@@ -107,8 +116,7 @@ export function useUnpublishJob() {
   return useMutation({
     mutationFn: (jobId: string) => jobService.unpublishJob(jobId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: jobKeys.adminList() });
-      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
     }
   });
 }

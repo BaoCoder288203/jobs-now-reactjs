@@ -1,4 +1,5 @@
 import type { Skill } from '@/types';
+import type { PagedList } from '@/types/paged';
 import { apiClient } from './api';
 
 interface SkillDTO {
@@ -15,6 +16,26 @@ function extractSkillList(res: unknown): SkillDTO[] {
     if (Array.isArray(data)) return data as SkillDTO[];
   }
   return [];
+}
+
+export async function getSkillsAdminPage(page: number, limit: number): Promise<PagedList<Skill>> {
+  const res = await apiClient.get('/admin/skills', { params: { page, limit } });
+  const raw = (res as { data?: { items?: SkillDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean } })
+    .data ?? (res as { items?: SkillDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean });
+  const list = Array.isArray(raw.items) ? raw.items : [];
+  const items = list
+    .map((dto) => ({
+      skillId: String(dto.skillId ?? ''),
+      name: dto.skillName ?? dto.name ?? '',
+    }))
+    .filter((s) => s.skillId && s.name);
+  return {
+    items,
+    totalCount: Number(raw.totalCount ?? 0),
+    page: Number(raw.page ?? page),
+    limit: Number(raw.limit ?? limit),
+    hasNext: Boolean(raw.hasNext),
+  };
 }
 
 export async function getAllSkills(): Promise<Skill[]> {
