@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as adminService from '@/services/admin.service';
 import type { AdminDashboardMetricsQuery } from '@/types/admin-dashboard';
 
@@ -7,6 +7,7 @@ export const adminKeys = {
   stats: () => [...adminKeys.all, 'stats'] as const,
   metrics: (query: AdminDashboardMetricsQuery) => [...adminKeys.all, 'metrics', query] as const,
   users: () => [...adminKeys.all, 'users'] as const,
+  usersInfinite: (limit: number) => [...adminKeys.users(), 'infinite', limit] as const,
 };
 
 export function useAdminStats() {
@@ -24,10 +25,19 @@ export function useAdminDashboardMetrics(query: AdminDashboardMetricsQuery, enab
   });
 }
 
+export function useAdminUsersInfinite(limit = 10) {
+  return useInfiniteQuery({
+    queryKey: adminKeys.usersInfinite(limit),
+    queryFn: ({ pageParam }) => adminService.getAdminUsersPage(pageParam as number, limit),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
+  });
+}
+
 export function useAdminUsers() {
   return useQuery({
     queryKey: adminKeys.users(),
-    queryFn: () => adminService.getAdminUsers(),
+    queryFn: () => adminService.getAdminUsersPage(1, 100).then((r) => r.items),
   });
 }
 

@@ -1,15 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as skillService from '@/services/skill.service';
 
 export const skillKeys = {
   all: ['skills'] as const,
   list: () => [...skillKeys.all, 'list'] as const,
+  adminInfinite: (limit: number) => [...skillKeys.all, 'admin-infinite', limit] as const,
 };
 
 export function useSkills() {
   return useQuery({
     queryKey: skillKeys.list(),
     queryFn: () => skillService.getAllSkills(),
+  });
+}
+
+export function useSkillsAdminInfinite(limit = 10) {
+  return useInfiniteQuery({
+    queryKey: skillKeys.adminInfinite(limit),
+    queryFn: ({ pageParam }) => skillService.getSkillsAdminPage(pageParam as number, limit),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasNext ? last.page + 1 : undefined),
   });
 }
 

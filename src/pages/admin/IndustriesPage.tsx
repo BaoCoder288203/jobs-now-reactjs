@@ -1,47 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  getIndustriesList,
-  createIndustry,
-  updateIndustry,
-  deleteIndustry
-} from '@/services/industry.service';
+import { createIndustry, updateIndustry, deleteIndustry } from '@/services/industry.service';
 import type { Industry } from '@/types';
 import { Layers, Search, Plus, Edit2, Trash2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
+import { useIntersectionFetchNext } from '@/hooks/useIntersectionFetchNext';
+import { adminCatalogKeys, useIndustriesAdminInfinite } from '@/modules/admin-catalog/hooks';
 
 export function AdminIndustriesPage() {
-  const [industries, setIndustries] = useState<Industry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newIndustryName, setNewIndustryName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  const fetchIndustries = async () => {
-    setIsLoading(true);
-    try {
-      const list = await getIndustriesList();
-      setIndustries(list);
-    } catch {
-      setIndustries([]);
-    } finally {
-      setIsLoading(false);
-    }
+  const industriesQuery = useIndustriesAdminInfinite(10);
+
+  const allLoaded = useMemo(
+    () => industriesQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [industriesQuery.data],
+  );
+  const totalFromServer = industriesQuery.data?.pages[0]?.totalCount ?? 0;
+
+  const filteredIndustries = useMemo(
+    () => allLoaded.filter((industry) => industry.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [allLoaded, searchTerm],
+  );
+
+  const invalidateIndustries = () => {
+    void queryClient.invalidateQueries({ queryKey: [...adminCatalogKeys.all, 'industries'] });
   };
 
-  useEffect(() => {
-    fetchIndustries();
-  }, []);
+  const fetchNext = useCallback(() => {
+    void industriesQuery.fetchNextPage();
+  }, [industriesQuery.fetchNextPage]);
 
-  const filteredIndustries = industries.filter((industry) =>
-    industry.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const sentinelRef = useIntersectionFetchNext(
+    fetchNext,
+    Boolean(industriesQuery.hasNextPage && !industriesQuery.isFetchingNextPage),
   );
 
   const handleAddIndustry = async () => {
@@ -50,7 +53,7 @@ export function AdminIndustriesPage() {
       await createIndustry(newIndustryName.trim());
       setNewIndustryName('');
       setShowAddForm(false);
-      await fetchIndustries();
+      invalidateIndustries();
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể thêm ngành nghề';
       toast.error(msg);
@@ -68,7 +71,7 @@ export function AdminIndustriesPage() {
       await updateIndustry(Number(editingId), editName.trim());
       setEditingId(null);
       setEditName('');
-      await fetchIndustries();
+      invalidateIndustries();
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể cập nhật ngành nghề';
       toast.error(msg);
@@ -84,7 +87,7 @@ export function AdminIndustriesPage() {
     if (!window.confirm('Bạn có chắc muốn xóa ngành nghề này?')) return;
     try {
       await deleteIndustry(Number(industryId));
-      await fetchIndustries();
+      invalidateIndustries();
       toast.success('Đã xóa ngành nghề');
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể xóa ngành nghề';
@@ -92,7 +95,9 @@ export function AdminIndustriesPage() {
     }
   };
 
-  if (isLoading) {
+  const isBootstrapping = industriesQuery.isPending && allLoaded.length === 0;
+
+  if (isBootstrapping) {
     return (
       <DashboardLayout sidebar={<AdminSidebar />}>
         <div className="flex justify-center py-12">
@@ -108,9 +113,6 @@ export function AdminIndustriesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Quản lý ngành nghề</h1>
-            <p className="text-gray-600 mt-1">
-              Quản lý danh mục ngành nghề để employer chọn khi cập nhật thông tin công ty
-            </p>
           </div>
           <Button onClick={() => setShowAddForm(!showAddForm)} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -118,7 +120,6 @@ export function AdminIndustriesPage() {
           </Button>
         </div>
 
-        {/* Add Form */}
         {showAddForm && (
           <Card>
             <CardContent className="p-6">
@@ -145,7 +146,6 @@ export function AdminIndustriesPage() {
           </Card>
         )}
 
-        {/* Search */}
         <Card>
           <CardContent className="p-4">
             <div className="relative">
@@ -159,8 +159,11 @@ export function AdminIndustriesPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Industries Grid */}
+        <p className="text-gray-600 mt-1">
+          Tổng {totalFromServer}
+          {allLoaded.length < totalFromServer ? ` · đã tải ${allLoaded.length}` : ''}
+          {searchTerm.trim() ? ` · sau lọc: ${filteredIndustries.length}` : ''}
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredIndustries.map((industry) => (
             <Card key={industry.id} className="hover:shadow-lg transition-shadow">
@@ -216,14 +219,30 @@ export function AdminIndustriesPage() {
           ))}
         </div>
 
-        {filteredIndustries.length === 0 && (
+        {industriesQuery.hasNextPage ? (
+          <div className="flex flex-col items-center gap-2 py-2">
+            {industriesQuery.isFetchingNextPage ? <LoadingSpinner size="sm" /> : null}
+            <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
+          </div>
+        ) : null}
+
+        {totalFromServer === 0 && !industriesQuery.isPending ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Layers className="h-12 w-12 text-gray-400 mb-4" />
               <p className="text-gray-600">Chưa có ngành nghề nào</p>
             </CardContent>
           </Card>
-        )}
+        ) : null}
+
+        {totalFromServer > 0 && filteredIndustries.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Layers className="h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-600">Không có ngành nghề khớp tìm kiếm</p>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </DashboardLayout>
   );

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Company, PaginationParams } from '@/types';
 import type { CreateCompanyReviewRequest } from '@/types/company-review';
 import * as companyService from '@/services/company.service';
@@ -11,7 +11,8 @@ export const companyKeys = {
   featuredBanners: () => [...companyKeys.all, 'featuredBanners'] as const,
   details: () => [...companyKeys.all, 'detail'] as const,
   detail: (id: string) => [...companyKeys.details(), id] as const,
-  myCompany: () => [...companyKeys.all, 'my'] as const
+  myCompany: () => [...companyKeys.all, 'my'] as const,
+  adminInfinite: (limit: number) => [...companyKeys.all, 'admin-infinite', limit] as const,
 };
 
 export const companyReviewKeys = {
@@ -36,6 +37,15 @@ export function useCompanies(params?: PaginationParams) {
   return useQuery({
     queryKey: companyKeys.list(params),
     queryFn: () => companyService.getCompanies(params)
+  });
+}
+
+export function useAdminCompaniesInfinite(limit = 10) {
+  return useInfiniteQuery({
+    queryKey: companyKeys.adminInfinite(limit),
+    queryFn: ({ pageParam }) => companyService.getAdminCompaniesPage(pageParam as number, limit),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.pagination.hasNext ? last.pagination.page + 1 : undefined),
   });
 }
 

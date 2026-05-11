@@ -1,4 +1,5 @@
 import { apiClient } from './api';
+import type { PagedList } from '@/types/paged';
 import type { AdminDashboardMetrics, AdminDashboardMetricsQuery } from '@/types/admin-dashboard';
 
 export interface AdminDashboardStats {
@@ -22,6 +23,7 @@ export interface AdminUserDTO {
   status: 'ACTIVE' | 'DISABLED';
   isVerified?: boolean | null;
   createdAt?: string | null;
+  avatar?: string | null;
 }
 
 type AdminUserApi = {
@@ -34,6 +36,7 @@ type AdminUserApi = {
   status?: 'ACTIVE' | 'DISABLED' | string;
   isVerified?: boolean | null;
   createdAt?: string | null;
+  avatar?: string | null;
 };
 
 function mapAdminUser(raw: AdminUserApi): AdminUserDTO {
@@ -51,6 +54,7 @@ function mapAdminUser(raw: AdminUserApi): AdminUserDTO {
     status: normalizedStatus,
     isVerified: raw.isVerified ?? (normalizedStatus === 'ACTIVE'),
     createdAt: raw.createdAt ?? null,
+    avatar: raw.avatar ?? null,
   };
 }
 
@@ -88,10 +92,22 @@ export async function getAdminDashboardMetrics(
   return unwrap<AdminDashboardMetrics>(res);
 }
 
-export async function getAdminUsers(): Promise<AdminUserDTO[]> {
-  const res = await apiClient.get('/admin/users');
-  const payload = (res as { data?: AdminUserApi[] }).data;
-  return Array.isArray(payload) ? payload.map(mapAdminUser) : [];
+export async function getAdminUsersPage(page: number, limit: number): Promise<PagedList<AdminUserDTO>> {
+  const res = await apiClient.get('/admin/users', { params: { page, limit } });
+  const raw = unwrap<{
+    items?: AdminUserApi[];
+    totalCount?: number;
+    page?: number;
+    limit?: number;
+    hasNext?: boolean;
+  }>(res);
+  return {
+    items: Array.isArray(raw.items) ? raw.items.map(mapAdminUser) : [],
+    totalCount: Number(raw.totalCount ?? 0),
+    page: Number(raw.page ?? page),
+    limit: Number(raw.limit ?? limit),
+    hasNext: Boolean(raw.hasNext),
+  };
 }
 
 export async function updateAdminUser(

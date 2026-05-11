@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSkills, useCreateSkill, useUpdateSkill, useDeleteSkill } from '@/modules/skills/hooks';
+import { useCreateSkill, useDeleteSkill, useSkillsAdminInfinite, useUpdateSkill } from '@/modules/skills/hooks';
 import { toast } from 'sonner';
 import { Sparkles, Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useIntersectionFetchNext } from '@/hooks/useIntersectionFetchNext';
 
 export function AdminSkillsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,13 +17,29 @@ export function AdminSkillsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
-  const { data: skills = [], isLoading } = useSkills();
+  const skillsQuery = useSkillsAdminInfinite(10);
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
   const deleteSkill = useDeleteSkill();
 
-  const filteredSkills = skills.filter((skill) =>
-    skill.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const allLoaded = useMemo(
+    () => skillsQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [skillsQuery.data],
+  );
+  const totalFromServer = skillsQuery.data?.pages[0]?.totalCount ?? 0;
+
+  const filteredSkills = useMemo(
+    () => allLoaded.filter((skill) => skill.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [allLoaded, searchTerm],
+  );
+
+  const fetchNext = useCallback(() => {
+    void skillsQuery.fetchNextPage();
+  }, [skillsQuery.fetchNextPage]);
+
+  const sentinelRef = useIntersectionFetchNext(
+    fetchNext,
+    Boolean(skillsQuery.hasNextPage && !skillsQuery.isFetchingNextPage),
   );
 
   const handleAddSkill = async () => {
@@ -69,13 +87,24 @@ export function AdminSkillsPage() {
     }
   };
 
+  const isBootstrapping = skillsQuery.isPending && allLoaded.length === 0;
+
+  if (isBootstrapping) {
+    return (
+      <DashboardLayout sidebar={<AdminSidebar />}>
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Quản lý kỹ năng</h1>
-            <p className="text-gray-600 mt-1">Quản lý tất cả kỹ năng trên nền tảng</p>
           </div>
           <Button onClick={() => setShowAddForm(!showAddForm)} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -124,77 +153,99 @@ export function AdminSkillsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredSkills.map((skill) => (
-              <Card key={skill.skillId} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  {editingId === skill.skillId ? (
-                    <div className="space-y-2">
-                      <Input
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        placeholder="Tên kỹ năng"
-                        onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
-                      />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={handleSaveEdit} disabled={updateSkill.isPending || !editingName.trim()}>
-                          {updateSkill.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Lưu'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                          Huỷ
-                        </Button>
+        <p className="text-gray-600 mt-1">
+          Tổng {totalFromServer}
+          {allLoaded.length < totalFromServer ? ` · đã tải ${allLoaded.length}` : ''}
+          {searchTerm.trim() ? ` · sau lọc: ${filteredSkills.length}` : ''}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredSkills.map((skill) => (
+            <Card key={skill.skillId} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                {editingId === skill.skillId ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      placeholder="Tên kỹ năng"
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveEdit}
+                        disabled={updateSkill.isPending || !editingName.trim()}
+                      >
+                        {updateSkill.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Lưu'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                        Huỷ
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-accent" />
+                        <h3 className="font-semibold text-gray-900">{skill.name}</h3>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-accent" />
-                          <h3 className="font-semibold text-gray-900">{skill.name}</h3>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 gap-2"
-                          onClick={() => startEdit(skill.skillId, skill.name)}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(skill.skillId)}
-                          disabled={deleteSkill.isPending}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          {deleteSkill.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2"
+                        onClick={() => startEdit(skill.skillId, skill.name)}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                        Sửa
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(skill.skillId)}
+                        disabled={deleteSkill.isPending}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        {deleteSkill.isPending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-        {!isLoading && filteredSkills.length === 0 && (
+        {skillsQuery.hasNextPage ? (
+          <div className="flex flex-col items-center gap-2 py-2">
+            {skillsQuery.isFetchingNextPage ? <LoadingSpinner size="sm" /> : null}
+            <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
+          </div>
+        ) : null}
+
+        {totalFromServer === 0 && !skillsQuery.isPending ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Sparkles className="h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-600">Chưa có kỹ năng nào</p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {totalFromServer > 0 && filteredSkills.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Sparkles className="h-12 w-12 text-gray-400 mb-4" />
               <p className="text-gray-600">Không tìm thấy kỹ năng nào</p>
             </CardContent>
           </Card>
-        )}
+        ) : null}
       </div>
     </DashboardLayout>
   );
