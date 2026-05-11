@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,52 +8,51 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
-  getJobCategories,
   createJobCategory,
   updateJobCategory,
   deleteJobCategory,
-  type JobCategoryDTO
+  type JobCategoryDTO,
 } from '@/services/category.service';
 import { getIndustriesList } from '@/services/industry.service';
 import type { Industry } from '@/types';
 import { Layers, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIntersectionFetchNext } from '@/hooks/useIntersectionFetchNext';
+import { adminCatalogKeys, useJobCategoriesAdminInfinite } from '@/modules/admin-catalog/hooks';
 
 export function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<JobCategoryDTO[]>([]);
+  const queryClient = useQueryClient();
   const [industries, setIndustries] = useState<Industry[]>([]);
-  const [loading, setLoading] = useState(false);
   const [newName, setNewName] = useState('');
   const [newIndustryId, setNewIndustryId] = useState<number | ''>('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingIndustryId, setEditingIndustryId] = useState<number | ''>('');
 
-  const loadCategories = async () => {
-    setLoading(true);
-    try {
-      const data = await getJobCategories();
-      setCategories(data);
-    } catch {
-      setCategories([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const categoriesQuery = useJobCategoriesAdminInfinite(10);
 
-  const loadIndustries = async () => {
-    try {
-      const list = await getIndustriesList();
-      setIndustries(list);
-    } catch {
-      setIndustries([]);
-    }
+  const allLoaded = useMemo(
+    () => categoriesQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [categoriesQuery.data],
+  );
+  const totalFromServer = categoriesQuery.data?.pages[0]?.totalCount ?? 0;
+
+  const invalidateCategories = () => {
+    void queryClient.invalidateQueries({ queryKey: [...adminCatalogKeys.all, 'job-categories'] });
   };
 
   useEffect(() => {
-    loadCategories();
-    loadIndustries();
+    void getIndustriesList().then(setIndustries).catch(() => setIndustries([]));
   }, []);
+
+  const fetchNext = useCallback(() => {
+    void categoriesQuery.fetchNextPage();
+  }, [categoriesQuery.fetchNextPage]);
+
+  const sentinelRef = useIntersectionFetchNext(
+    fetchNext,
+    Boolean(categoriesQuery.hasNextPage && !categoriesQuery.isFetchingNextPage),
+  );
 
   const handleCreate = async () => {
     if (!newName.trim()) {
@@ -67,7 +67,7 @@ export function AdminCategoriesPage() {
       await createJobCategory({ categoryName: newName.trim(), industryId: newIndustryId as number });
       setNewName('');
       setNewIndustryId('');
-      await loadCategories();
+      invalidateCategories();
       toast.success('Đã thêm nghề nghiệp');
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể thêm';
@@ -94,12 +94,12 @@ export function AdminCategoriesPage() {
       await updateJobCategory({
         categoryId: editingId,
         categoryName: editingName.trim(),
-        industryId: editingIndustryId === '' ? undefined : (editingIndustryId as number)
+        industryId: editingIndustryId === '' ? undefined : (editingIndustryId as number),
       });
       setEditingId(null);
       setEditingName('');
       setEditingIndustryId('');
-      await loadCategories();
+      invalidateCategories();
       toast.success('Đã cập nhật');
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể cập nhật';
@@ -111,7 +111,7 @@ export function AdminCategoriesPage() {
     if (!id) return;
     try {
       await deleteJobCategory(id);
-      await loadCategories();
+      invalidateCategories();
       toast.success('Đã xóa');
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? 'Không thể xóa';
@@ -119,12 +119,16 @@ export function AdminCategoriesPage() {
     }
   };
 
+  const isBootstrapping = categoriesQuery.isPending && allLoaded.length === 0;
+
   return (
     <DashboardLayout sidebar={<AdminSidebar />}>
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Quản lý nghề nghiệp (Category)</CardTitle>
+            <CardTitle className="text-lg sm:text-xl md:text-2xl">
+              Quản lý nghề nghiệp (Category)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2 items-end">
@@ -150,16 +154,19 @@ export function AdminCategoriesPage() {
                   ))}
                 </Select>
               </div>
-              <Button onClick={handleCreate} disabled={loading || !newName.trim() || newIndustryId === ''}>
+              <Button onClick={handleCreate} disabled={isBootstrapping || !newName.trim() || newIndustryId === ''}>
                 Thêm
               </Button>
             </div>
-
-            {loading ? (
+            <p className="text-sm text-gray-600">
+              Tổng {totalFromServer}
+              {allLoaded.length < totalFromServer ? ` · đã tải ${allLoaded.length}` : ''}
+            </p>
+            {isBootstrapping ? (
               <div className="flex justify-center py-8">
                 <LoadingSpinner size="lg" />
               </div>
-            ) : categories.length === 0 ? (
+            ) : totalFromServer === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Layers className="mb-4 h-12 w-12 text-gray-400" />
@@ -167,75 +174,83 @@ export function AdminCategoriesPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {categories.map((c) => (
-                  <Card key={c.categoryId} className="transition-shadow hover:shadow-lg">
-                    <CardContent className="p-4">
-                      {editingId === c.categoryId ? (
-                        <div className="space-y-3">
-                          <Input
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            placeholder="Tên nghề nghiệp"
-                          />
-                          <Select
-                            value={editingIndustryId === '' ? '' : String(editingIndustryId)}
-                            onChange={(e) =>
-                              setEditingIndustryId(e.target.value === '' ? '' : Number(e.target.value))
-                            }
-                          >
-                            <option value="">-- Ngành --</option>
-                            {industries.map((i) => (
-                              <option key={i.id} value={i.id}>
-                                {i.name}
-                              </option>
-                            ))}
-                          </Select>
-                          <div className="flex gap-2">
-                            <Button type="button" size="sm" onClick={handleUpdate} disabled={!editingName.trim()}>
-                              Lưu
-                            </Button>
-                            <Button type="button" size="sm" variant="outline" onClick={cancelEdit}>
-                              Hủy
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="mb-3 flex items-center justify-between">
-                            <div className="min-w-0 flex items-center gap-2">
-                              <Layers className="h-5 w-5 shrink-0 text-accent" />
-                              <h3 className="truncate font-semibold text-gray-900">{c.categoryName}</h3>
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {allLoaded.map((c) => (
+                    <Card key={c.categoryId} className="transition-shadow hover:shadow-lg">
+                      <CardContent className="p-4">
+                        {editingId === c.categoryId ? (
+                          <div className="space-y-3">
+                            <Input
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              placeholder="Tên nghề nghiệp"
+                            />
+                            <Select
+                              value={editingIndustryId === '' ? '' : String(editingIndustryId)}
+                              onChange={(e) =>
+                                setEditingIndustryId(e.target.value === '' ? '' : Number(e.target.value))
+                              }
+                            >
+                              <option value="">-- Ngành --</option>
+                              {industries.map((i) => (
+                                <option key={i.id} value={i.id}>
+                                  {i.name}
+                                </option>
+                              ))}
+                            </Select>
+                            <div className="flex gap-2">
+                              <Button type="button" size="sm" onClick={handleUpdate} disabled={!editingName.trim()}>
+                                Lưu
+                              </Button>
+                              <Button type="button" size="sm" variant="outline" onClick={cancelEdit}>
+                                Hủy
+                              </Button>
                             </div>
                           </div>
-                          <p className="mb-3 text-xs text-gray-500">{c.industryName || 'Chưa gán ngành'}</p>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 gap-2"
-                              onClick={() => startEdit(c)}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                              Sửa
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(c.categoryId)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        ) : (
+                          <>
+                            <div className="mb-3 flex items-center justify-between">
+                              <div className="min-w-0 flex items-center gap-2">
+                                <Layers className="h-5 w-5 shrink-0 text-accent" />
+                                <h3 className="truncate font-semibold text-gray-900">{c.categoryName}</h3>
+                              </div>
+                            </div>
+                            <p className="mb-3 text-xs text-gray-500">{c.industryName || 'Chưa gán ngành'}</p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 gap-2"
+                                onClick={() => startEdit(c)}
+                              >
+                                <Edit2 className="h-3 w-3" />
+                                Sửa
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(c.categoryId)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {categoriesQuery.hasNextPage ? (
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    {categoriesQuery.isFetchingNextPage ? <LoadingSpinner size="sm" /> : null}
+                    <div ref={sentinelRef} className="h-8 w-full" aria-hidden />
+                  </div>
+                ) : null}
+              </>
             )}
           </CardContent>
         </Card>

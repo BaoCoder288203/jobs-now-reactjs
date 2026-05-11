@@ -79,6 +79,33 @@ function mapCompanyDTOToCompany(dto: CompanyDTO | null): Company | null {
   };
 }
 
+/** Admin: BE phân trang `/admin/companies` (chỉ công ty đã verify). */
+export async function getAdminCompaniesPage(page: number, limit: number): Promise<PaginatedResponse<Company>> {
+  if (USE_MOCK) {
+    return mockCompanies.mockGetCompanies({ page, limit });
+  }
+  const res = (await apiClient.get('/admin/companies', { params: { page, limit } })) as {
+    data?: { items?: CompanyDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean };
+  };
+  const raw = res.data ?? (res as unknown as { items?: CompanyDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean });
+  const listRaw = Array.isArray(raw.items) ? raw.items : [];
+  const items = listRaw.map(mapCompanyDTOToCompany).filter((c): c is Company => c != null);
+  const p = Number(raw.page ?? page);
+  const lim = Number(raw.limit ?? limit);
+  const total = Number(raw.totalCount ?? items.length);
+  return {
+    items,
+    pagination: {
+      page: p,
+      limit: lim,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / lim)),
+      hasNext: Boolean(raw.hasNext),
+      hasPrev: p > 1,
+    },
+  };
+}
+
 
 
 export async function getCompanies(params?: PaginationParams): Promise<PaginatedResponse<Company>> {

@@ -1,4 +1,5 @@
 import type { Job, JobListParams, PaginatedResponse } from '@/types';
+import type { PagedList } from '@/types/paged';
 import { USE_MOCK } from './api';
 import * as mockJobs from '@/mocks/handlers/jobs.mock';
 import { apiClient } from './api';
@@ -400,18 +401,50 @@ export async function adminDeleteJob(jobId: string): Promise<void> {
   await apiClient.delete(`/admin/jobs/${jobId}`);
 }
 
-/** Admin: get all jobs (optional filter: pending | approved | rejected | all) */
-export async function getAdminJobs(status?: string): Promise<Job[]> {
+/** Admin: phân trang BE */
+export async function getAdminJobsPage(
+  status: string | undefined,
+  page: number,
+  limit: number,
+): Promise<PagedList<Job>> {
   if (USE_MOCK) {
     const res = await mockJobs.mockGetJobs({});
-    return res.items ?? [];
+    const all = (res.items ?? []).map(mapJobDTOToJob);
+    const start = (page - 1) * limit;
+    const items = all.slice(start, start + limit);
+    return {
+      items,
+      totalCount: all.length,
+      page,
+      limit,
+      hasNext: start + limit < all.length,
+    };
   }
-  const res = (await apiClient.get('/admin/jobs', {
-    params: status ? { status } : undefined,
-  })) as { data?: JobDTO[] };
-  const list = (res?.data ?? res) as JobDTO[] | JobDTO;
-  const arr = Array.isArray(list) ? list : list ? [list] : [];
-  return arr.map(mapJobDTOToJob);
+  const params: Record<string, string | number> = { page, limit };
+  if (status) params.status = status;
+  const res = (await apiClient.get('/admin/jobs', { params })) as {
+    data?: { items?: JobDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean };
+  };
+  const raw = (res?.data ?? res) as {
+    items?: JobDTO[];
+    totalCount?: number;
+    page?: number;
+    limit?: number;
+    hasNext?: boolean;
+  };
+  return {
+    items: Array.isArray(raw.items) ? raw.items.map(mapJobDTOToJob) : [],
+    totalCount: Number(raw.totalCount ?? 0),
+    page: Number(raw.page ?? page),
+    limit: Number(raw.limit ?? limit),
+    hasNext: Boolean(raw.hasNext),
+  };
+}
+
+/** Trang 1, tối đa `limit` (mặc định 100) — dùng dashboard / tương thích cũ. */
+export async function getAdminJobs(status?: string, limit = 100): Promise<Job[]> {
+  const p = await getAdminJobsPage(status, 1, limit);
+  return p.items;
 }
 
 export async function unpublishJob(jobId: string): Promise<void> {

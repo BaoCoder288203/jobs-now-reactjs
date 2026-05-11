@@ -1,4 +1,5 @@
 import type { Industry } from '@/types';
+import type { PagedList } from '@/types/paged';
 import { USE_MOCK } from './api';
 import { getIndustries } from '@/mocks/data/industries.mock';
 import { apiClient } from './api';
@@ -23,6 +24,21 @@ function extractIndustryList(res: unknown): IndustryDTO[] {
     if (Array.isArray(data)) return data as IndustryDTO[];
   }
   return [];
+}
+
+export async function getIndustriesAdminPage(page: number, limit: number): Promise<PagedList<Industry>> {
+  const res = await apiClient.get('/admin/industries', { params: { page, limit } });
+  const raw = (res as { data?: { items?: IndustryDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean } })
+    .data ?? (res as { items?: IndustryDTO[]; totalCount?: number; page?: number; limit?: number; hasNext?: boolean });
+  const list = Array.isArray(raw.items) ? raw.items : [];
+  const items = list.map(mapIndustryDTOToIndustry).filter((i) => i.id && i.name);
+  return {
+    items,
+    totalCount: Number(raw.totalCount ?? 0),
+    page: Number(raw.page ?? page),
+    limit: Number(raw.limit ?? limit),
+    hasNext: Boolean(raw.hasNext),
+  };
 }
 
 export async function getIndustriesList(): Promise<Industry[]> {

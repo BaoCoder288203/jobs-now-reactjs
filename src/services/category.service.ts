@@ -1,10 +1,23 @@
 import { apiClient } from './api';
+import type { PagedList } from '@/types/paged';
 
 export interface JobCategoryDTO {
   categoryId?: number;
   categoryName?: string;
   industryId?: number;
   industryName?: string;
+}
+
+export async function getJobCategoriesAdminPage(page: number, limit: number): Promise<PagedList<JobCategoryDTO>> {
+  const res = await apiClient.get('/admin/job-categories', { params: { page, limit } });
+  const raw = (res as { data?: PagedList<JobCategoryDTO> }).data ?? (res as PagedList<JobCategoryDTO>);
+  return {
+    items: Array.isArray(raw.items) ? raw.items : [],
+    totalCount: Number(raw.totalCount ?? 0),
+    page: Number(raw.page ?? page),
+    limit: Number(raw.limit ?? limit),
+    hasNext: Boolean(raw.hasNext),
+  };
 }
 
 export async function getJobCategories(): Promise<JobCategoryDTO[]> {

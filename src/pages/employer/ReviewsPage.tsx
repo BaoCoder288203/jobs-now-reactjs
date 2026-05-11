@@ -37,7 +37,7 @@ export function EmployerReviewsPage() {
 
   return (
     <DashboardLayout sidebar={<RecruiterSidebar />}>
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Duyệt đánh giá công ty</h1>
           <p className="text-sm text-gray-600">{data?.totalCount ?? 0} đánh giá chờ duyệt</p>
