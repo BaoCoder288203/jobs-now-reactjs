@@ -15,6 +15,7 @@ import {
 import { Send, MessageCircle, Search, ArrowLeft, FileText, Image, X, Download, Trash2, Headset } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { usePaginatedChatMessages } from '@/hooks/usePaginatedChatMessages';
 
 export default function ChatPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -22,7 +23,8 @@ export default function ChatPage() {
 
   const [conversations, setConversations] = useState<ConversationResponse[]>([]);
   const [selectedConv, setSelectedConv] = useState<ConversationResponse | null>(null);
-  const [messages, setMessages] = useState<MessageResponse[]>([]);
+  const chatMessages = usePaginatedChatMessages();
+  const { messages, messagesContainerRef, loadingInitial, loadingOlder, loadInitial, appendRealtime, onMessagesScroll, reset: resetChatMessages } = chatMessages;
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +36,6 @@ export default function ChatPage() {
   const [deletingConversationId, setDeletingConversationId] = useState<number | null>(null);
   const [isCreatingSupport, setIsCreatingSupport] = useState(false);
 
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
   const statusSubscriptionRef = useRef<any>(null);
   const conversationDataSubscriptionRef = useRef<any>(null);
@@ -108,16 +109,6 @@ export default function ChatPage() {
     };
   }, [userId]);
 
-  const scrollToBottom = useCallback(() => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectConversation = useCallback(async (conv: ConversationResponse) => {
@@ -133,13 +124,11 @@ export default function ChatPage() {
 
     setSelectedConv(conv);
     setShowSidebar(false);
-    setMessages([]);
 
-    const msgs = await chatService.getMessages(conv.conversationId);
+    await loadInitial(conv.conversationId);
     if (requestId !== selectConversationRequestRef.current || activeConversationIdRef.current !== conv.conversationId) {
       return;
     }
-    setMessages(msgs);
 
     if (userId) {
       markMessagesRead(conv.conversationId, userId);
@@ -156,13 +145,13 @@ export default function ChatPage() {
         if (activeConversationIdRef.current !== conv.conversationId) {
           return;
         }
-        setMessages((prev) => [...prev, msg]);
+        appendRealtime(msg);
         if (userId && msg.senderId !== userId) {
           markMessagesRead(conv.conversationId, userId);
         }
       }
     );
-  }, [userId]);
+  }, [userId, loadInitial, appendRealtime]);
 
   useEffect(() => {
     if (!userId) return;
@@ -304,7 +293,7 @@ export default function ChatPage() {
       setConversations((prev) => prev.filter((c) => c.conversationId !== conversationToDelete.conversationId));
       if (selectedConv?.conversationId === conversationToDelete.conversationId) {
         setSelectedConv(null);
-        setMessages([]);
+        resetChatMessages();
       }
       setConversationToDelete(null);
       toast.success('Đã xóa cuộc trò chuyện');
@@ -360,8 +349,8 @@ export default function ChatPage() {
   if (!user) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 border-gray-200 bg-gray-50 max-md:m-2 max-md:rounded-xl max-md:border md:m-4 md:rounded-xl md:border">
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+    <div className="flex w-full h-[650px] flex-1 flex-col overflow-hidden rounded-none border-0 border-gray-200 bg-gray-50 max-md:m-2 max-md:rounded-xl max-md:border md:m-4 md:rounded-xl md:border">
+      <div className="flex h-[650px] flex-1 overflow-hidden">
         <div
           className={`${showSidebar ? 'flex' : 'hidden'} w-full min-w-0 max-w-full shrink-0 flex-col border-r border-gray-200 bg-white md:flex md:w-[360px] md:min-w-[360px] md:max-w-[360px]`}
         >
@@ -497,8 +486,22 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-white">
-                {messages.map((msg) => {
+              <div
+                ref={messagesContainerRef}
+                onScroll={onMessagesScroll}
+                className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-white"
+              >
+                {loadingOlder && (
+                  <div className="flex justify-center py-2">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                )}
+                {loadingInitial ? (
+                  <div className="flex flex-1 items-center justify-center py-12">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : (
+                messages.map((msg) => {
                   const isMine = msg.senderId === userId;
                   return (
                     <div key={msg.messageId} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
@@ -537,7 +540,8 @@ export default function ChatPage() {
                       </div>
                     </div>
                   );
-                })}
+                })
+                )}
               </div>
 
               <div className="px-4 py-3 border-t border-gray-200 bg-white">
