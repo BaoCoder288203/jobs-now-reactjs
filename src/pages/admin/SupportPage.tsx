@@ -21,6 +21,7 @@ import { MessageCircle, Search, Send, Trash2, Image, FileText, Download, X } fro
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { usePaginatedChatMessages } from '@/hooks/usePaginatedChatMessages';
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -40,7 +41,8 @@ export function AdminSupportPage() {
 
   const [selectedConv, setSelectedConv] = useState<ConversationResponse | null>(null);
   const [conversations, setConversations] = useState<ConversationResponse[]>([]);
-  const [messages, setMessages] = useState<MessageResponse[]>([]);
+  const chatMessages = usePaginatedChatMessages();
+  const { messages, messagesContainerRef, loadingInitial, loadingOlder, loadInitial, appendRealtime, onMessagesScroll, reset: resetChatMessages } = chatMessages;
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -51,7 +53,6 @@ export function AdminSupportPage() {
   const [conversationToDelete, setConversationToDelete] = useState<ConversationResponse | null>(null);
   const [deletingConversationId, setDeletingConversationId] = useState<number | null>(null);
 
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const conversationSubscriptionRef = useRef<any>(null);
   const statusSubscriptionRef = useRef<any>(null);
@@ -131,12 +132,6 @@ export function AdminSupportPage() {
     };
   }, [adminId]);
 
-  useEffect(() => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
   const selectConversation = useCallback(
     async (conv: ConversationResponse) => {
       if (!adminId) return;
@@ -148,15 +143,13 @@ export function AdminSupportPage() {
       conversationSubscriptionRef.current = null;
 
       setSelectedConv(conv);
-      setMessages([]);
 
       await connectWebSocket(adminId);
-      const list = await chatService.getMessages(conv.conversationId);
+      await loadInitial(conv.conversationId);
       if (requestId !== selectRequestRef.current || activeConversationIdRef.current !== conv.conversationId) {
         return;
       }
 
-      setMessages(list);
       markMessagesRead(conv.conversationId, adminId);
       setConversations((prev) =>
         prev.map((c) =>
@@ -168,13 +161,13 @@ export function AdminSupportPage() {
 
       conversationSubscriptionRef.current = subscribeToConversation(conv.conversationId, (msg: MessageResponse) => {
         if (activeConversationIdRef.current !== conv.conversationId) return;
-        setMessages((prev) => [...prev, msg]);
+        appendRealtime(msg);
         if (msg.senderId !== adminId) {
           markMessagesRead(conv.conversationId, adminId);
         }
       });
     },
-    [adminId]
+    [adminId, loadInitial, appendRealtime]
   );
 
   useEffect(() => {
@@ -265,7 +258,7 @@ export function AdminSupportPage() {
       setConversations((prev) => prev.filter((c) => c.conversationId !== conversationToDelete.conversationId));
       if (selectedConv?.conversationId === conversationToDelete.conversationId) {
         setSelectedConv(null);
-        setMessages([]);
+        resetChatMessages();
       }
       setConversationToDelete(null);
       toast.success('Đã xóa cuộc trò chuyện');
@@ -400,8 +393,22 @@ export function AdminSupportPage() {
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                  {messages.map((msg) => {
+                <CardContent
+                  ref={messagesContainerRef}
+                  onScroll={onMessagesScroll}
+                  className="flex-1 overflow-y-auto p-4 flex flex-col gap-3"
+                >
+                  {loadingOlder && (
+                    <div className="flex justify-center py-2">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </div>
+                  )}
+                  {loadingInitial ? (
+                    <div className="flex flex-1 items-center justify-center py-12">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    </div>
+                  ) : (
+                  messages.map((msg) => {
                     const isAdminSender = msg.senderId === adminId;
                     return (
                       <div key={msg.messageId} className={cn('flex gap-2', isAdminSender ? 'justify-end' : 'justify-start')}>
@@ -443,7 +450,8 @@ export function AdminSupportPage() {
                         </div>
                       </div>
                     );
-                  })}
+                  })
+                  )}
                 </CardContent>
 
                 <div className="border-t border-gray-200 p-3 flex gap-2">

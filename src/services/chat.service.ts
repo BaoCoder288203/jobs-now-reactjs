@@ -1,4 +1,9 @@
 import { apiClient } from './api';
+import {
+  CHAT_MESSAGE_PAGE_SIZE,
+  parseChatMessagesPage,
+  type ChatMessagesPage,
+} from '@/utils/chatMessage';
 
 export interface ConversationResponse {
   conversationId: number;
@@ -48,6 +53,22 @@ export async function getUserConversations(userId: number): Promise<Conversation
 export async function getMessages(conversationId: number): Promise<MessageResponse[]> {
   const res = await apiClient.get(`/chat/messages/${conversationId}`);
   return res.data;
+}
+
+export { CHAT_MESSAGE_PAGE_SIZE };
+export type { ChatMessagesPage };
+
+export async function getMessagesPage(
+  conversationId: number,
+  beforeMessageId?: number,
+  limit: number = CHAT_MESSAGE_PAGE_SIZE,
+): Promise<ChatMessagesPage> {
+  const params: Record<string, number> = { limit };
+  if (beforeMessageId != null) {
+    params.beforeMessageId = beforeMessageId;
+  }
+  const res = await apiClient.get(`/chat/messages/${conversationId}`, { params });
+  return parseChatMessagesPage(res.data);
 }
 
 export async function getUnreadCount(userId: number): Promise<number> {

@@ -71,7 +71,7 @@ export default function UserPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 lg:ml-6">
+        <div className="flex-1 w-full lg:ml-6">
           <Outlet />
         </div>
       </div>
