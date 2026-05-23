@@ -6,6 +6,6 @@ export const SUPPORT_CONFIG = {
   ],
   chatHint: 'Nhấn vào nút bên dưới để mở đúng cuộc trò chuyện hỗ trợ với admin.',
   openSupportCta: 'Mở chat hỗ trợ',
-  openZaloCta: 'Hoặc chat nhanh qua Zalo',
+  // openZaloCta: 'Hoặc chat nhanh qua Zalo',
   zaloLink: 'https://zalo.me/0332916529',
 } as const;

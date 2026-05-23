@@ -20,7 +20,7 @@ export function useUploadResume() {
 
   return useMutation({
     mutationFn: ({ userId, file }: { userId: string; file: File }) =>
-      resumeService.uploadResume(userId, file),
+      resumeService.uploadResumeWithMeta(userId, file),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: resumeKeys.list(variables.userId) });
     }
@@ -55,8 +55,13 @@ export function useUpdateResume() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ resumeId, data }: { resumeId: string; data: { resumeName?: string; summary?: string | null; templateKey?: string } }) =>
-      resumeService.updateResume(resumeId, data),
+    mutationFn: ({
+      resumeId,
+      data,
+    }: {
+      resumeId: string;
+      data: { resumeName?: string; summary?: string | null; templateKey?: string; extractedText?: string };
+    }) => resumeService.updateResume(resumeId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: resumeKeys.all });
     }

@@ -65,6 +65,7 @@ export interface ExtractedCVData {
     duration?: string;
     start_date?: string;
     end_date?: string;
+    description?: string;
   }[];
   skills: { name: string; level?: string; topic?: string }[];
   projects?: { name: string; description?: string; duration?: string; technologies?: string[] }[];
@@ -123,6 +124,7 @@ export interface Resume {
   type?: 'UPLOADED' | 'CREATED';
   is_ai_generated?: boolean;
   extracted_text?: string;
+  has_parsed_cv?: boolean;
   profile?: JobSeekerProfile;
 }
 

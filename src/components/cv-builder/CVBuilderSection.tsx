@@ -8,9 +8,16 @@ import type { ExtractedCVData } from '@/types';
 interface CVBuilderSectionProps {
   editResumeId?: string | null;
   initialCVData?: ExtractedCVData;
+  editResumeName?: string;
+  editTemplateKey?: string;
 }
 
-export function CVBuilderSection({ editResumeId, initialCVData }: CVBuilderSectionProps) {
+export function CVBuilderSection({
+  editResumeId,
+  initialCVData,
+  editResumeName,
+  editTemplateKey,
+}: CVBuilderSectionProps) {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const { openLoginModal } = useAuthModal();
 
@@ -21,7 +28,12 @@ export function CVBuilderSection({ editResumeId, initialCVData }: CVBuilderSecti
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
             {editResumeId ? 'Chỉnh sửa CV' : 'Bắt đầu tạo CV của bạn'}
           </h2>
-          <CVFormTabs editResumeId={editResumeId} initialCVData={initialCVData} />
+          <CVFormTabs
+            editResumeId={editResumeId}
+            initialCVData={initialCVData}
+            editResumeName={editResumeName}
+            editTemplateKey={editTemplateKey}
+          />
         </div>
       </section>
     );

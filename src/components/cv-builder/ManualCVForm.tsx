@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { CVPreview } from './CVPreview';
 import { CVContentForm } from './CVContentForm';
 import { CVCreateForm } from './CVCreateForm';
+import { ParsedCVEditForm } from './ParsedCVEditForm';
 import type { ExtractedCVData } from '@/types';
 import { toast } from 'sonner';
 
@@ -25,9 +26,17 @@ interface ManualCVFormProps {
   isGuest?: boolean;
   initialData?: ExtractedCVData;
   editResumeId?: string | null;
+  editResumeName?: string;
+  editTemplateKey?: string;
 }
 
-export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFormProps) {
+export function ManualCVForm({
+  isGuest,
+  initialData,
+  editResumeId,
+  editResumeName,
+  editTemplateKey,
+}: ManualCVFormProps) {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const userId = user?.userId ? String(user.userId) : '';
@@ -80,6 +89,16 @@ export function ManualCVForm({ isGuest, initialData, editResumeId }: ManualCVFor
   }, { enabled: canSave });
 
   if (!isGuest && userId) {
+    if (editResumeId && initialData) {
+      return (
+        <ParsedCVEditForm
+          resumeId={editResumeId}
+          resumeName={editResumeName}
+          initialData={initialData}
+          templateKey={editTemplateKey}
+        />
+      );
+    }
     if (editResumeId) {
       return (
         <div className="space-y-8 max-w-4xl mx-auto">

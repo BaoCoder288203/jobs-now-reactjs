@@ -8,6 +8,25 @@ function unwrap<T>(res: unknown): T {
   return (obj?.data ?? res) as T;
 }
 
+export type CVParseStatus = 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
+
+export interface CreateResumeResponse {
+  resume: {
+    resumeId: number;
+    resumeName: string;
+    resumeUrl: string;
+    summary?: string | null;
+    templateKey?: string | null;
+    uploadedAt: string;
+    isPrimary?: boolean;
+    hasParsedCv?: boolean;
+  };
+  parseStatus: CVParseStatus;
+  parsedCv?: import('@/types').ExtractedCVData;
+  parseWarnings?: string[];
+  sectionsSynced?: number;
+}
+
 function mapResumeFromBE(item: {
   resumeId: number;
   resumeName: string;
@@ -16,6 +35,8 @@ function mapResumeFromBE(item: {
   templateKey?: string | null;
   uploadedAt: string;
   isPrimary?: boolean;
+  hasParsedCv?: boolean;
+  extractedText?: string;
 }): Resume {
   return {
     resumeId: item.resumeId,
@@ -29,6 +50,9 @@ function mapResumeFromBE(item: {
     file_url: item.resumeUrl,
     created_at: item.uploadedAt,
     is_default: item.isPrimary ?? false,
+    has_parsed_cv: item.hasParsedCv ?? false,
+    extracted_text: item.extractedText,
+    type: item.resumeUrl ? 'UPLOADED' : 'CREATED',
   };
 }
 
@@ -40,7 +64,7 @@ export async function getResumes(userId: string): Promise<Resume[]> {
   const profile = unwrap<{ profileId: number }>(profileRes);
   if (!profile?.profileId) return [];
   const listRes = await apiClient.get(`/resume/profile/${profile.profileId}`);
-  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean }[]>(listRes);
+  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean; hasParsedCv?: boolean; extractedText?: string }[]>(listRes);
   if (!Array.isArray(list)) return [];
   return list.map(mapResumeFromBE);
 }
@@ -51,7 +75,7 @@ export async function getResumesByProfileId(profileId: number): Promise<Resume[]
   }
   if (!profileId) return [];
   const listRes = await apiClient.get(`/resume/profile/${profileId}`);
-  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean }[]>(listRes);
+  const list = unwrap<{ resumeId: number; resumeName: string; resumeUrl: string; summary?: string | null; templateKey?: string | null; uploadedAt: string; isPrimary?: boolean; hasParsedCv?: boolean; extractedText?: string }[]>(listRes);
   if (!Array.isArray(list)) return [];
   return list.map(mapResumeFromBE);
 }
@@ -69,10 +93,44 @@ export async function uploadResume(userId: string, file: File, resumeName?: stri
   const res = await apiClient.post(`/resume/create/${profile.profileId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  unwrap(res);
+  const payload = unwrap<CreateResumeResponse>(res);
+  if (payload?.resume) {
+    return mapResumeFromBE(payload.resume);
+  }
   const list = await getResumes(userId);
   const created = list.find((r) => r.resumeName === (resumeName ?? file.name));
   return created ?? mapResumeFromBE({ resumeId: 0, resumeName: file.name, resumeUrl: '', uploadedAt: new Date().toISOString(), isPrimary: false });
+}
+
+export async function uploadResumeWithMeta(
+  userId: string,
+  file: File,
+  resumeName?: string
+): Promise<CreateResumeResponse> {
+  if (USE_MOCK) {
+    const resume = await mockResume.mockUploadResume(userId, file);
+    return {
+      resume: {
+        resumeId: resume.resumeId,
+        resumeName: resume.resumeName,
+        resumeUrl: resume.resumeUrl,
+        uploadedAt: resume.uploadedAt,
+        isPrimary: resume.is_default,
+        hasParsedCv: !!resume.extracted_text,
+      },
+      parseStatus: 'SUCCESS',
+    };
+  }
+  const profileRes = await apiClient.get(`/profile/user/${userId}`);
+  const profile = unwrap<{ profileId: number }>(profileRes);
+  if (!profile?.profileId) throw new Error('Profile not found');
+  const formData = new FormData();
+  formData.append('resumeName', resumeName ?? file.name ?? 'CV');
+  formData.append('resume', file);
+  const res = await apiClient.post(`/resume/create/${profile.profileId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrap<CreateResumeResponse>(res);
 }
 
 export async function setDefaultResume(userId: string, resumeId: string): Promise<Resume | void> {
@@ -91,7 +149,7 @@ export async function setDefaultResume(userId: string, resumeId: string): Promis
 
 export async function updateResume(
   resumeId: string,
-  data: { resumeName?: string; summary?: string | null; templateKey?: string }
+  data: { resumeName?: string; summary?: string | null; templateKey?: string; extractedText?: string }
 ): Promise<Resume> {
   if (USE_MOCK) {
     return mockResume.mockUpdateResume(resumeId, data);
