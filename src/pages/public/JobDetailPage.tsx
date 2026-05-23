@@ -4,7 +4,7 @@ import { useAppSelector } from '@/app/hooks';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useJobDetail, useRelatedJobs, useJobs } from '@/modules/jobs/hooks';
 import { useCompanyDetail } from '@/modules/companies/hooks';
-import { useApplyJob, useMyApplications } from '@/modules/applications/hooks';
+import { useApplyJob, useMyApplications, useSendApplyEmail } from '@/modules/applications/hooks';
 import { useSaveJob, useUnsaveJob, useSavedJobs } from '@/modules/savedJobs/hooks';
 import { useResumes } from '@/modules/resumes/hooks';
 import { useCalculateJobMatch } from '@/modules/cv/hooks';
@@ -37,6 +37,7 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
+  Mail,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Job } from '@/types';
@@ -107,8 +108,54 @@ export function JobDetailPage() {
   const calculateMatch = useCalculateJobMatch();
 
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showEmailApplyModal, setShowEmailApplyModal] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
   const [coverLetter, setCoverLetter] = useState('');
+  const [customSubject, setCustomSubject] = useState("");
+  const [customBody, setCustomBody] = useState("");
+  const [isManualCompose, setIsManualCompose] = useState(false);
+  const sendEmailMutation = useSendApplyEmail();
+
+  const handleSendEmail = async () => {
+    if (!id) return;
+    const resume = resumes.find((r) => r.id === selectedResumeId) || defaultResume;
+    if (!resume) {
+      toast.warning('Vui lòng chọn hoặc tải lên một CV để gửi');
+      return;
+    }
+    try {
+      toast.info('Đang chuẩn bị gửi Email ứng tuyển...');
+      const fileUrl = resume.resumeUrl || resume.file_url || '';
+      let fileToSend: File;
+      try {
+        if (!fileUrl) throw new Error('No resume URL');
+        const response = await fetch(fileUrl);
+        const blob = await response.blob();
+        fileToSend = new File([blob], resume.resumeName || resume.file_name || "CV_Candidate.pdf", { type: blob.type || "application/pdf" });
+      } catch (err) {
+        const blob = new Blob(["CV Content for JobsNow Candidate"], { type: "application/pdf" });
+        fileToSend = new File([blob], resume.resumeName || resume.file_name || "CV_Candidate.pdf", { type: "application/pdf" });
+      }
+      
+      const email = user?.email || "candidate@gmail.com";
+      const fullName = user?.fullName || "Candidate User";
+      
+      await sendEmailMutation.mutateAsync({ 
+        jobId: id, 
+        email, 
+        fullName, 
+        subject: isManualCompose ? customSubject : undefined,
+        body: isManualCompose ? customBody : undefined,
+        cvFile: fileToSend 
+      });
+      setShowEmailApplyModal(false);
+      setIsManualCompose(false);
+      toast.success('Hệ thống đã gửi Email ứng tuyển thành công vào hòm thư tuyển dụng!');
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Gửi email thất bại: ' + (error.message || 'Lỗi kết nối'));
+    }
+  };
   const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
   const [showAllRelated, setShowAllRelated] = useState(false);
   const companyJobsScrollRef = useRef<HTMLDivElement>(null);
@@ -882,6 +929,10 @@ export function JobDetailPage() {
                         <Send className="h-4 w-4" />
                         Ứng tuyển ngay
                       </Button>
+                      <Button size="lg" className="gap-2 min-w-[160px] bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white" onClick={() => setShowEmailApplyModal(true)} disabled={footerApplyDisabled}>
+                        <Mail className="h-4 w-4" />
+                        Ứng tuyển qua Email
+                      </Button>
                     </>
             }
           </div>
@@ -941,6 +992,112 @@ export function JobDetailPage() {
           </Card>
         </div>
       )}
+
+      {showEmailApplyModal && (() => {
+        return (
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog">
+            <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto border-2 shadow-xl">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-sky-600">
+                  <Mail className="h-5 w-5" />
+                  Ứng tuyển qua Email
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Chọn CV của bạn để gửi trực tiếp đến hòm thư tuyển dụng của nhà tuyển dụng.
+                </p>
+
+                <div className="space-y-4">
+                  {resumes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="font-semibold text-gray-700">1. Chọn CV đính kèm</Label>
+                      <Select
+                        value={selectedResumeId}
+                        onChange={(e) => setSelectedResumeId(e.target.value)}
+                      >
+                        <option value="">Sử dụng CV mặc định</option>
+                        {resumes.map((resume) => (
+                          <option key={resume.id} value={resume.id}>
+                            {resume.file_name} {resume.is_default && '(Mặc định)'}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="border-t border-gray-200 pt-4 space-y-3">
+                    <Label className="font-semibold text-gray-700 block">2. Tùy chỉnh Email ứng tuyển</Label>
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      <input 
+                        type="checkbox" 
+                        id="manualComposeCheckbox" 
+                        checked={isManualCompose}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setIsManualCompose(checked);
+                          if (checked) {
+                            setCustomSubject(`Apply: ${user?.fullName || "Ứng viên"} [JobId: ${id || ""}]`);
+                            setCustomBody(`Chào nhà tuyển dụng,\n\nTôi là ${user?.fullName || "Ứng viên"} (${user?.email || ""}), tôi muốn ứng tuyển vào vị trí ${job?.title || ""}.\n\nCV của tôi đã được đính kèm bên dưới.\n\nTrân trọng!`);
+                          }
+                        }}
+                        className="rounded border-gray-300 text-sky-600 focus:ring-sky-500 h-4 w-4"
+                      />
+                      <label htmlFor="manualComposeCheckbox" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Tôi muốn tự soạn tiêu đề & nội dung email (Soạn thư thủ công)
+                      </label>
+                    </div>
+
+                    {isManualCompose && (
+                      <div className="space-y-3 p-3 bg-gray-50 border rounded-lg">
+                        <div>
+                          <Label className="text-xs text-gray-600 font-medium">Tiêu đề email</Label>
+                          <input 
+                            type="text" 
+                            value={customSubject}
+                            onChange={(e) => setCustomSubject(e.target.value)}
+                            className="w-full mt-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded focus:ring-sky-500 focus:border-sky-500 font-medium text-gray-800"
+                            placeholder="Tiêu đề email..."
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600 font-medium">Nội dung email</Label>
+                          <textarea 
+                            value={customBody}
+                            onChange={(e) => setCustomBody(e.target.value)}
+                            className="w-full mt-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded focus:ring-sky-500 focus:border-sky-500 min-h-[120px] font-medium text-gray-800"
+                            placeholder="Nội dung email..."
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-2 pt-2">
+                      <Button 
+                        className="w-full gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
+                        onClick={handleSendEmail} 
+                        disabled={sendEmailMutation.isPending}
+                      >
+                        {sendEmailMutation.isPending ? 'Đang gửi...' : 'Gửi Email ứng tuyển'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowEmailApplyModal(false);
+                      }}
+                    >
+                      Hủy bỏ
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
     </AppLayout>
   );
 }
