@@ -187,3 +187,32 @@ export async function sendCustomEmail(
   });
 }
 
+export async function syncApplicationsFromEmail(): Promise<string[]> {
+  if (USE_MOCK) {
+    return ["Nguyễn Văn A (Mock)"];
+  }
+  const res = (await apiClient.post('/application/sync-via-email')) as { data?: string[] };
+  return (res.data ?? res) as string[];
+}
+
+export async function sendApplyEmail(jobId: string, email: String, fullName: String, subject?: string, body?: string, cvFile?: File): Promise<void> {
+  if (USE_MOCK) {
+    console.log("Mock: Sent apply email for job:", jobId);
+    return;
+  }
+  const formData = new FormData();
+  formData.append("jobId", jobId);
+  formData.append("email", String(email));
+  formData.append("fullName", String(fullName));
+  if (subject) formData.append("subject", subject);
+  if (body) formData.append("body", body);
+  if (cvFile) {
+    formData.append("cvFile", cvFile);
+  }
+  await apiClient.post("/application/send-apply-email", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
+}
+

@@ -7,10 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useCompanyApplications, useUpdateApplicationStatus } from '@/modules/applications/hooks';
+import { useCompanyApplications, useUpdateApplicationStatus, useSyncApplicationsFromEmail } from '@/modules/applications/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User, Bot, Search } from 'lucide-react';
+import { Briefcase, Calendar, ChevronDown, ChevronUp, Download, Eye, FileText, Plus, User, Bot, Search, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Application } from '@/types';
 import AiHeadhunterChat from '@/components/AiHeadhunterChat';
@@ -48,8 +48,24 @@ export function EmployerApplicationsPage() {
   
   const { data: applicationsData = [], isLoading: applicationsLoading } = useCompanyApplications(companyId);
   const updateStatus = useUpdateApplicationStatus();
+  const syncEmail = useSyncApplicationsFromEmail();
   
   const isLoading = companyLoading || applicationsLoading;
+
+  const handleSyncEmails = async () => {
+    toast.info("Đang đồng bộ CV ứng viên từ Gmail...");
+    try {
+      const candidates = await syncEmail.mutateAsync();
+      if (candidates && candidates.length > 0) {
+        toast.success(`Đồng bộ thành công! Đã thêm ${candidates.length} ứng viên mới: ${candidates.join(', ')}`);
+      } else {
+        toast.info("Không có CV ứng tuyển mới nào trong hòm thư Gmail.");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Đồng bộ Email thất bại: " + (error.message || "Lỗi kết nối"));
+    }
+  };
 
   const applications = useMemo(() => {
     let list = (applicationsData || []).filter((app) => {
@@ -248,6 +264,14 @@ export function EmployerApplicationsPage() {
                 Tạo tin tuyển dụng
               </Button>
             </Link>
+            <Button
+              className="w-full gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+              onClick={handleSyncEmails}
+              disabled={syncEmail.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 ${syncEmail.isPending ? 'animate-spin' : ''}`} />
+              Đồng bộ từ Gmail
+            </Button>
           </div>
         </div>
 

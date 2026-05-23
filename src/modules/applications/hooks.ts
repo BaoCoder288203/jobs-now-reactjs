@@ -122,3 +122,22 @@ export function useSendCustomEmail() {
   });
 }
 
+export function useSyncApplicationsFromEmail() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => applicationService.syncApplicationsFromEmail(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: applicationKeys.all });
+      queryClient.invalidateQueries({ queryKey: [...applicationKeys.all, 'company'] });
+    }
+  });
+}
+
+export function useSendApplyEmail() {
+  return useMutation({
+    mutationFn: ({ jobId, email, fullName, subject, body, cvFile }: { jobId: string; email: string; fullName: string; subject?: string; body?: string; cvFile: File }) =>
+      applicationService.sendApplyEmail(jobId, email, fullName, subject, body, cvFile)
+  });
+}
+
