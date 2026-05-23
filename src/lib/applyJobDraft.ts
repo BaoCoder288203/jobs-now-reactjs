@@ -116,7 +116,11 @@ export function applyJobDraftToForm<T extends Record<string, unknown>>(opts: {
     ? draft.suggestedSkills
   : (draft.suggestedSkillNames ?? []).map((name) => ({ name, level: '', isRequired: true }));
 
-  if (skillItems.length && (overwriteAiFields || (getValues('jobSkills' as never) as unknown[] | undefined)?.length === 0)) {
+  const currentJobSkills = getValues('jobSkills' as never) as unknown as
+    | { skillId: number }[]
+    | undefined;
+
+  if (skillItems.length && (overwriteAiFields || !currentJobSkills?.length)) {
     const rows: { skillId: number; isRequired: boolean; level: string }[] = [];
     const used = new Set<number>();
     for (const item of skillItems) {
@@ -140,8 +144,10 @@ export function applyJobDraftToForm<T extends Record<string, unknown>>(opts: {
   }
 
   const majorNames = draft.suggestedMajorNames ?? [];
-  if (majorNames.length && (overwriteAiFields || (getValues('majorIds' as never) as number[] | undefined)?.length === 0)) {
-    const ids: number[] = overwriteAiFields ? [] : [...((getValues('majorIds' as never) as number[]) ?? [])];
+  const currentMajorIds = getValues('majorIds' as never) as unknown as number[] | undefined;
+
+  if (majorNames.length && (overwriteAiFields || !currentMajorIds?.length)) {
+    const ids: number[] = overwriteAiFields ? [] : [...(currentMajorIds ?? [])];
     for (const raw of majorNames) {
       const hit = matchByName(raw, majors, (m) => m.name ?? '');
       const id = hit?.majorId ?? 0;
