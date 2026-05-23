@@ -14,11 +14,9 @@ import { getStoredCVAvatar } from '@/lib/cvAvatarStorage';
 import { getStoredCVLanguages } from '@/lib/cvLanguageStorage';
 import { getStoredCVHeadline } from '@/lib/cvHeadlineStorage';
 import * as profileCvService from '@/services/profile-cv.service';
-import { FileText, Upload, Star, Trash2, Download, FileEdit, Sparkles, Eye } from 'lucide-react';
+import { FileText, Upload, Star, Trash2, Download, FileEdit, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ExtractedCVData, Resume } from '@/types';
-import { parseExtractedCvData } from '@/lib/parseExtractedCv';
-
+import type { ExtractedCVData } from '@/types';
 type ImproveLanguage = 'auto' | 'vi' | 'en';
 
 export function JobSeekerResumesPage() {
@@ -123,28 +121,6 @@ export function JobSeekerResumesPage() {
     resumeId: Number(resume.id ?? resume.resumeId),
     resumeName: resume.file_name ?? resume.resumeName ?? 'CV',
   });
-
-  const getResumeEditPath = (resume: Resume) => {
-    const id = String(resume.id ?? resume.resumeId);
-    return `/user/resumes/edit?id=${id}`;
-  };
-
-  const getResumeTemplateEditPath = (resume: Resume) => {
-    const id = String(resume.id ?? resume.resumeId);
-    return `/tools/tao-cv/builder?edit=${id}`;
-  };
-
-  const handlePreviewParsedResume = (resume: Resume) => {
-    const parsed = parseExtractedCvData(resume.extracted_text);
-    if (!parsed) {
-      toast.error('CV chưa có dữ liệu phân tích. Thử tải lên lại hoặc chỉnh sửa thủ công.');
-      return;
-    }
-    setPreviewData(parsed);
-    setPreviewTemplateKey(normalizeCVTemplateKey(resume.templateKey ?? parsed.suggestedTemplateKey ?? DEFAULT_CV_TEMPLATE_KEY));
-    setPreviewLanguage('vi');
-    setPreviewOpen(true);
-  };
 
   const handleDownloadCreatedResumePdf = async (resume: {
     id?: string;
