@@ -15,7 +15,8 @@ import { htmlToPlainText, escapeHtml, plainTextToTipTapHtml } from '@/lib/htmlUt
 import { useJobDetail, useCreateJob, useUpdateJob } from '@/modules/jobs/hooks';
 import { useMyCompany } from '@/modules/companies/hooks';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, AlertCircle, ChevronDown, Trash2, X } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ChevronDown, Sparkles, Trash2, X } from 'lucide-react';
+import { useJobDraftAiSuggest } from '@/hooks/useJobDraftAiSuggest';
 import { Link } from 'react-router-dom';
 import { getJobCategories } from '@/services/category.service';
 import type { JobCategoryDTO } from '@/services/category.service';
@@ -365,6 +366,21 @@ export function CreateJobPage() {
     }
   };
 
+  const titleValue = watch('title') ?? '';
+
+  const titleChangedFromLoadedJob =
+    isEditMode && job?.title != null && titleValue.trim() !== (job.title ?? '').trim();
+
+  const { aiBanner, setAiBanner, aiLoading, suggestNow } = useJobDraftAiSuggest<JobFormData>({
+    enabled: !isEditMode || titleChangedFromLoadedJob,
+    title: titleValue,
+    setValue,
+    getValues,
+    categories,
+    skills,
+    majors: majorsOptions,
+  });
+
   const jobSkills = watch('jobSkills') ?? [];
 
   const addJobSkill = () => {
@@ -457,15 +473,45 @@ export function CreateJobPage() {
             )}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">
-                  Job Title <RequiredStar />
-                </Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="title">
+                    Job Title <RequiredStar />
+                  </Label>
+                  {isEditMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={suggestNow}
+                      disabled={aiLoading || titleValue.trim().length < 8}
+                    >
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      Gợi ý từ AI
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="title"
                   {...register('title')}
                   placeholder="e.g., Senior Software Engineer"
                   className={errors.title ? 'border-red-500' : ''}
                 />
+                {aiLoading && (
+                  <p className="text-xs text-gray-500">AI đang gợi ý nội dung...</p>
+                )}
+                {aiBanner && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                    <p className="flex-1">{aiBanner}</p>
+                    <button
+                      type="button"
+                      className="shrink-0 text-amber-800 hover:underline"
+                      onClick={() => setAiBanner(null)}
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                )}
                 {errors.title && <p className="text-sm text-red-600">{errors.title.message}</p>}
               </div>
 
