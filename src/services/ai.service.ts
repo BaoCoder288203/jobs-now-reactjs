@@ -145,3 +145,43 @@ export async function recalculateForProfile(profileId: number): Promise<void> {
 export async function recalculateForJob(jobId: number): Promise<void> {
   await apiClient.post(`/api/ai/job-match/recalculate/job/${jobId}`);
 }
+
+export interface SuggestJobDraftRequest {
+  title: string;
+  locale?: 'vi' | 'en';
+  categoryNames?: string[];
+  skillNames?: string[];
+  majorNames?: string[];
+}
+
+export interface SuggestedSkillItem {
+  name: string;
+  level?: string;
+  isRequired?: boolean;
+}
+
+export interface JobDraftSuggestion {
+  description?: string;
+  requirements?: string;
+  benefits?: string;
+  location?: string;
+  jobType?: string;
+  yearsOfExperience?: string;
+  educationLevel?: string;
+  salaryType?: string;
+  salaryCurrency?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  applicationLanguage?: string;
+  genderRequirement?: string;
+  suggestedCategoryName?: string;
+  suggestedSkills?: SuggestedSkillItem[];
+  /** @deprecated use suggestedSkills */
+  suggestedSkillNames?: string[];
+  suggestedMajorNames?: string[];
+}
+
+export async function suggestJobDraft(request: SuggestJobDraftRequest): Promise<JobDraftSuggestion> {
+  const response = await apiClient.post('/api/ai/suggest-job-draft', request);
+  return (response as { data?: JobDraftSuggestion }).data ?? (response as JobDraftSuggestion);
+}
