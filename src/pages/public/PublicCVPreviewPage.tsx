@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getResumesByProfileId } from '@/services/resume.service';
@@ -10,6 +10,7 @@ import type { CVTemplateKey } from '@/constants/cvTemplates';
 import { getStoredCVHeadline } from '@/lib/cvHeadlineStorage';
 import { getStoredCVAvatar } from '@/lib/cvAvatarStorage';
 import { getStoredCVLanguages } from '@/lib/cvLanguageStorage';
+import { isParsedCvJson, parseExtractedCvData } from '@/lib/parseExtractedCv';
 
 const toDisplayDate = (dateValue?: string | null) => {
   if (!dateValue) return '';
@@ -18,10 +19,22 @@ const toDisplayDate = (dateValue?: string | null) => {
   return `${month}/${year}`;
 };
 
+const CV_PAGE_WIDTH_PX = 794;
+
+function notifyCvReadyForEmbed() {
+  const bridge = (window as Window & { ReactNativeWebView?: { postMessage: (msg: string) => void } })
+    .ReactNativeWebView;
+  bridge?.postMessage(JSON.stringify({ type: 'cv-ready' }));
+}
+
 export function PublicCVPreviewPage() {
   const { profileId } = useParams<{ profileId: string }>();
   const [searchParams] = useSearchParams();
   const resumeIdParam = searchParams.get('resumeId');
+  const isMobileEmbed = searchParams.get('embed') === 'mobile';
+  const scaleHostRef = useRef<HTMLDivElement>(null);
+  const [mobileScale, setMobileScale] = useState(1);
+  const [scaledHostHeight, setScaledHostHeight] = useState<number | undefined>(undefined);
 
   // --- Hook 1: fetch all resumes for this profile ---
   const { data: resumes, isLoading: isLoadingResumes, error: resumesError } = useQuery({
@@ -42,7 +55,8 @@ export function PublicCVPreviewPage() {
     return resumes.find((r) => r.is_default) || resumes[0];
   }, [resumes, resumeIdParam]);
 
-  const isManualCV = !!resumeToShow && !resumeToShow.extracted_text;
+  const hasParsedJson = isParsedCvJson(resumeToShow?.extracted_text);
+  const isManualCV = !!resumeToShow && !hasParsedJson;
   const manualResumeId = resumeToShow ? Number(resumeToShow.resumeId || resumeToShow.id) : 0;
 
   // --- Hook 2: fetch detailed CV data for manual CVs (always called, conditionally enabled) ---
@@ -113,6 +127,49 @@ export function PublicCVPreviewPage() {
     enabled: isManualCV && manualResumeId > 0,
   });
 
+  const cvReady =
+    !isLoadingResumes &&
+    !(isManualCV && isLoadingManualData) &&
+    !!resumeToShow &&
+    !(isManualCV && manualCvError) &&
+    (isManualCV ? !!manualCvData : hasParsedJson);
+
+  useLayoutEffect(() => {
+    if (!isMobileEmbed || !cvReady) return;
+
+    const updateScale = () => {
+      const root = scaleHostRef.current?.querySelector('[data-cv-root="true"]') as HTMLElement | null;
+      const pageW = root?.offsetWidth || CV_PAGE_WIDTH_PX;
+      const pad = 16;
+      const nextScale = Math.min(1, (window.innerWidth - pad) / pageW);
+      setMobileScale(nextScale);
+
+      requestAnimationFrame(() => {
+        const host = scaleHostRef.current;
+        if (!host) return;
+        const visualH = host.getBoundingClientRect().height;
+        setScaledHostHeight(visualH > 0 ? visualH : undefined);
+      });
+    };
+
+    updateScale();
+    const t1 = window.setTimeout(updateScale, 150);
+    const t2 = window.setTimeout(updateScale, 600);
+    window.addEventListener('resize', updateScale);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.removeEventListener('resize', updateScale);
+    };
+  }, [isMobileEmbed, cvReady, resumeToShow?.resumeId, resumeToShow?.id, manualResumeId]);
+
+  useEffect(() => {
+    if (!isMobileEmbed || !cvReady) return;
+    notifyCvReadyForEmbed();
+    const t = window.setTimeout(notifyCvReadyForEmbed, 400);
+    return () => window.clearTimeout(t);
+  }, [isMobileEmbed, cvReady, mobileScale]);
+
   // ──────────── Render logic (all hooks are above, safe to return early) ────────────
 
   if (isLoadingResumes || (isManualCV && isLoadingManualData)) {
@@ -148,10 +205,9 @@ export function PublicCVPreviewPage() {
   let cvData: ExtractedCVData;
   if (isManualCV && manualCvData) {
     cvData = manualCvData;
-  } else if (resumeToShow.extracted_text) {
-    try {
-      cvData = JSON.parse(resumeToShow.extracted_text);
-    } catch {
+  } else if (hasParsedJson && resumeToShow.extracted_text) {
+    const parsed = parseExtractedCvData(resumeToShow.extracted_text);
+    if (!parsed) {
       return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center">
           <div className="bg-white p-8 rounded-lg shadow text-center">
@@ -161,6 +217,7 @@ export function PublicCVPreviewPage() {
         </div>
       );
     }
+    cvData = parsed;
   } else {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -169,14 +226,43 @@ export function PublicCVPreviewPage() {
     );
   }
 
+  const templateKey =
+    (resumeToShow.templateKey as CVTemplateKey) || 'cvhay-industry-safety';
+
+  if (isMobileEmbed) {
+    return (
+      <div
+        className="min-h-screen overflow-x-hidden bg-gray-200 py-2"
+        data-public-cv-page="mobile-embed"
+      >
+        <div
+          ref={scaleHostRef}
+          className="mx-auto flex w-full justify-center overflow-hidden px-2"
+          style={scaledHostHeight ? { minHeight: scaledHostHeight } : undefined}
+        >
+          <div
+            data-public-cv-scaler="true"
+            style={{
+              width: '210mm',
+              transform: mobileScale < 1 ? `scale(${mobileScale})` : undefined,
+              transformOrigin: 'top center',
+            }}
+          >
+            <CVPreview
+              data={cvData}
+              templateKey={templateKey}
+              showDownloadButton={false}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-200 py-8">
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm]">
-        <CVPreview
-          data={cvData}
-          templateKey={(resumeToShow.templateKey as CVTemplateKey) || 'cvhay-industry-safety'}
-          showDownloadButton={true}
-        />
+      <div className="mx-auto min-h-[297mm] max-w-[210mm] bg-white shadow-xl">
+        <CVPreview data={cvData} templateKey={templateKey} showDownloadButton={true} />
       </div>
     </div>
   );

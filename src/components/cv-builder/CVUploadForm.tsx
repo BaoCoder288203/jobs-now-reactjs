@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useAppSelector } from '@/app/hooks';
 import { useUploadResume } from '@/modules/resumes/hooks';
 import { Button } from '@/components/ui/button';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -10,8 +11,10 @@ export function CVUploadForm() {
   const userId = user?.userId ? String(user.userId) : '';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadMutation = useUploadResume();
+  const isUploading = uploadMutation.isPending;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isUploading) return;
     const file = e.target.files?.[0];
     if (!file || file.type !== 'application/pdf') {
       toast.error('Chỉ chấp nhận file PDF');
@@ -22,9 +25,27 @@ export function CVUploadForm() {
       return;
     }
     try {
-      await uploadMutation.mutateAsync({ userId, file });
+      const result = await uploadMutation.mutateAsync({ userId, file });
       if (fileInputRef.current) fileInputRef.current.value = '';
-      toast.success('Tải lên CV thành công');
+      const parseStatus = (result as { parseStatus?: string })?.parseStatus;
+      const sectionsSynced = (result as { sectionsSynced?: number })?.sectionsSynced;
+      if (parseStatus === 'SUCCESS') {
+        toast.success(
+          sectionsSynced != null && sectionsSynced > 0
+            ? `Đã nhập ${sectionsSynced} mục vào hồ sơ. Chỉnh sửa tại Quản lý CV.`
+            : 'Đã tải lên và phân tích CV thành công'
+        );
+      } else if (parseStatus === 'PARTIAL') {
+        toast.warning(
+          sectionsSynced != null && sectionsSynced > 0
+            ? `Đã nhập ${sectionsSynced} mục. Kiểm tra và bổ sung phần còn thiếu.`
+            : 'CV đã tải lên nhưng một số mục chưa nhận diện đủ'
+        );
+      } else if (parseStatus === 'FAILED') {
+        toast.warning('File đã lưu nhưng chưa phân tích được nội dung');
+      } else {
+        toast.success('Tải lên CV thành công');
+      }
     } catch (err: unknown) {
       toast.error((err as Error)?.message ?? 'Tải lên thất bại');
     }
@@ -40,10 +61,25 @@ export function CVUploadForm() {
         accept="application/pdf"
         onChange={handleFileSelect}
         className="hidden"
+        disabled={isUploading}
       />
-      <Button onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending}>
-        Chọn file PDF
+      <Button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
+        className="gap-2 min-w-[200px]"
+      >
+        {isUploading ? (
+          <>
+            <LoadingSpinner size="sm" className="border-white/40 border-t-white" />
+            Đang tải & phân tích...
+          </>
+        ) : (
+          'Chọn file PDF'
+        )}
       </Button>
+      {isUploading ? (
+        <p className="mt-4 text-sm text-gray-500">Đang xử lý file, vui lòng không đóng trang...</p>
+      ) : null}
     </div>
   );
 }

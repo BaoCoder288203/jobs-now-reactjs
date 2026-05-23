@@ -3,17 +3,17 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { CVBuilderSection } from '@/components/cv-builder/CVBuilderSection';
 import { useAppSelector } from '@/app/hooks';
 import { useResumes } from '@/modules/resumes/hooks';
-import type { ExtractedCVData } from '@/types';
+import { parseExtractedCvData } from '@/lib/parseExtractedCv';
 
 export function CVBuilderPage() {
   const [searchParams] = useSearchParams();
   const editResumeId = searchParams.get('edit') ?? null;
   const { user } = useAppSelector((state) => state.auth);
   const { data: resumes } = useResumes(user?.userId ? String(user.userId) : '');
-  const resumeToEdit = editResumeId ? resumes?.find((r) => r.id === editResumeId) : null;
-  const initialCVData = resumeToEdit?.extracted_text
-    ? (JSON.parse(resumeToEdit.extracted_text) as ExtractedCVData)
-    : undefined;
+  const resumeToEdit = editResumeId
+    ? resumes?.find((r) => String(r.id ?? r.resumeId) === editResumeId)
+    : null;
+  const initialCVData = parseExtractedCvData(resumeToEdit?.extracted_text) ?? undefined;
 
   return (
     <AppLayout>
@@ -23,7 +23,12 @@ export function CVBuilderPage() {
             ← Quay lại trang Tạo CV
           </Link>
         </div>
-        <CVBuilderSection editResumeId={editResumeId} initialCVData={initialCVData} />
+        <CVBuilderSection
+          editResumeId={editResumeId}
+          initialCVData={initialCVData}
+          editResumeName={resumeToEdit?.resumeName ?? resumeToEdit?.file_name}
+          editTemplateKey={resumeToEdit?.templateKey}
+        />
       </div>
     </AppLayout>
   );
