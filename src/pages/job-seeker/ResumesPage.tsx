@@ -14,10 +14,9 @@ import { getStoredCVAvatar } from '@/lib/cvAvatarStorage';
 import { getStoredCVLanguages } from '@/lib/cvLanguageStorage';
 import { getStoredCVHeadline } from '@/lib/cvHeadlineStorage';
 import * as profileCvService from '@/services/profile-cv.service';
-import { FileText, Upload, Star, Trash2, Download, Edit, FileEdit, Sparkles } from 'lucide-react';
+import { FileText, Upload, Star, Trash2, Download, FileEdit, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ExtractedCVData } from '@/types';
-
 type ImproveLanguage = 'auto' | 'vi' | 'en';
 
 export function JobSeekerResumesPage() {
@@ -40,8 +39,10 @@ export function JobSeekerResumesPage() {
   const uploadResume = useUploadResume();
   const setDefault = useSetDefaultResume();
   const deleteResume = useDeleteResume();
+  const isUploading = uploadResume.isPending;
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (isUploading) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -56,9 +57,28 @@ export function JobSeekerResumesPage() {
     }
 
     try {
-      await uploadResume.mutateAsync({ userId, file });
+      const result = await uploadResume.mutateAsync({ userId, file });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+      const parseStatus = (result as { parseStatus?: string })?.parseStatus;
+      const sectionsSynced = (result as { sectionsSynced?: number })?.sectionsSynced;
+      if (parseStatus === 'SUCCESS') {
+        toast.success(
+          sectionsSynced != null && sectionsSynced > 0
+            ? `Đã phân tích CV và nhập ${sectionsSynced} mục. Bạn có thể chỉnh sửa từng phần ngay.`
+            : 'Đã tải lên và phân tích CV thành công.'
+        );
+      } else if (parseStatus === 'PARTIAL') {
+        toast.warning(
+          sectionsSynced != null && sectionsSynced > 0
+            ? `Đã nhập ${sectionsSynced} mục. Vui lòng kiểm tra và bổ sung phần còn thiếu.`
+            : 'CV đã tải lên nhưng một số mục chưa nhận diện đủ.'
+        );
+      } else if (parseStatus === 'FAILED') {
+        toast.warning('CV đã tải lên file gốc nhưng chưa phân tích được nội dung. Bạn vẫn có thể xem file PDF.');
+      } else {
+        toast.success('Tải lên CV thành công');
       }
     } catch (error: any) {
       toast.error(error.message || 'Tải lên CV thất bại');
@@ -210,6 +230,18 @@ export function JobSeekerResumesPage() {
     await runImproveByResumeId(improveTargetResumeId, improvingResumeName || 'CV', language);
   };
 
+  const uploadButtonLabel = isUploading ? (
+    <>
+      <LoadingSpinner size="sm" className="border-white/40 border-t-white" />
+      Đang tải & phân tích...
+    </>
+  ) : (
+    <>
+      <Upload className="h-4 w-4" />
+      Tải CV lên
+    </>
+  );
+
   const content = (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -221,9 +253,12 @@ export function JobSeekerResumesPage() {
               Tạo CV mới
             </Button>
           </Link>
-          <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Tải CV lên
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            className="gap-2 min-w-[180px]"
+            disabled={isUploading}
+          >
+            {uploadButtonLabel}
           </Button>
           <input
             ref={fileInputRef}
@@ -231,9 +266,17 @@ export function JobSeekerResumesPage() {
             accept="application/pdf"
             onChange={handleFileSelect}
             className="hidden"
+            disabled={isUploading}
           />
         </div>
       </div>
+
+      {isUploading && (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+          <LoadingSpinner size="sm" />
+          <span>Đang tải file lên và phân tích CV bằng AI. Vui lòng đợi trong giây lát...</span>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -276,7 +319,7 @@ export function JobSeekerResumesPage() {
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
-                  {resume.file_url && resume.file_url.trim() ? (
+                  {/* {resume.file_url && resume.file_url.trim() ? ( */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -284,9 +327,9 @@ export function JobSeekerResumesPage() {
                       className="gap-2"
                     >
                       <Download className="h-4 w-4" />
-                      Xem
+                      File gốc
                     </Button>
-                  ) : (
+                  {/* ) : ( */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -296,12 +339,12 @@ export function JobSeekerResumesPage() {
                       <Download className="h-4 w-4" />
                       Tải PDF
                     </Button>
-                  )}
+                  {/* )} */}
 
                   <Link to={`/user/resumes/edit?id=${resume.id ?? (resume as { resumeId?: number }).resumeId}`} state={{ resumeName: resume.file_name ?? (resume as { resumeName?: string }).resumeName }}>
                     <Button variant="outline" size="sm" className="gap-2">
                       <FileEdit className="h-4 w-4" />
-                      Chỉnh sửa nội dung
+                      Chỉnh sửa
                     </Button>
                   </Link>
 
@@ -315,15 +358,6 @@ export function JobSeekerResumesPage() {
                     <Sparkles className="h-4 w-4" />
                     {improvingResumeId === Number(resume.id ?? resume.resumeId) ? 'Đang cải thiện...' : 'Improve CV'}
                   </Button>
-
-                  {resume.extracted_text && (
-                    <Link to={`/tools/tao-cv/builder?edit=${resume.id}`}>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Edit className="h-4 w-4" />
-                        Chỉnh sửa
-                      </Button>
-                    </Link>
-                  )}
 
                   {!resume.is_default && (
                     <Button
@@ -367,9 +401,13 @@ export function JobSeekerResumesPage() {
                   Tạo CV mới
                 </Button>
               </Link>
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
-                <Upload className="h-4 w-4" />
-                Tải CV lên
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                className="gap-2 min-w-[180px]"
+                disabled={isUploading}
+              >
+                {uploadButtonLabel}
               </Button>
             </div>
           </CardContent>

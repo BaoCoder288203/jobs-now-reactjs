@@ -16,9 +16,16 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
 interface CVFormTabsProps {
   editResumeId?: string | null;
   initialCVData?: ExtractedCVData;
+  editResumeName?: string;
+  editTemplateKey?: string;
 }
 
-export function CVFormTabs({ editResumeId, initialCVData }: CVFormTabsProps) {
+export function CVFormTabs({
+  editResumeId,
+  initialCVData,
+  editResumeName,
+  editTemplateKey,
+}: CVFormTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>(editResumeId ? 'manual' : 'ai');
 
   return (
@@ -42,7 +49,14 @@ export function CVFormTabs({ editResumeId, initialCVData }: CVFormTabsProps) {
         })}
       </div>
       {activeTab === 'ai' && <AIGeneratorForm />}
-      {activeTab === 'manual' && <ManualCVForm initialData={initialCVData} editResumeId={editResumeId} />}
+      {activeTab === 'manual' && (
+        <ManualCVForm
+          initialData={initialCVData}
+          editResumeId={editResumeId}
+          editResumeName={editResumeName}
+          editTemplateKey={editTemplateKey}
+        />
+      )}
       {activeTab === 'upload' && <CVUploadForm />}
     </div>
   );

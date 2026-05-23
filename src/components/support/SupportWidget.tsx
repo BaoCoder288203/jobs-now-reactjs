@@ -124,14 +124,14 @@ export function SupportWidget() {
                   SUPPORT_CONFIG.openSupportCta
                 )}
               </Button>
-              <a
+              {/* <a
                 href={SUPPORT_CONFIG.zaloLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex w-full items-center justify-center rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
               >
                 {SUPPORT_CONFIG.openZaloCta}
-              </a>
+              </a> */}
             </div>
           </div>
         </div>
