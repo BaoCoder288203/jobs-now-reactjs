@@ -9,7 +9,7 @@ import { useApplicationDetail, useUpdateApplicationStatus, useSendCustomEmail } 
 import { useCalculateJobMatch } from '@/modules/cv/hooks';
 import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target } from 'lucide-react';
+import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target, Image, X } from 'lucide-react';
 import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
 import { SendEmailModal } from '@/components/employer/SendEmailModal';
 import { RichTextContent } from '@/components/ui/RichTextContent';
@@ -20,6 +20,8 @@ export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [interviewModalOpen, setInterviewModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();
@@ -200,6 +202,19 @@ export function EmployerApplicationDetailPage() {
               </Card>
             )}
 
+            {/* Supporting Certificates Button */}
+            {application.resume && (application.resume.extractedText || application.resume.extracted_text) && 
+              (application.resume.extractedText || application.resume.extracted_text).includes('TÀI LIỆU/CHỨNG CHỈ') && (
+              <Button
+                variant="outline"
+                className="w-full mb-4 gap-2 border-sky-300 text-sky-700 hover:bg-sky-50"
+                onClick={() => setCertModalOpen(true)}
+              >
+                <Image className="h-4 w-4" />
+                Xem chứng chỉ & tài liệu đính kèm
+              </Button>
+            )}
+
             {/* Interview Details */}
             {application.status === 'interviewing' && application.interview_details_html && (
               <Card>
@@ -339,6 +354,49 @@ export function EmployerApplicationDetailPage() {
           }
         }}
       />
+
+      {certModalOpen && application?.resume && (() => {
+        const text = application.resume.extractedText || application.resume.extracted_text || '';
+        const startIndex = text.indexOf('--- TÀI LIỆU/CHỨNG CHỈ');
+        const content = startIndex !== -1 ? text.substring(startIndex) : text;
+        const urlRegex = /(https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|gif))/gi;
+        const urls = Array.from(content.matchAll(urlRegex)).map(m => m[0]);
+        return (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setCertModalOpen(false)}>
+            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Image className="h-5 w-5 text-emerald-600" />
+                  Chứng chỉ & Tài liệu đính kèm ({urls.length} ảnh)
+                </h3>
+                <button onClick={() => setCertModalOpen(false)} className="p-1 rounded-full hover:bg-gray-100 transition">
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3">
+                {urls.map((url, index) => (
+                  <button
+                    key={index}
+                    className="relative aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:shadow-lg transition group cursor-pointer"
+                    onClick={() => setLightboxUrl(url)}
+                  >
+                    <img src={url} alt={`Chứng chỉ ${index + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 cursor-pointer" onClick={() => setLightboxUrl(null)}>
+          <button onClick={() => setLightboxUrl(null)} className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/40 transition">
+            <X className="h-6 w-6 text-white" />
+          </button>
+          <img src={lightboxUrl} alt="Chứng chỉ phóng to" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </DashboardLayout>
   );
 }

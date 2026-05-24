@@ -55,6 +55,8 @@ function mapApplicationDetailToApplication(dto: ApplicationDetailDTO): Applicati
           file_name: resume.resumeName ?? '',
           is_default: false,
           created_at: '',
+          extractedText: (resume.extractedText || resume.extracted_text || '') as string,
+          extracted_text: (resume.extractedText || resume.extracted_text || '') as string,
         }
       : undefined,
   };
@@ -195,7 +197,7 @@ export async function syncApplicationsFromEmail(): Promise<string[]> {
   return (res.data ?? res) as string[];
 }
 
-export async function sendApplyEmail(jobId: string, email: String, fullName: String, subject?: string, body?: string, cvFile?: File): Promise<void> {
+export async function sendApplyEmail(jobId: string, email: String, fullName: String, subject?: string, body?: string, cvFile?: File, supportingFiles?: File[]): Promise<void> {
   if (USE_MOCK) {
     console.log("Mock: Sent apply email for job:", jobId);
     return;
@@ -208,6 +210,11 @@ export async function sendApplyEmail(jobId: string, email: String, fullName: Str
   if (body) formData.append("body", body);
   if (cvFile) {
     formData.append("cvFile", cvFile);
+  }
+  if (supportingFiles && supportingFiles.length > 0) {
+    supportingFiles.forEach((file) => {
+      formData.append("supportingFiles", file);
+    });
   }
   await apiClient.post("/application/send-apply-email", formData, {
     headers: {
