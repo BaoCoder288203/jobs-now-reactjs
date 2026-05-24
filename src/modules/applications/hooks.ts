@@ -136,8 +136,8 @@ export function useSyncApplicationsFromEmail() {
 
 export function useSendApplyEmail() {
   return useMutation({
-    mutationFn: ({ jobId, email, fullName, subject, body, cvFile }: { jobId: string; email: string; fullName: string; subject?: string; body?: string; cvFile: File }) =>
-      applicationService.sendApplyEmail(jobId, email, fullName, subject, body, cvFile)
+    mutationFn: ({ jobId, email, fullName, subject, body, cvFile, supportingFiles }: { jobId: string; email: string; fullName: string; subject?: string; body?: string; cvFile: File; supportingFiles?: File[] }) =>
+      applicationService.sendApplyEmail(jobId, email, fullName, subject, body, cvFile, supportingFiles)
   });
 }
 

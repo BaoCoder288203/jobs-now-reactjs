@@ -38,6 +38,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Mail,
+  Image,
+  UploadCloud
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Job } from '@/types';
@@ -114,6 +116,7 @@ export function JobDetailPage() {
   const [customSubject, setCustomSubject] = useState("");
   const [customBody, setCustomBody] = useState("");
   const [isManualCompose, setIsManualCompose] = useState(false);
+  const [certificateFiles, setCertificateFiles] = useState<File[]>([]);
   const sendEmailMutation = useSendApplyEmail();
 
   const handleSendEmail = async () => {
@@ -146,10 +149,12 @@ export function JobDetailPage() {
         fullName, 
         subject: isManualCompose ? customSubject : undefined,
         body: isManualCompose ? customBody : undefined,
-        cvFile: fileToSend 
+        cvFile: fileToSend,
+        supportingFiles: certificateFiles
       });
       setShowEmailApplyModal(false);
       setIsManualCompose(false);
+      setCertificateFiles([]);
       toast.success('Hệ thống đã gửi Email ứng tuyển thành công vào hòm thư tuyển dụng!');
     } catch (error: any) {
       console.error(error);
@@ -1024,8 +1029,50 @@ export function JobDetailPage() {
                     </div>
                   )}
 
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-gray-700 flex items-center gap-1.5">
+                      <Image className="h-4 w-4 text-emerald-600" />
+                      2. Đính kèm chứng chỉ / bằng cấp phụ (Ảnh hoặc PDF)
+                    </Label>
+                    <div className="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-lg p-3 text-center transition cursor-pointer relative bg-emerald-50/20">
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*,application/pdf"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const filesArray = Array.from(e.target.files);
+                            setCertificateFiles((prev) => [...prev, ...filesArray]);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="text-xs text-gray-600 flex flex-col items-center gap-1">
+                        <UploadCloud className="h-6 w-6 text-gray-400" />
+                        <span className="font-medium text-emerald-600">Click để chọn ảnh hoặc kéo thả chứng chỉ vào đây</span>
+                        <span className="text-[10px] text-gray-400">(Hỗ trợ .png, .jpg, .jpeg, .pdf)</span>
+                      </div>
+                    </div>
+                    {certificateFiles.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        {certificateFiles.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 border px-2 py-1.5 rounded">
+                            <span className="truncate max-w-[80%] font-medium text-gray-700">{file.name}</span>
+                            <button 
+                              type="button" 
+                              onClick={() => setCertificateFiles((prev) => prev.filter((_, i) => i !== idx))}
+                              className="text-red-500 hover:text-red-700 font-bold shrink-0 ml-2"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="border-t border-gray-200 pt-4 space-y-3">
-                    <Label className="font-semibold text-gray-700 block">2. Tùy chỉnh Email ứng tuyển</Label>
+                    <Label className="font-semibold text-gray-700 block">3. Tùy chỉnh Email ứng tuyển</Label>
                     
                     <div className="flex items-center gap-2 mb-2">
                       <input 
@@ -1087,6 +1134,7 @@ export function JobDetailPage() {
                       variant="ghost"
                       onClick={() => {
                         setShowEmailApplyModal(false);
+                        setCertificateFiles([]);
                       }}
                     >
                       Hủy bỏ
