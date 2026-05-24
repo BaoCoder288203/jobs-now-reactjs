@@ -10,7 +10,14 @@ interface ApplicationDetailDTO {
   appliedAt?: string;
   job?: { jobId?: number; title?: string; companyId?: number; companyName?: string; companyLogo?: string; location?: string; [k: string]: unknown };
   jobSeekerProfile?: { profileId?: number; userId?: number; fullName?: string; email?: string; avatarUrl?: string; [k: string]: unknown };
-  resumeApplied?: { resumeId?: number; resumeName?: string; resumeUrl?: string; [k: string]: unknown };
+  resumeApplied?: {
+    resumeId?: number;
+    resumeName?: string;
+    resumeUrl?: string;
+    extractedText?: string;
+    extracted_text?: string;
+    [k: string]: unknown;
+  };
   statusHistory?: { status?: string; time?: string }[];
 }
 
@@ -55,8 +62,7 @@ function mapApplicationDetailToApplication(dto: ApplicationDetailDTO): Applicati
           file_name: resume.resumeName ?? '',
           is_default: false,
           created_at: '',
-          extractedText: (resume.extractedText || resume.extracted_text || '') as string,
-          extracted_text: (resume.extractedText || resume.extracted_text || '') as string,
+          extracted_text: resume.extracted_text ?? resume.extractedText ?? '',
         }
       : undefined,
   };

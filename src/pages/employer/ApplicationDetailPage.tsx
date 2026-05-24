@@ -203,8 +203,7 @@ export function EmployerApplicationDetailPage() {
             )}
 
             {/* Supporting Certificates Button */}
-            {application.resume && (application.resume.extractedText || application.resume.extracted_text) && 
-              (application.resume.extractedText || application.resume.extracted_text).includes('TÀI LIỆU/CHỨNG CHỈ') && (
+            {application.resume?.extracted_text?.includes('TÀI LIỆU/CHỨNG CHỈ') && (
               <Button
                 variant="outline"
                 className="w-full mb-4 gap-2 border-sky-300 text-sky-700 hover:bg-sky-50"
@@ -356,11 +355,11 @@ export function EmployerApplicationDetailPage() {
       />
 
       {certModalOpen && application?.resume && (() => {
-        const text = application.resume.extractedText || application.resume.extracted_text || '';
+        const text = application.resume.extracted_text ?? '';
         const startIndex = text.indexOf('--- TÀI LIỆU/CHỨNG CHỈ');
         const content = startIndex !== -1 ? text.substring(startIndex) : text;
         const urlRegex = /(https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|gif))/gi;
-        const urls = Array.from(content.matchAll(urlRegex)).map(m => m[0]);
+        const urls = Array.from(content.matchAll(urlRegex), (m) => m[0]);
         return (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setCertModalOpen(false)}>
             <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
