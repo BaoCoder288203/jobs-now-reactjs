@@ -9,12 +9,13 @@ import { useApplicationDetail, useUpdateApplicationStatus, useSendCustomEmail } 
 import { useCalculateJobMatch } from '@/modules/cv/hooks';
 import { JobMatchResultCard } from '@/components/ai/JobMatchResultCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target, Image, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Download, Mail, Phone, MapPin, Target, Image, X, Video } from 'lucide-react';
 import { InterviewStatusModal } from '@/components/employer/InterviewStatusModal';
 import { SendEmailModal } from '@/components/employer/SendEmailModal';
 import { RichTextContent } from '@/components/ui/RichTextContent';
 import { toast } from 'sonner';
 import type { JobMatchResponse } from '@/services/ai.service';
+import { notifyVideoCallStarted } from '@/services/application.service';
 
 export function EmployerApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,12 +23,26 @@ export function EmployerApplicationDetailPage() {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [certModalOpen, setCertModalOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showVideoCall, setShowVideoCall] = useState(false);
 
   const { data: application, isLoading } = useApplicationDetail(id || '');
   const updateStatus = useUpdateApplicationStatus();
   const sendEmail = useSendCustomEmail();
   const calculateMatch = useCalculateJobMatch();
   const [matchResult, setMatchResult] = useState<JobMatchResponse | null>(null);
+
+  const extractMeetingLink = (html: string | null | undefined): string | null => {
+    if (!html) return null;
+    const match = html.match(/href="([^"]+)"/);
+    if (match) return match[1];
+    if (html.includes('http')) {
+      const rawMatch = html.match(/https?:\/\/[^\s<"']+/);
+      if (rawMatch) return rawMatch[0];
+    }
+    return null;
+  };
+
+  const meetingLink = application ? extractMeetingLink(application.interview_details_html) : null;
 
   const handleCheckMatch = async () => {
     if (!application) return;
@@ -214,6 +229,32 @@ export function EmployerApplicationDetailPage() {
               </Button>
             )}
 
+            {/* Video Call Button */}
+            {application.status === 'interviewing' && meetingLink && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVideoCall(true);
+                  if (id) {
+                    notifyVideoCallStarted(id).catch((err) => console.error('Failed to notify video call:', err));
+                  }
+                }}
+                className="w-full mb-4 flex items-center gap-3 px-5 py-4 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 transition-all duration-200 group shadow-sm"
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500 text-white shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-bold text-gray-800 text-sm">Tham gia phỏng vấn trực tuyến</h3>
+                  <p className="text-gray-500 text-xs mt-0.5">Mở phòng gọi video bảo mật JobsNow</p>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Sẵn sàng
+                </div>
+              </button>
+            )}
+
             {/* Interview Details */}
             {application.status === 'interviewing' && application.interview_details_html && (
               <Card>
@@ -394,6 +435,46 @@ export function EmployerApplicationDetailPage() {
             <X className="h-6 w-6 text-white" />
           </button>
           <img src={lightboxUrl} alt="Chứng chỉ phóng to" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+      {/* Full-screen Video Call Overlay */}
+      {showVideoCall && meetingLink && (
+        <div className="fixed inset-0 z-[90] flex flex-col bg-gray-900 animate-in fade-in duration-200">
+          {/* Premium Header Bar */}
+          <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 border-b border-gray-700/50 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                <Video className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+                  Phòng Phỏng vấn JobsNow
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    LIVE
+                  </span>
+                </h3>
+                <p className="text-gray-400 text-xs mt-0.5">
+                  {application?.job?.title} — {application?.job?.company?.name}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowVideoCall(false)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-sm font-medium"
+            >
+              <X className="w-4 h-4" />
+              Rời phòng
+            </button>
+          </div>
+          {/* Jitsi Iframe */}
+          <iframe
+            src={`${meetingLink}#userInfo.displayName="${encodeURIComponent(
+              application?.job?.company?.name || 'Nhà tuyển dụng'
+            )}"&config.startWithAudioMuted=true`}
+            allow="camera; microphone; fullscreen; display-capture; autoplay"
+            className="flex-1 w-full border-0"
+          />
         </div>
       )}
     </DashboardLayout>
