@@ -253,14 +253,28 @@ export function InterviewStatusModal({
                   <Video className="w-3.5 h-3.5 text-gray-400" />
                   Link cuộc họp <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="iv-link"
-                  type="url"
-                  placeholder="Ví dụ: https://meet.google.com/abc-defg-hij"
-                  value={form.meetingLink}
-                  onChange={(e) => update('meetingLink', e.target.value)}
-                  className="bg-gray-50/50"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="iv-link"
+                    type="url"
+                    placeholder="Ví dụ: https://meet.google.com/abc-defg-hij"
+                    value={form.meetingLink}
+                    onChange={(e) => update('meetingLink', e.target.value)}
+                    className="bg-gray-50/50 flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const roomName = `JobsNow-Interview-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+                      update('meetingLink', `https://meet.jit.si/${roomName}`);
+                    }}
+                    className="border-blue-200 text-blue-600 hover:bg-blue-50 gap-1.5 shrink-0"
+                  >
+                    <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
+                    Tự tạo phòng JobsNow
+                  </Button>
+                </div>
               </div>
             )}
           </section>
