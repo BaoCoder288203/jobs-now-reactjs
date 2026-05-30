@@ -229,3 +229,6 @@ export async function sendApplyEmail(jobId: string, email: String, fullName: Str
   });
 }
 
+export async function notifyVideoCallStarted(applicationId: string): Promise<void> {
+  await apiClient.post(`/application/${applicationId}/video-call-notify`);
+}
