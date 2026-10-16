@@ -18,7 +18,12 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+# macOS / AppleDouble metadata
 .DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
 *.suo
 *.ntvs*
 *.njsproj
