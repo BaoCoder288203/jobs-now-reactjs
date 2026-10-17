@@ -46,18 +46,18 @@ export function Dialog({ open, onOpenChange, children, containerClassName }: Dia
   const dialogContent = (
     <div className="fixed inset-0 z-[9999]">
       {/* Overlay - mờ đen nhẹ */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleOverlayClick}
       />
-      
+
       {/* Content - nằm giữa màn hình */}
-      <div 
+      <div
         className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none"
       >
-        <div 
+        <div
           className={cn(
-            "pointer-events-auto w-full max-w-2xl max-h-[90vh]",
+            "pointer-events-auto w-full max-w-4xl max-h-[100vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
             containerClassName
           )}
           onClick={(e) => e.stopPropagation()}
@@ -84,9 +84,9 @@ export function DialogContent({ children, className, showClose = true, onClose }
   };
 
   return (
-    <div 
+    <div
       className={cn(
-        "bg-white rounded-lg shadow-xl relative w-full max-h-[90vh] overflow-auto mx-auto",
+        "bg-white rounded-lg shadow-xl relative w-full max-h-[90vh] overflow-auto mx-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
         className
       )}
       onClick={handleClick}
